@@ -1,0 +1,29 @@
+{"prompt": "We have 120 hackathon submissions, triage them and tell me which ones need a closer look", "expect": "screen-cohort", "set": "tuning"}
+{"prompt": "Give me a quick first look at every repo in this folder", "expect": "screen-cohort", "set": "tuning"}
+{"prompt": "Screen these agent projects for security and licence problems and build a dashboard", "expect": "screen-cohort", "set": "tuning"}
+{"prompt": "Band these submissions by how much review they need", "expect": "screen-cohort", "set": "tuning"}
+{"prompt": "The screen flagged a leaked key in their deploy script, is that real or a fixture?", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "Show me the lines behind each flag in this scorecard", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "The project owner disputes the licence finding, check it", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "Go through every serious flag and tell me which ones are false positives", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "Score this harness release properly against the rubric, with evidence", "expect": "review-project", "set": "tuning"}
+{"prompt": "Give me an independent, evidence-backed verdict on this agent project", "expect": "review-project", "set": "tuning"}
+{"prompt": "Do a deep review of the shortlisted submission and render the verdict", "expect": "review-project", "set": "tuning"}
+{"prompt": "Evaluate the new release of our skill catalogue on all sixteen dimensions", "expect": "review-project", "set": "tuning"}
+{"prompt": "Fix the failing test in the classifier", "expect": null, "set": "tuning"}
+{"prompt": "Write a README for my new library", "expect": null, "set": "tuning"}
+{"prompt": "Add a new skill that formats SQL", "expect": null, "set": "tuning"}
+{"prompt": "Review this pull request and leave inline comments on the risky lines", "expect": null, "set": "tuning"}
+{"prompt": "Run the unit tests of this agent project and tell me whether they pass", "expect": null, "set": "tuning"}
+{"prompt": "Write evals for my skill so I can compare results with and without it", "expect": null, "set": "tuning"}
+{"prompt": "Scan my laptop's home folder for leaked API keys", "expect": null, "set": "tuning"}
+{"prompt": "Improve the description of my skill so it gets picked more often", "expect": null, "set": "tuning"}
+{"prompt": "Our screen marked a file with a GPL header; is it vendored or theirs?", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "Explain why the dashboard put this project in the blocked band", "expect": "triage-flags", "set": "tuning"}
+{"prompt": "A reviewer cited src/app.py line 40 as evidence, check the quote still matches", "expect": "review-project", "set": "tuning"}
+{"prompt": "Before we pick finalists, give each shortlisted team a full scored verdict", "expect": "review-project", "set": "tuning"}
+{"prompt": "First pass over the 30 repos in ./entries before the judges meet", "expect": "screen-cohort", "set": "tuning"}
+{"prompt": "Someone says the verdict misquotes their code; confirm each citation against the repo", "expect": "review-project", "set": "held-out"}
+{"prompt": "Which flag made this submission land in the review band?", "expect": "triage-flags", "set": "held-out"}
+{"prompt": "Give me a security audit of my own agent settings before I install more plugins", "expect": null, "set": "held-out"}
+{"prompt": "Screen tonight's 45 entries and send me the dashboard", "expect": "screen-cohort", "set": "held-out"}

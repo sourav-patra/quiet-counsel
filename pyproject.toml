@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quiet-counsel"
+version = "0.1.0"
+description = "Score an agent project on what its repository contains, with evidence for every number. Zero dependencies."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = []              # the standard library only, by design
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.scripts]
+quiet-counsel = "quiet_counsel.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+quiet_counsel = ["py.typed", "scorecard.schema.json"]

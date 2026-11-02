@@ -1,0 +1,469 @@
+{
+  "schema": "scorecard/1",
+  "mode": "screen",
+  "project": {
+    "name": "sample-project",
+    "path": "sample-project",
+    "commit": null,
+    "measured_at": "2026-09-24T00:00:00+00:00",
+    "archetype": "catalogue",
+    "archetype_evidence": [
+      {
+        "kind": "file",
+        "ref": "1 distinct skill definitions",
+        "excerpt": "skills/data-export/SKILL.md"
+      },
+      {
+        "kind": "file",
+        "ref": "1 distinct agent definitions declaring tools",
+        "excerpt": "agents/reviewer.md"
+      }
+    ]
+  },
+  "signals": {
+    "skill_definitions": {
+      "value": 1,
+      "command": "distinct skill identities (directory name), hidden dirs excluded"
+    },
+    "skill_definition_files": {
+      "value": 1,
+      "command": "raw SKILL.md file count, hidden dirs excluded"
+    },
+    "agent_definitions": {
+      "value": 1,
+      "command": "distinct agent identities declaring a tool surface"
+    },
+    "command_definitions": {
+      "value": 0,
+      "command": "distinct command identities"
+    },
+    "always_loaded_description_chars": {
+      "value": 48,
+      "command": "sum of description frontmatter, one copy per distinct definition"
+    },
+    "always_loaded_description_tokens_est": {
+      "value": 12,
+      "command": "chars / 4",
+      "note": "estimate"
+    },
+    "descriptions_without_when": {
+      "value": 1,
+      "command": "description lacking 'when'"
+    },
+    "definitions_declaring_tools": {
+      "value": 0,
+      "command": "allowed-tools or tools key"
+    },
+    "non_spec_frontmatter_keys": {
+      "value": {
+        "version": 1
+      },
+      "command": "frontmatter keys outside the spec"
+    },
+    "always_loaded_rulebook_bytes": {
+      "value": {},
+      "command": "wc -c on root instruction files"
+    },
+    "test_files": {
+      "value": 1,
+      "command": "files under tests/ or named *.test.*"
+    },
+    "eval_dirs": {
+      "value": [],
+      "command": "directories named eval/ or evals/"
+    },
+    "ci_workflow_files": {
+      "value": 0,
+      "command": "ls .github/workflows"
+    },
+    "ci_actions_pinned_by_digest": {
+      "value": "0/0",
+      "command": "uses: lines pinned to a 40-char digest"
+    },
+    "jenkinsfile": {
+      "value": false,
+      "command": "test -f Jenkinsfile"
+    },
+    "secret_pattern_hits": {
+      "value": {
+        "high_confidence": 1,
+        "fixture_or_placeholder": 0
+      },
+      "command": "credential-shape sweep, split by confidence",
+      "note": "fixtures, examples and documented placeholders match the same shapes as real keys"
+    },
+    "supply_chain_hits": {
+      "value": 2,
+      "command": "installer and TLS patterns"
+    },
+    "lockfiles": {
+      "value": [],
+      "command": "test -f on known lockfiles"
+    },
+    "untrusted_content_guidance_hits": {
+      "value": 0,
+      "command": "guidance phrases"
+    },
+    "host_config_writes": {
+      "value": 0,
+      "command": "code writing to host settings, hooks or CLAUDE.md, AGENTS.md, GEMINI.md"
+    },
+    "rulebook_missing_paths": {
+      "value": 0,
+      "command": "paths named in root instruction files that do not exist"
+    },
+    "hidden_character_hits": {
+      "value": 1,
+      "command": "scan for zero-width, bidi, tag blocks"
+    },
+    "licence_declared": {
+      "value": "MIT",
+      "command": "root LICENSE file, matched against known texts"
+    },
+    "nested_licence_files": {
+      "value": 1,
+      "command": "LICENSE files below root"
+    },
+    "history": {
+      "value": {
+        "available": false,
+        "reason": "no git directory — history cannot be measured"
+      },
+      "command": "git rev-list / log"
+    },
+    "third_party_declarations": {
+      "value": 1,
+      "command": "frontmatter licence keys, source lines and SPDX headers",
+      "note": "share-alike 1"
+    },
+    "readme_bytes": {
+      "value": 242,
+      "command": "wc -c README"
+    },
+    "absolute_path_hits": {
+      "value": 0,
+      "command": "machine-specific paths in text files"
+    }
+  },
+  "flags": [
+    {
+      "id": "secret-in-tree",
+      "severity": "critical",
+      "title": "1 credential-shaped string(s) outside test and example paths",
+      "detail": "The lines are withheld here. Verify each before acting; a live credential caps the safety group at 3 and should be rotated, not just deleted.",
+      "caps": "safety<=3",
+      "evidence": [
+        {
+          "kind": "file",
+          "ref": "scripts/deploy.sh:2",
+          "excerpt": "[aws-access-key] <line withheld>"
+        }
+      ]
+    },
+    {
+      "id": "curl-pipe-shell",
+      "severity": "serious",
+      "title": "Installer pipes a download into a shell",
+      "evidence": [
+        {
+          "kind": "file",
+          "ref": "README.md:9",
+          "excerpt": "curl -fsSL https://nimbus.example.invalid/install.sh | bash"
+        },
+        {
+          "kind": "file",
+          "ref": "scripts/deploy.sh:3",
+          "excerpt": "curl -fsSL https://nimbus.example.invalid/deploy.sh | sh"
+        }
+      ]
+    },
+    {
+      "id": "hidden-characters",
+      "severity": "serious",
+      "title": "Hidden or direction-changing characters in 1 line(s)",
+      "detail": "These can hide text from a human reader while a model still reads it.",
+      "evidence": [
+        {
+          "kind": "file",
+          "ref": "scripts/run.py:2",
+          "excerpt": "U+200B in: print(\"nimbus​\")"
+        }
+      ]
+    },
+    {
+      "id": "evaluator-directed-text",
+      "severity": "critical",
+      "title": "Text in the submission addresses the evaluator",
+      "detail": "Reported, never acted on. Scoring stops until a person rules on it.",
+      "caps": "do-not-score",
+      "evidence": [
+        {
+          "kind": "file",
+          "ref": "skills/data-export/SKILL.md:10",
+          "excerpt": "[planted text withheld from this committed copy; src/quiet_counsel/sample.py assembles it]"
+        },
+        {
+          "kind": "file",
+          "ref": "skills/data-export/SKILL.md:10",
+          "excerpt": "[planted text withheld from this committed copy; src/quiet_counsel/sample.py assembles it]"
+        }
+      ]
+    },
+    {
+      "id": "copyleft-in-permissive-tree",
+      "severity": "critical",
+      "title": "Copyleft licence text inside a MIT-licensed tree",
+      "detail": "Redistribution may be non-compliant. These are facts only; a person rules.",
+      "caps": "D1=0",
+      "evidence": [
+        {
+          "kind": "file",
+          "ref": "vendor/fastclip/LICENSE:1",
+          "excerpt": "[GPL] GNU GENERAL PUBLIC LICENSE"
+        },
+        {
+          "kind": "file",
+          "ref": "vendor/fastclip/clip.py:1",
+          "excerpt": "[GPL] # SPDX-License-Identifier: GPL-3.0"
+        },
+        {
+          "kind": "file",
+          "ref": "vendor/fastclip/clip.py:1",
+          "excerpt": "[AGPL] # SPDX-License-Identifier: GPL-3.0"
+        },
+        {
+          "kind": "file",
+          "ref": "vendor/fastclip/clip.py:1",
+          "excerpt": "[LGPL] # SPDX-License-Identifier: GPL-3.0"
+        }
+      ]
+    },
+    {
+      "id": "contradicted-claim",
+      "severity": "serious",
+      "title": "1 claim(s) the repository contradicts",
+      "caps": "B2<=2",
+      "evidence": [
+        {
+          "kind": "note",
+          "ref": "README.md: “12 skills”",
+          "excerpt": "1 distinct skills found"
+        }
+      ]
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "A1",
+      "group": "methodology",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "A2",
+      "group": "methodology",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "A3",
+      "group": "methodology",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "A4",
+      "group": "methodology",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "B1",
+      "group": "evidence",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "B2",
+      "group": "evidence",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "B3",
+      "group": "evidence",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "C1",
+      "group": "safety",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "C2",
+      "group": "safety",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "C3",
+      "group": "safety",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "C4",
+      "group": "safety",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "D1",
+      "group": "integrity",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "D2",
+      "group": "integrity",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "E1",
+      "group": "product",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "E2",
+      "group": "product",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    },
+    {
+      "id": "E3",
+      "group": "product",
+      "applicable": true,
+      "score": null,
+      "confidence": "unverified",
+      "rationale": "screen mode measures signals; it does not score",
+      "evidence": []
+    }
+  ],
+  "claims": [
+    {
+      "claim": "340 tests",
+      "kind": "tests",
+      "location": "README.md",
+      "status": "unchecked",
+      "kind_of_claim": "inventory",
+      "measured": "1 test files present (cases not counted here)",
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "files under tests/ or named *.test.*",
+          "excerpt": "1"
+        }
+      ]
+    },
+    {
+      "claim": "12 skills",
+      "kind": "skills",
+      "location": "README.md",
+      "status": "contradicted",
+      "kind_of_claim": "inventory",
+      "measured": "1 distinct skills found",
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "distinct skills identities",
+          "excerpt": "1"
+        }
+      ]
+    },
+    {
+      "claim": "SOC 2",
+      "kind": "soc2",
+      "location": "README.md",
+      "status": "unsupported",
+      "measured": "no supporting artifact found in the repository"
+    },
+    {
+      "claim": "Production-ready",
+      "kind": "production-ready",
+      "location": "README.md",
+      "status": "unsupported",
+      "measured": "no supporting artifact found in the repository"
+    }
+  ],
+  "totals": {
+    "mean": null,
+    "group_means": {},
+    "band": "blocked",
+    "caps_applied": [
+      "safety<=3",
+      "do-not-score",
+      "D1=0",
+      "B2<=2"
+    ]
+  },
+  "limits": [
+    "Provenance was not measured: no git directory — history cannot be measured",
+    "No corpus given, so duplication against known public projects was not measured (--corpus DIR).",
+    "Screen mode is mechanical. No score here is a judgement, and every dimension is marked unverified until a deep pass.",
+    "Regex sweeps find shapes, not meanings: a fixture can look like a credential and a quoted licence can look like a breach. Every flag names its evidence, a file and line or a command or commit, so a reader can check."
+  ],
+  "run": {
+    "tool_version": "0.1.0",
+    "corpus": null,
+    "duration_s": 0.0
+  }
+}

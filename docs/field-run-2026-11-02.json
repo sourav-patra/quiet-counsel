@@ -1,0 +1,9 @@
+{
+  "run_date": "2026-11-02",
+  "run_by": "the author, once; the repository list is withheld so as not to name other people's projects",
+  "checks": "the checks of this version (0.1.0)",
+  "repositories_screened": 50,
+  "screen_errors": 0,
+  "flags_by_severity": {"critical": 4, "serious": 31, "warning": 36, "info": 34},
+  "new_check_flags": {"install-time-script/warning": 4, "open-time-hook/warning": 1}
+}

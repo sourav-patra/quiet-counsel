@@ -1,0 +1,3 @@
+# Paths this repository asks its own screen to treat as evidence rather than source.
+# Findings here are still shown, downgraded to information; --no-ignore counts them.
+examples/

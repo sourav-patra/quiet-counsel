@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scorecard/1",
+  "title": "Agent project scorecard",
+  "description": "One evaluated project. Every score carries evidence; a score without evidence is not renderable by the dashboard.",
+  "type": "object",
+  "required": ["schema", "project", "mode", "signals", "flags", "dimensions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "scorecard/1" },
+    "mode": {
+      "enum": ["screen", "deep"],
+      "description": "screen = mechanical only, confidence never above 'unverified'. deep = judged, with evidence per dimension."
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "path", "measured_at"],
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "source": { "type": "string", "description": "Remote URL if known" },
+        "commit": { "type": "string", "description": "The exact revision measured. A score with no commit is a score about nothing." },
+        "measured_at": { "type": "string", "format": "date-time" },
+        "archetype": { "enum": ["catalogue", "harness", "orchestrator", "tool", "application", "unknown"] },
+        "archetype_evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "archetype_override": { "type": "string", "description": "Set only when a human overrode the classifier; states the grounds." },
+        "tree_sha256": { "type": "string", "description": "Deep mode: a hash over every file's path and content when the worksheet was prepared. Finalize refuses if the tree no longer matches." },
+        "tree_root": { "type": "string", "description": "Deep mode: the absolute project path at prepare, so finalize can find it from another directory. Worksheets are local files and are not published." },
+        "tree_files": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Deep mode: each file's content hash at prepare, to name what changed." }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "description": "Mechanical measurements. Each value carries the command that produced it.",
+      "additionalProperties": { "$ref": "#/$defs/signal" }
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "title", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "enum": ["critical", "serious", "warning", "info"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "caps": { "type": "string", "description": "Rubric cap this flag triggers, if any" },
+          "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
+        }
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "group", "applicable"],
+        "properties": {
+          "id": { "enum": ["A1","A2","A3","A4","B1","B2","B3","C1","C2","C3","C4","D1","D2","E1","E2","E3"] },
+          "group": { "enum": ["methodology", "evidence", "safety", "integrity", "product"] },
+          "applicable": { "type": "boolean" },
+          "na_reason": { "type": "string", "description": "Required when applicable is false. A dimension dropped without a reason is a hidden score." },
+          "score": { "type": ["number", "null"], "minimum": 0, "maximum": 10 },
+          "confidence": { "enum": ["measured", "judged", "unverified"] },
+          "rationale": { "type": "string" },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "description": "Claims the project makes about itself, and what measurement says.",
+      "items": {
+        "type": "object",
+        "required": ["claim", "status"],
+        "properties": {
+          "claim": { "type": "string" },
+          "location": { "type": "string" },
+          "status": { "enum": ["confirmed", "unsupported", "contradicted", "unchecked"] },
+          "measured": { "type": "string" },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "mean": { "type": ["number", "null"] },
+        "group_means": { "type": "object", "additionalProperties": { "type": ["number", "null"] } },
+        "band": { "enum": ["blocked", "review", "shortlist", "screened"] },
+        "caps_applied": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "limits": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "What this run did not establish. Rendered in the dashboard, not hidden in a footnote."
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "tool_version": { "type": "string" },
+        "duration_s": { "type": "number" },
+        "tier": { "type": "string", "description": "Reasoning tier used for judged dimensions, if any" },
+        "corpus": { "type": "string" },
+        "evidence_bundle": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": { "enum": ["command", "file", "commit", "url", "note"] },
+        "ref": { "type": "string", "description": "The command run, or path:line, or a commit, or a URL" },
+        "excerpt": { "type": "string", "description": "Verbatim output or file content. Truncated excerpts end with an ellipsis." }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "required": ["value"],
+      "properties": {
+        "value": {},
+        "unit": { "type": "string" },
+        "command": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

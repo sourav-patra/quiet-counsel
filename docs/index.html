@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>quiet-counsel: reads an agent project's repository and shows the evidence behind each number</title>
+<meta name="description" content="Reads an agent project's repository, works out what kind of project it is, flags what looks wrong, and shows the file and line, or the command, behind each number. Local, standard library, no network call, no model.">
+<link rel="icon" href="data:,">
+<style>
+:root {
+  --bg: #f7f4ec;
+  --fg: #1d1b17;
+  --muted: #56524a;
+  --rule: #b9b19d;
+  --edge: #8a826e;
+  --surface: #ede8da;
+  --accent: #0b5a52;
+  --warn: #8a2d0c;
+  --sel-bg: #0b5a52;
+  --sel-fg: #f7f4ec;
+  --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15140f;
+    --fg: #ece7da;
+    --muted: #b6af9e;
+    --rule: #4a463a;
+    --edge: #78735f;
+    --surface: #201e17;
+    --accent: #72d3c3;
+    --warn: #f2a583;
+    --sel-bg: #72d3c3;
+    --sel-fg: #15140f;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scrollbar-color: var(--rule) var(--bg); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 1.0625rem/1.6 var(--serif);
+  overflow-wrap: break-word;
+}
+::selection { background: var(--sel-bg); color: var(--sel-fg); }
+a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 0.07em; }
+a:hover { text-decoration-thickness: 0.15em; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: 0.5rem; top: -4rem; background: var(--fg); color: var(--bg); padding: 0.5rem 0.75rem; z-index: 2; }
+.skip:focus { top: 0.5rem; }
+.wrap { max-width: 64rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+
+header .wrap { padding-top: clamp(2rem, 6vw, 3.5rem); padding-bottom: 1.5rem; }
+h1 {
+  margin: 0 0 1rem;
+  font: 700 clamp(1.9rem, 7vw, 3.25rem)/1.1 var(--mono);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.lead { margin: 0; max-width: 34rem; font-size: clamp(1.25rem, 3.4vw, 1.5rem); line-height: 1.4; }
+.meta { margin: 1rem 0 0; font: 0.875rem/1.5 var(--sans); color: var(--muted); }
+nav[aria-label="Sections"] { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+nav ul { list-style: none; margin: 0 auto; padding: 0.25rem clamp(1rem, 4vw, 2rem); max-width: 64rem; display: flex; flex-wrap: wrap; gap: 0 1.25rem; font: 0.9375rem/1 var(--sans); }
+nav a { display: inline-block; padding: 0.7rem 0; }
+
+main section { border-bottom: 1px solid var(--rule); }
+main section > .wrap { padding-top: 2.25rem; padding-bottom: 2.5rem; display: grid; gap: 0.75rem 2.5rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 52rem) {
+  main section > .wrap { grid-template-columns: 11.5rem minmax(0, 1fr); }
+}
+h2 { margin: 0; font: 700 0.875rem/1.35 var(--sans); letter-spacing: 0.09em; text-transform: uppercase; }
+h3 { margin: 1.75rem 0 0.5rem; font: 700 1rem/1.35 var(--sans); }
+h3:first-child { margin-top: 0; }
+.body > * { max-width: 68ch; }
+.body > pre, .body > .wide, .body > table { max-width: none; }
+.body > :first-child { margin-top: 0; }
+p { margin: 0 0 1rem; }
+ul { margin: 0 0 1rem; padding-left: 1.25rem; }
+li { margin-bottom: 0.5rem; }
+code, pre, kbd { font-family: var(--mono); font-size: 0.875rem; }
+code { overflow-wrap: anywhere; }
+pre {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  overflow-x: auto;
+  line-height: 1.5;
+  tab-size: 4;
+  scrollbar-color: var(--muted) var(--surface);
+}
+pre.cmd { margin-bottom: 0; border-bottom: 0; }
+pre.cmd + pre { border-top-style: dashed; }
+pre.cmd::before, pre.out::before { display: block; margin-bottom: 0.3rem; font: 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+pre.cmd::before { content: "Command"; }
+pre.out::before { content: "Output"; }
+.sev { color: var(--warn); font-weight: 700; }
+
+.limits { background: var(--surface); border-top: 3px solid var(--fg); }
+.limits .body { font-size: 1.125rem; }
+.limits .body p.key { font-size: 1.25rem; line-height: 1.5; }
+.limits a { color: var(--accent); }
+
+dl.flag { margin: 0 0 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; border: 1px solid var(--edge); background: var(--surface); }
+dl.flag dt { padding: 0.6rem 1rem 0; font: 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+dl.flag dd { margin: 0; padding: 0.15rem 1rem 0.6rem; }
+@media (min-width: 40rem) {
+  dl.flag { grid-template-columns: 9rem minmax(0, 1fr); }
+  dl.flag dt { padding: 0.65rem 0 0.65rem 1rem; border-top: 1px solid var(--rule); }
+  dl.flag dd { padding: 0.55rem 1rem; border-top: 1px solid var(--rule); }
+  dl.flag dt:first-of-type, dl.flag dt:first-of-type + dd { border-top: 0; }
+}
+
+table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 0.9375rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+caption { text-align: left; padding: 0 0 0.6rem; color: var(--muted); font-size: 0.9375rem; }
+th { text-align: left; font: 700 0.75rem/1.3 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 0.5rem 0.9rem 0.5rem 0; border-bottom: 2px solid var(--fg); }
+td { padding: 0.65rem 0.9rem 0.65rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.pat { font-weight: 600; }
+.nw { white-space: nowrap; }
+@media (max-width: 42rem) {
+  table, tbody, tr, td, caption { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  tr { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+  td { border: 0; padding: 0.2rem 0; }
+  td::before { content: attr(data-label); display: block; font: 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  td.pat::before { display: none; }
+  td.pat { font-size: 1rem; }
+}
+
+footer { background: var(--surface); border-top: 3px solid var(--fg); }
+footer .wrap { padding-top: 2rem; padding-bottom: 2.5rem; font-size: 0.9375rem; }
+footer p { margin: 0 0 0.75rem; max-width: 68ch; }
+footer ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0 1.25rem; font-family: var(--sans); }
+footer li { margin: 0; }
+footer li a { display: inline-block; padding: 0.4rem 0; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header>
+  <div class="wrap">
+    <h1>quiet-counsel</h1>
+    <p class="lead">Reads an agent project's repository, works out what kind of project it is, flags what looks wrong, and shows the file and line, or the command, behind each number.</p>
+    <p class="meta">v0.1.0 &middot; MIT &middot; Python 3.11 or newer, standard library &middot; no network call, no model</p>
+  </div>
+</header>
+
+<nav aria-label="Sections">
+  <ul>
+    <li><a href="#install">Install and run</a></li>
+    <li><a href="#result">A real result</a></li>
+    <li><a href="#cannot-see">What it cannot see</a></li>
+    <li><a href="#measured">What is measured</a></li>
+    <li><a href="#notices">Notices</a></li>
+    <li><a href="#compare">How it differs</a></li>
+  </ul>
+</nav>
+
+<main id="main">
+
+<section id="install" aria-labelledby="h-install">
+  <div class="wrap">
+    <h2 id="h-install">Install and run</h2>
+    <div class="body">
+<pre tabindex="0">pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+quiet-counsel classify ./project
+quiet-counsel screen ./submissions/* --corpus ./corpus --out ./cards
+quiet-counsel dashboard ./cards/*.json --out cohort.html</pre>
+      <p>It runs locally on the Python standard library (3.11 or newer). It makes no network call and calls no model. The result is one HTML page you can open, email or commit.</p>
+      <p><code>quiet-counsel sample &lt;dir&gt;</code> writes a synthetic project with five planted problems, and <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/examples/sample-dashboard.html">examples/sample-dashboard.html</a> is the page built from it.</p>
+      <p>To check the no-network claim, run cases G-03 (no module imports a network library) and G-09 (a screen with every socket refused gives the same card byte for byte, with the clock fixed):</p>
+<pre tabindex="0">TZ=UTC PYTHONPATH=src:tests python3 -m unittest discover -s tests -t tests -k test_G03 -k test_G09</pre>
+    </div>
+  </div>
+</section>
+
+<section id="result" aria-labelledby="h-result">
+  <div class="wrap">
+    <h2 id="h-result">A real result</h2>
+    <div class="body">
+      <h3>A flag from a synthetic project</h3>
+      <p>This run is on the sample project the tool writes for itself. It is synthetic: a made-up catalogue with five problems planted in it. The output is pasted as the tool printed it, and the flag fields are read from the card file it wrote.</p>
+<pre class="cmd" tabindex="0">quiet-counsel sample ./sample-project
+quiet-counsel screen ./sample-project --out ./scards</pre>
+<pre class="out" tabindex="0">sample project written to ./sample-project
+1 scorecard(s) written to ./scards
+  blocked    sample-project                     catalogue     critical:secret-in-tree, serious:curl-pipe-shell, serious:hidden-characters, critical:evaluator-directed-text, critical:copyleft-in-permissive-tree, serious:contradicted-claim</pre>
+      <p>One of the six flags, read from <code>./scards/sample-project.json</code>, <code>flags</code> entry <code>curl-pipe-shell</code>. It has two evidence items; the first is shown.</p>
+      <dl class="flag">
+        <dt>Severity</dt><dd><span class="sev">serious</span></dd>
+        <dt>Title</dt><dd>Installer pipes a download into a shell</dd>
+        <dt>File and line</dt><dd><code>README.md:9</code></dd>
+        <dt>Quoted text</dt><dd><code>curl -fsSL https://nimbus.example.invalid/install.sh | bash</code></dd>
+      </dl>
+      <p>The same card has a <code>secret-in-tree</code> flag. A line that holds a credential shape, or a word such as <code>secret</code>, <code>token</code> or <code>password</code>, is not quoted by the scanner: the flag keeps its file and line (<code>scripts/deploy.sh:2</code>) and its quoted text reads <code>[aws-access-key] &lt;line withheld&gt;</code>. You open the line to read it. Every other line is quoted as written. A repository written to defeat this can still get text onto a card, so read a card before you share it.</p>
+<pre class="cmd" tabindex="0">quiet-counsel dashboard ./scards/*.json --out sample.html</pre>
+<pre class="out" tabindex="0">sample.html: 1 project(s), 21,088 bytes</pre>
+      <p>The dashboard page says: &ldquo;Bands order attention, they do not rank quality, and nothing here is eliminated by a band. Every number below was produced by a command that is printed beside it, and every flag names its evidence (a file and line, or a command or commit), so you can check any claim on this page against the repository it describes.&rdquo; The same page built from this sample is <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/examples/sample-dashboard.html">examples/sample-dashboard.html</a>.</p>
+
+      <h3>The tool's own repository</h3>
+      <p>This run is on the tool's own repository at v0.1.0, from a clone in a folder named quiet-counsel.</p>
+<pre class="cmd" tabindex="0">quiet-counsel screen ./quiet-counsel --out ./cards</pre>
+<pre class="out" tabindex="0">1 scorecard(s) written to ./cards
+  shortlist  quiet-counsel                          harness       info:credential-shaped-fixtures, info:quoted-evaluator-text, info:copyleft-in-permissive-tree</pre>
+      <p>A second script reads the card and confirms that each cited line exists and either holds the quoted text or is a line the scanner withholds. Seven lines of its output, as printed:</p>
+<pre class="cmd" tabindex="0">python3 tools/check_evidence.py . --list</pre>
+<pre class="out" tabindex="0">screened .
+flags: 3
+  file and line, excerpt on the line: 3  (credential-shaped-fixtures, quoted-evaluator-text, copyleft-in-permissive-tree)
+  file and line, excerpt differs: 0
+  command, commit, note or path only: 0
+  no evidence: 0
+evidence items on flags: match 7, withheld 6, differs 0, broken 0, no line 0</pre>
+      <p>The output holds no score for the project. The dashboard marks the dimensions as unscored in screen mode.</p>
+    </div>
+  </div>
+</section>
+
+<section id="cannot-see" class="limits" aria-labelledby="h-cannot">
+  <div class="wrap">
+    <h2 id="h-cannot">What it cannot see</h2>
+    <div class="body">
+      <p class="key">It reads files in one directory tree. It cannot see stolen accounts, package registries, extension marketplaces, runtime behaviour or deployed versions. It does not run a project's tests, does not guess whether a person or a model wrote the code, and lists licence text without ruling on it in law. Copy detection matches identical content against the corpus you supply and misses a rewritten copy.</p>
+      <p><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/NOTICES.md">docs/NOTICES.md</a> records eight 2026 incident patterns and what this tool does and does not look at for each. Of the seven that are not the hackerbot-claw campaign, five (the OpenAI and Hugging Face breach, the LiteLLM 1.107.0 release, the Cursor extension, the PHP flaw and the Node.js flaw) are marked <code>invisible</code>: the affected material is not in a repository tree, or depends on a version the tool does not compare against an advisory.</p>
+      <p class="key">For the other two, the keyv worm and the fake audit workflow, the files appear with the compromise, so a screen of the affected repository had nothing to find beforehand; the checks can list them afterwards, to help a person triage. No detection rate exists for any of them.</p>
+    </div>
+  </div>
+</section>
+
+<section id="measured" aria-labelledby="h-measured">
+  <div class="wrap">
+    <h2 id="h-measured">What is measured, and what is not</h2>
+    <div class="body">
+      <ul>
+        <li>Flags about a file cite its path and line. Flags about history or a missing file cite a command or a commit. <code>tools/check_evidence.py</code> confirms that each cited line exists and either holds the quoted text or is a line the scanner withholds (the excerpt reads <code>&lt;line withheld&gt;</code>: the line holds a credential shape or a word such as <code>token</code>, and you open it to read it). On this repository's own tree it reports 3 flags, all 3 citing a file and line (13 evidence items: 7 with the quoted text on the line, 6 withheld lines, 0 broken, 0 differing). Of the 24 numeric signals on a card, 0 cite a file and line; the rest cite the command that produces them. Reproduce with <code>python3 tools/check_evidence.py . --list</code>.</li>
+        <li>Accuracy is not measured and no benchmark exists. Case F-01 in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/test-suite.md">docs/test-suite.md</a> stays open until a person has read every flag from a real cohort.</li>
+        <li>Field run: one run by the author on 2 November 2026, of 50 public agent repositories drawn from a personal catalogue of agent tools, ordered by a hash of each name, taking the top 50 of that order under 150 MB, screened with this version's checks. There were 0 screen errors and 5 warnings from the checks added for the incident notices (4 <code>install-time-script</code>, 1 <code>open-time-hook</code>). In all, 4 critical, 31 serious, 36 warning and 34 information flags. The data-out and untrusted-code checks raised nothing, so the one place they have fired is test fixtures. The repository list is withheld so as not to name other people's projects, so a reader cannot reproduce this run; the aggregates are in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/field-run-2026-11-02.json">docs/field-run-2026-11-02.json</a>. No person has read every flag.</li>
+        <li>A project's own <code>.scanignore</code> can lower <code>secret-in-tree</code> and some other critical flags to information. They stay listed, <code>--no-ignore</code> restores them, and the <code>verdict</code> command still counts a flag lowered this way at its original severity.</li>
+      </ul>
+      <p>Every flag is a finding for a person to rule on. The tool orders projects and cites evidence. It disqualifies nobody, and a high score does not mean a project is safe or that an agent will do better in it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="notices" aria-labelledby="h-notices">
+  <div class="wrap">
+    <h2 id="h-notices">Pattern notices</h2>
+    <div class="body">
+      <p>Each notice in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/NOTICES.md">docs/NOTICES.md</a> leads with the pattern, then says what the tool does and does not look at. All eight were published on 2026-11-02. The <code>scan_outcome</code> says where in an incident the tool's output could matter, not how often it matters; no detection rate exists.</p>
+      <table>
+        <caption>Eight notices. Dates are as the cited sources state them.</caption>
+        <thead><tr><th scope="col">Pattern</th><th scope="col">Date</th><th scope="col">scan_outcome</th></tr></thead>
+        <tbody>
+          <tr><td class="pat" data-label="Pattern">Commands that run when a folder opens, and install-time package scripts</td><td data-label="Date">August 4, 2026</td><td data-label="scan_outcome"><code class="nw">triage after</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">A workflow step that sends secrets or history to a bare address</td><td data-label="Date">October 8, 2026</td><td data-label="scan_outcome"><code class="nw">triage after</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">Pull request content run with secrets or agent write access</td><td data-label="Date"><span class="nw">February 21</span> to <span class="nw">March 2, 2026</span></td><td data-label="scan_outcome"><code class="nw">detect before</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">An evaluation environment's agents reach an outside platform</td><td data-label="Date">July 2026</td><td data-label="scan_outcome"><code>invisible</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">A published package version replaced by a compromised release</td><td data-label="Date">October 21, 2026</td><td data-label="scan_outcome"><code>invisible</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">A malicious editor extension version in a marketplace</td><td data-label="Date">October 29, 2026</td><td data-label="scan_outcome"><code>invisible</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">A remote code execution flaw in the PHP engine</td><td data-label="Date">October 21, 2026</td><td data-label="scan_outcome"><code>invisible</code></td></tr>
+          <tr><td class="pat" data-label="Pattern">A remote code execution flaw in the Node.js Brotli decoder</td><td data-label="Date">October 21, 2026</td><td data-label="scan_outcome"><code>invisible</code></td></tr>
+        </tbody>
+      </table>
+      <p>The notices describe patterns that published reports document. A company appears in them as the publisher of a fact its source states, and the account owner in a takeover is treated as a victim.</p>
+    </div>
+  </div>
+</section>
+
+<section id="compare" aria-labelledby="h-compare">
+  <div class="wrap">
+    <h2 id="h-compare">How it differs, by what each one needs</h2>
+    <div class="body">
+      <p>This tool reads one repository, or a hundred, without running anything, and reports what the files contain and the file and line, command or commit behind each number. The projects below answer nearby questions, and what each one needs in order to run is the place to start comparing. The table gives requirements as each project's page states them. It compares no accuracy and gives no ranking.</p>
+      <table>
+        <caption>Read on 2 November 2026 from each project's own page. These projects change often, so check the page before repeating anything here.</caption>
+        <thead><tr><th scope="col">Project</th><th scope="col">What it does</th><th scope="col">What it needs</th></tr></thead>
+        <tbody>
+          <tr><td class="pat" data-label="Project">This tool</td><td data-label="What it does">Reads a repository and reports what it contains, with evidence for each number</td><td data-label="What it needs">Python 3.11 or newer and the standard library. No network call and no model (cases G-03 and G-09)</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/SkillOpt">SkillOpt</a></td><td data-label="What it does">Improves one skill document for a frozen agent</td><td data-label="What it needs">Live model runs for training, and a score for each rollout</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/NVIDIA/SkillSpector/blob/v2.13.2/README.md">SkillSpector</a> (tag v2.13.2)</td><td data-label="What it does">Scans an agent skill for security problems</td><td data-label="What it needs">LLM analysis is the default and sends file contents to the configured provider; <code>--no-llm</code> keeps contents local. The dependency check sends dependency names and versions to OSV.dev even with <code>--no-llm</code>, and needs outbound HTTPS to <code>api.osv.dev</code> for live vulnerability data; when that is unreachable it uses a small built-in fallback list</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/ambient-code/agentready">AgentReady</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">Python and pip. The page gives no runtime network or model requirement</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/tjboudreaux/ready-agent-1/blob/main/README.md">Ready Agent 1</a></td><td data-label="What it does">Scores how ready a repository is for coding agents, citing the file, commit or setting behind each check</td><td data-label="What it needs">Python 3.11 or newer, no runtime dependencies. Offline by default; GitHub checks and command execution are opt-in</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://docs.factory.com/web/agent-readiness/overview">Factory Agent Readiness</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">The Factory app, the Droid CLI or an API. The page does not say whether an account is required</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/agentrc/blob/main/README.md">AgentRC</a></td><td data-label="What it does">Scores AI readiness, and generates and maintains instruction files</td><td data-label="What it needs">Node.js 22 or newer. GitHub sign-in or a token, and the Copilot CLI for generation. Marked experimental</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/ossf/scorecard/blob/main/README.md">OpenSSF Scorecard</a></td><td data-label="What it does">Checks supply-chain practice. None of the checks its page lists is specific to agents</td><td data-label="What it needs">A GitHub or GitLab token for higher rate limits; Go for the standalone CLI, or a Docker image</td></tr>
+        </tbody>
+      </table>
+      <p>Google's <a href="https://github.com/google/elephant-goldfish-model">Elephant-Goldfish Model</a> has fresh-context subagents review a design before code is written, and its drift report compares checked-in documents with source code; it runs inside a coding agent. This tool reads a repository with scripts alone and cites what it finds. We read its README and design notes on 2 November 2026 and have not run it, so no comparison of results exists.</p>
+      <p>For the security of a single skill or agent configuration, use a dedicated scanner: the safety sweep here is a coarse pass across many projects and goes nowhere near that depth. For supply-chain practice in general, use OpenSSF Scorecard. To find out whether a project's code works, run its tests; nothing here runs them. The full comparison, including what was and was not checked, is in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/COMPARISON.md">docs/COMPARISON.md</a>.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>MIT licence. One person maintains this, and the notices and this page have no authority over anyone. Corrections go to <a href="https://github.com/sourav-patra/quiet-counsel/issues">https://github.com/sourav-patra/quiet-counsel/issues</a>. The test suite follows the method at <a href="https://github.com/sourav-patra/why-bureau">why-bureau</a>.</p>
+    <ul>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel">Source</a></li>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/README.md">README</a></li>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/cli.md">Command reference</a></li>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/NOTICES.md">Notices</a></li>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/COMPARISON.md">Comparison</a></li>
+      <li><a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/test-suite.md">Test suite</a></li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>
