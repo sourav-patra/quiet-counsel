@@ -128,7 +128,7 @@ def cmd_prepare(a):
     if not os.path.isdir(a.project):
         print(f"not a directory: {a.project}", file=sys.stderr)
         return 2
-    card = scan.screen(a.project, a.corpus, honour_ignore=not a.no_ignore)
+    card = scan.screen(a.project, a.corpus, honour_ignore=False)
     card["mode"] = "deep"
     files = fingerprint(a.project, skip=(a.out,))
     card["project"]["tree_sha256"] = digest(files)

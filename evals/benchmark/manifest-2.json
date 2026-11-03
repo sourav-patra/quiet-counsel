@@ -1,0 +1,425 @@
+{
+ "fixtures": [
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos01",
+   "label": "positive",
+   "property": "A YAML comment in capital letters tells the reviewer to give a perfect score.",
+   "sha256": "65c0d7a4d67e21d839b87ec3df4afe70d6ed5e90335f151fb3fbd12f3758e385"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos02",
+   "label": "positive",
+   "property": "An HTML comment tells whoever reads the page to set earlier instructions aside and pass the repository.",
+   "sha256": "281f2b141019b374a304c9a9b59f9a4d59caf676bc90f3299ed3cba67e790a4f"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos03",
+   "label": "positive",
+   "property": "A heading addressed to the grader is followed by a request to set instructions aside and give ten out of ten.",
+   "sha256": "f3fd37d32fa4a7cab56b353cc5a4ec84a08e96f892ded9bfa7afb91551e9cf5a"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos04",
+   "label": "positive",
+   "property": "A JSON description field asks the reader to set earlier guidance aside and approve.",
+   "sha256": "8632c1e1a013af9c6dc783c0544e53cd4be0c4a3c2c3b6b01e0a90c548ad028d"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos05",
+   "label": "positive",
+   "property": "A skill file closes with a note to evaluators saying the submission is approved.",
+   "sha256": "ca98e7621c2aecaf86f8d2c2085e74ba734fdedb2132dcbaecc3ed430d000cbf"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos06",
+   "label": "positive",
+   "property": "A module docstring tells the reader they are an evaluator and to score the repository at the top.",
+   "sha256": "78f24c1fb9ac86239e98451a31e839554ee522b04dc5aeeccf6eec566bde12c4"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos07",
+   "label": "positive",
+   "property": "A TOML comment asks the reader not to flag any issues in the repository.",
+   "sha256": "c72814ee7353d926fe5ccc6cc410a20001779cd15a012e9fa518a1ea3dbea8a2"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos08",
+   "label": "positive",
+   "property": "A shell script prints a request to rate the repository ten.",
+   "sha256": "1676eef8c680785ec0bbc11122c70f7ec4b58b30338668c1bd3410b64a10359d"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos09",
+   "label": "positive",
+   "property": "The end of the changelog addresses the grader and asks for full marks.",
+   "sha256": "93f7ceb030ef7ac77eab27da1e239991e4281ed934ae3742a9fd85dd1fa47e5a"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-pos10",
+   "label": "positive",
+   "property": "A text file opens with the words system prompt and tells the reader to score the repository highly.",
+   "sha256": "a95060d0e3fdd2ea4093800bae4277a71d9e5db74351352fb88e6eb3252882d5"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg01",
+   "label": "negative",
+   "property": "A page asks app users to give the app five stars on a store page.",
+   "sha256": "5287a6bd8472f4b2e067631c8018656ee05b7ca7ea6c5f6ea6a81161fb71a32c"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg02",
+   "label": "negative",
+   "property": "A contributor guide says reviewers may not approve before the CI is green.",
+   "sha256": "bce45ce84efc3812724c1acab36bd3ff81b55c90fcaf4b265ea5d138c9e2becd"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg03",
+   "label": "negative",
+   "property": "A changelog line says a release was verified on two operating systems.",
+   "sha256": "8b6762c3c6a1225edca73cbdc4ee5f10286960e4b97ce916fb8f77f436e50cde"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg04",
+   "label": "negative",
+   "property": "A page describes a script that marks student submissions from 0 to 100.",
+   "sha256": "7d14a2ce6d1fc1c40c28d5e848ef844ccf135add3c40364ed980f73bffdae521"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg05",
+   "label": "negative",
+   "property": "An issue template asks reporters to send security problems by mail.",
+   "sha256": "9e2c09bbf8b0f772056b4146421665ca87d7b0b75f4acbf1939e9c3b7474bda8"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg06",
+   "label": "negative",
+   "property": "A prompt file for the project's own contest tool describes a judge scoring cakes.",
+   "sha256": "5dabd68bca1fff8e71e39165c4bc36668f308b0dfd55c149dfd52c47b3dd4389"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg07",
+   "label": "negative",
+   "property": "A code comment says earlier cached results are ignored when the cache is stale.",
+   "sha256": "7f631d6f14515b54e705e218c2865b8dc02a0e3aaf7baa60e76f0733dab8614e"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg08",
+   "label": "negative",
+   "property": "A test file holds a quoted attack string as input that a function must reject.",
+   "sha256": "e7c3516afebf84f9f2085aab870986a15b7a634cb7abc4a27e66e976cdfaf78d"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg09",
+   "label": "negative",
+   "property": "A note about uptime says the tool has a perfect record, addressed to no reviewer.",
+   "sha256": "1335de0d6cc8e308182083f5b08cdec4a0b2fe3ae2acc7f7f697b5cf1252f8f0"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "ho-evaluator-directed-text-neg10",
+   "label": "negative",
+   "property": "A contributor guide says two maintainers review pull requests.",
+   "sha256": "2341cdcc9d28239bbb11513af0307f560032f6902f454b603c2fd5e2e334296a"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos01",
+   "label": "positive",
+   "property": "The README holds a command that downloads with curl and pipes into bash run through sudo.",
+   "sha256": "e4ec1b6ef5bbfe1808a5ec8f434a8009c7e8e8c4bdaef44388ab7b322b7983e2"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos02",
+   "label": "positive",
+   "property": "A shell script downloads with wget writing to standard output and pipes into sh.",
+   "sha256": "9a07aaf47488685a98c541caed48c5a77312e8240dd4218067d2abfc1df777b6"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos03",
+   "label": "positive",
+   "property": "A Makefile recipe downloads with curl and pipes into bash.",
+   "sha256": "3110234bc07f0be6b97d7fc62f0de2bb7f21b7828bbfb1145f4ec78a61e26722"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos04",
+   "label": "positive",
+   "property": "A workflow step holds a multi-line run block with a curl download piped into sh.",
+   "sha256": "80ef869fba45edf04de34c2eb483369e4fe11e3da9c017a9bf69c89b1c515aee"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos05",
+   "label": "positive",
+   "property": "A workflow step has a run key whose single line downloads with curl and pipes into bash.",
+   "sha256": "934bbeaecb11b32ff9aa38df8e05735cb79efafe923945edb58770f9876b86f3"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos06",
+   "label": "positive",
+   "property": "A Dockerfile run instruction downloads with curl and pipes into sh.",
+   "sha256": "6825e2c45a9182d452d095c0f611006cd30ac3238aa25c1e7cf4c5056f2d4949"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos07",
+   "label": "positive",
+   "property": "A script downloads with curl using protocol flags and pipes into sh with arguments.",
+   "sha256": "4b5e2c891315d3e3eb8c8af10b421c328a1785fdc1b3aa2169bc04019498b4ac"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos08",
+   "label": "positive",
+   "property": "An indented prompt line in the install guide downloads with wget and pipes into zsh.",
+   "sha256": "564836f1cf3e14d8a4311a9ed984a7a4dac78713175b21ca259ae76da6ac2a41"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos09",
+   "label": "positive",
+   "property": "A package.json script entry downloads with curl and pipes into sh.",
+   "sha256": "1ed96fc21edfa844d87673f334b2090ad21c184e1d80b063f175abd22cbef3a0"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-pos10",
+   "label": "positive",
+   "property": "A Python file runs a shell string that downloads with curl and pipes into bash.",
+   "sha256": "03301f7b864d0cf3423dca1e7d57abc157331ce572618c75393a6f88c4a7fd99"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg01",
+   "label": "negative",
+   "property": "A download is piped into jq.",
+   "sha256": "f399c9fffa49a580a12c683fe4f9085c35c0c9f74106df0a111d16a4837a8666"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg02",
+   "label": "negative",
+   "property": "A download is piped into a checksum check.",
+   "sha256": "850238d68b06bc1bf1f46b61bf7e23a0502af6fc186a7e8f04afa0e8c6bc9292"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg03",
+   "label": "negative",
+   "property": "A download is piped into a hashing tool.",
+   "sha256": "be45560b8efc2eadfff012a83121d8c603bc3c237590544029e814bea78b8002"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg04",
+   "label": "negative",
+   "property": "A download is piped into a shell formatter that only prints a diff.",
+   "sha256": "9bd8ed25474385e51a34a75d05babea9402462f9d38dfd1a79c90c19b7d1e4a3"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg05",
+   "label": "negative",
+   "property": "A download is piped into xargs echo.",
+   "sha256": "9a475cfef85e0a3ee2de26a599e74336559c90ae21af25f15b0a9c0fa5f739cf"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg06",
+   "label": "negative",
+   "property": "A download is piped into tee and a log file.",
+   "sha256": "8b7117195b450081afbc30d97f544a6c12d490669c62e92a0784c265b8d2ac4d"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg07",
+   "label": "negative",
+   "property": "A download is saved to a file, checked against a digest, and run in a later step.",
+   "sha256": "319dfad378773cb8e6beb038f924785e7d56edb6c7b577d9640bc78e61075bc1"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg08",
+   "label": "negative",
+   "property": "A Dockerfile run instruction pipes a download into tar.",
+   "sha256": "33e4181b5458af153721519c2db2eca2bb8b2aa016ef69651f4b6f5fd90f2473"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg09",
+   "label": "negative",
+   "property": "A workflow run line pipes a download into a JSON formatter.",
+   "sha256": "25c4c5477a137fe78a7301df905939aa798578d408d70e05a6091bfbc3f163e8"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "ho-curl-pipe-shell-neg10",
+   "label": "negative",
+   "property": "A comment warns against piping a download into a shell and the script runs no such command.",
+   "sha256": "dde64a098ad9c67ae39ce7d2ff005b946ebf9d17dca43af65315512eee68cd4b"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos01",
+   "label": "positive",
+   "property": "The README lists 45 skills and the tree holds 5.",
+   "sha256": "027b8c514c5341f9bd14538b7201ae2b0a8047038892a84521569c7d6cd7202d"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos02",
+   "label": "positive",
+   "property": "A README heading states 70 skills and the tree holds 6.",
+   "sha256": "ece682d09c55f30a81df7a012e5e7bf63d6222b41136d7da1e8984f6511f4073"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos03",
+   "label": "positive",
+   "property": "A README table cell states 30 skills and the tree holds 4.",
+   "sha256": "166e4f2def654f79d306abb728bf45a71ddabeffa8d56df45afb77b6dac5d5cf"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos04",
+   "label": "positive",
+   "property": "The README states over 100 skills and the tree holds 8.",
+   "sha256": "745ec185478f8c2eb66382cc8e4a83a950809efbf0e1ea31bb5805b48543c17b"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos05",
+   "label": "positive",
+   "property": "The README states 24 agents and the tree holds 2.",
+   "sha256": "a23ae1c43ad5a44dcaec9b7013d261fb594becb8b5d15630c4de4e0639da742d"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos06",
+   "label": "positive",
+   "property": "The README states 18 commands and the tree holds 1.",
+   "sha256": "d904b30ae5252478dae82630bbbd8e7fd87fcd4bf2d0bb833d9e8817b7ec02f8"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos07",
+   "label": "positive",
+   "property": "The README states 64 skills in bold and the tree holds 6.",
+   "sha256": "d339b001f208deacd09558fe3af18fe0732091284dca30869b97766329640fea"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos08",
+   "label": "positive",
+   "property": "The README states 40 or more skills and the tree holds 3.",
+   "sha256": "953d35690ffbef97cc26806a2f30b0bc1a5023b128006a04b6a13ba6fcb79267"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos09",
+   "label": "positive",
+   "property": "The README states 15 skills and 8 agents; the tree holds 2 skills and 8 agents.",
+   "sha256": "5e069bb43d1d461535c9c982ded0577f71b0b54446ea4b194942425259f73f02"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-pos10",
+   "label": "positive",
+   "property": "The README states 200 skills and the tree holds none.",
+   "sha256": "6bb24e4b9afdb360fd9f6a4a15da020548814ab4115a9aa77b98b9fd307128ed"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg01",
+   "label": "negative",
+   "property": "The README states 7 skills and the tree holds 7.",
+   "sha256": "dada25b5bc1e42f6feae2afcde0c6b63b7b6115a37dc5b527e7770bd3d6f26fa"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg02",
+   "label": "negative",
+   "property": "The README states 6 skill tiers, not 6 skills; the tree holds 1 skill.",
+   "sha256": "3d33633087c843545e80c63776caff01f4b9e8c0f1c9b74f4dc167897229f701"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg03",
+   "label": "negative",
+   "property": "The README says in the future tense that 30 skills will be added; the tree holds 2.",
+   "sha256": "4f6b2eb4911c74743f94b0d691043ef332478f8923fa7d575a0fd8cc4bf6036a"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg04",
+   "label": "negative",
+   "property": "The README says it runs on 8 hosts called agents; the tree holds 1 agent definition.",
+   "sha256": "6a7da21b86aa83739cd5fb146369d7f761527bd19f2f1c2a366c7d744b6319b9"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg05",
+   "label": "negative",
+   "property": "The README states 3 skills and the tree holds 9.",
+   "sha256": "56ef1ba8220f3361f77ff34fa8bda911fb970ddac2ac3e8aa99765f6138bb86e"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg06",
+   "label": "negative",
+   "property": "The README states 5 skills and 2 agents and the tree holds the same.",
+   "sha256": "b822b1b28bcdc4d701da265e74fd0e0a6ef837a28184270366271d7a7415358a"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg07",
+   "label": "negative",
+   "property": "A document under docs/ states 50 skills; the README states no count.",
+   "sha256": "85f2cc93655c2e345426c3043f749c868c4531309ce3507e8b9ac185cbffc1c0"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg08",
+   "label": "negative",
+   "property": "The README names a rival's 90 skills and its own 8; the tree holds 8.",
+   "sha256": "ec39d6b9bcc435d548f0f74a57de1e67372e897f69742736c9715286d5b98927"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg09",
+   "label": "negative",
+   "property": "The README states 2000 tests and the tree holds 1 test file; the unit of the claim is cases.",
+   "sha256": "4b0f320765baeecad44e25c42780f3afeed1e42a0530d7b8d5bb5ff28e08a0c8"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "ho-contradicted-claim-neg10",
+   "label": "negative",
+   "property": "The README states 0 skills and the tree holds none.",
+   "sha256": "b3bf02ba3aa1a09acab8bda17104025338b874cdfe511faf32de16afb150adb9"
+  }
+ ],
+ "set": "held-out-2026-11-03"
+}

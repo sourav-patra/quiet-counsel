@@ -36,8 +36,12 @@ def build_parser():
     s.add_argument("--out", help="write one scorecard per project into this directory")
     s.add_argument("--event-start", help="the date the event opened, to flag earlier history")
     s.add_argument("--event-end", help="the date the event closed")
-    s.add_argument("--no-ignore", action="store_true",
-                   help="count findings in paths the project's .scanignore excludes")
+    ig = s.add_mutually_exclusive_group()
+    ig.add_argument("--honour-ignore", action="store_true",
+                    help="apply the project's .scanignore to one project: findings in the paths it lists "
+                         "become information, so a project can lower its own band under this option")
+    ig.add_argument("--no-ignore", action="store_true",
+                    help="accepted and does nothing: a .scanignore is not applied unless --honour-ignore is passed")
 
     i = sub.add_parser("integrity", help="provenance, duplication, licence and claim checks")
     i.add_argument("path", help="the project directory")
@@ -93,8 +97,11 @@ def main(argv=None):
             print(f"skipped, not a directory: {p}", file=sys.stderr)
         if not dirs:
             return 2
+        if a.honour_ignore and len(a.paths) != 1:
+            print("--honour-ignore applies to one project at a time", file=sys.stderr)
+            return 2
         event = (a.event_start, a.event_end) if a.event_start else None
-        cards = [scan.screen(p, a.corpus, event, honour_ignore=not a.no_ignore) for p in dirs]
+        cards = [scan.screen(p, a.corpus, event, honour_ignore=a.honour_ignore) for p in dirs]
         if not a.out:
             print(json.dumps(cards if len(cards) > 1 else cards[0], indent=2, default=str))
             return 0

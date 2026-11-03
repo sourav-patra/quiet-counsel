@@ -1,6 +1,7 @@
 """Suite R: the release gate. tools/gate.py stands between a release branch and a tag, locally and
 in the gate workflow, so it is held to the same standard as the tool."""
 
+import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +29,11 @@ def release_tree(version="1.2.3", changelog_top=None, readme=None, pyproject=Non
         (root / ".github" / "workflows").mkdir(parents=True)
         (root / ".github" / "workflows" / "ci.yml").write_text(workflows, encoding="utf-8")
     return root
+
+
+def runs(workflow_text, command):
+    """True when a line is exactly a `- run:` step for the command, so no comment can satisfy it."""
+    return re.search(r"^\s*-\s*run:\s*" + re.escape(command) + r"\s*$", workflow_text, re.M) is not None
 
 
 def gate(*args):
@@ -73,11 +79,25 @@ class ReleaseGate(unittest.TestCase):
         r = gate("--release", "1.2.3", "--skip-tests", "--root",
                  self.tree(workflows="on: push\njobs:\n  g:\n    steps:\n      - run: python3 tools/gate.py\n"))
         self.assertNotIn("does not run tools/gate.py", r.stdout)
+        root = self.tree(workflows="on: push\n")
+        (Path(root) / ".github" / "workflows" / "docs-lint.yml").write_text("on: pull_request\n", encoding="utf-8")
+        r = gate("--release", "1.2.3", "--skip-tests", "--root", root)
+        self.assertIn(".github/workflows/ci.yml does not run tools/gate.py", r.stdout)
+        self.assertNotIn("docs-lint.yml", r.stdout)
 
     def test_R05_build_workflows_in_this_repository_run_the_gate(self):
         wf = REPO / ".github" / "workflows"
         for f in sorted(wf.iterdir()) if wf.is_dir() else []:
-            self.assertIn("tools/gate.py", f.read_text(encoding="utf-8"), f.name)
+            if f.name != "docs-lint.yml":  # builds nothing; R-08 holds it to the README lint
+                self.assertIn("tools/gate.py", f.read_text(encoding="utf-8"), f.name)
+
+    def test_R08_the_docs_lint_workflow_runs_both_readme_lint_commands(self):
+        both = ("python3 scripts/readme_lint.py --self-test", "python3 scripts/readme_lint.py README.md")
+        text = (REPO / ".github" / "workflows" / "docs-lint.yml").read_text(encoding="utf-8")
+        for cmd in both:
+            self.assertTrue(runs(text, cmd), cmd)
+        self.assertFalse(runs("".join(f"# - run: {c}\n" for c in both), both[0]))
+        self.assertFalse(runs("name: docs-lint # " + both[0] + "\n", both[0]))
 
     def test_R06_a_malformed_version_is_bad_input(self):
         r = gate("--release", "v1.2", "--skip-tests")

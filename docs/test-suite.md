@@ -61,6 +61,8 @@ even the list of what must not appear does not bind the repository.
 | G-07 | a directory that is not a git repository | screened | history is reported unavailable with a reason, and the run continues | `test_G07_a_directory_that_is_not_a_repository_still_screens` | PASS |
 | G-08 | Windows and macOS | the suite runs on each | green on all three operating systems | the `suite` job of the `gate` workflow runs the tests on Ubuntu, Windows and macOS, each with Python 3.11 and 3.13; a recorded run is the evidence, and none is recorded yet | FIELD |
 | G-09 | a fixture screened in a process where creating a socket raises, with a fixed clock | the card is compared with a normal run's | identical byte for byte, so the screen needs no network | `test_G09_a_screen_with_every_socket_refused_matches_a_normal_run_byte_for_byte` | PASS |
+| G-10 | a test process that builds a fixture project with git history | the process exits | the fixture folder and the process's whole scratch folder are gone, and nothing is written to stderr | `test_G10_the_fixture_folders_a_test_process_makes_are_gone_when_it_exits` | PASS |
+| G-11 | a fixture build whose `git add` fails once with exit 128 and `Permission denied` on a path in `.git/objects`; one with another message; one with `Permission denied` on another path; one whose matching failure persists; one with the matching text and another exit code | the fixture is built | the first is retried and succeeds; a failure that is not the matching one raises on its first attempt, and a persistent matching failure stops after 4 | `test_G11_a_transient_permission_denied_from_git_add_is_retried_and_other_failures_raise` | PASS |
 
 ## Suite A · Classify before scoring
 
@@ -124,8 +126,8 @@ even the list of what must not appear does not bind the repository.
 | I-10 | a shallow clone of a large import | screen | no provenance reported, no provenance flag, a limit recorded | `test_I10_a_shallow_clone_reports_no_provenance_at_all` | PASS |
 | I-11 | full history whose first commit holds 212 files | screen | warning, with the count | `test_I11_a_first_commit_holding_the_finished_project_is_a_warning` | PASS |
 | I-12 | history that begins before the event window | screen with the window | warning | `test_I12_history_that_begins_before_the_event_is_a_warning` | PASS |
-| I-13 | a credential shape under a path the project's `.scanignore` excludes | screen | still shown, as information marked excluded, with its original severity; the band is not blocked | `test_I13_a_finding_in_an_excluded_path_stays_visible_as_information` | PASS |
-| I-14 | the same project | screen with `--no-ignore` | the original severity is restored | `test_I14_ignoring_the_exclusions_restores_the_original_severity` | PASS |
+| I-13 | a credential shape under a path the project's `.scanignore` excludes | screen with `honour_ignore=True` | still shown, as information marked excluded, with its original severity; the band is not blocked | `test_I13_a_finding_in_an_excluded_path_stays_visible_as_information` | PASS |
+| I-14 | the same project | screen with `--no-ignore` | the original severity is unchanged, because the option does nothing | `test_I14_ignoring_the_exclusions_restores_the_original_severity` | PASS |
 | I-15 | the evaluator-directed phrase only under `tests/`, `testdata/`, `fixtures/`, `__tests__/`, a `test_*` file and a `*_test.*` file | screen | serious, every hit listed with its file and line, no `do-not-score` cap, band not blocked | `test_I15_directed_text_only_under_a_test_path_is_serious_listed_and_does_not_stop_scoring` | PASS |
 | I-16 | the same phrase in a skill file and in a test file | screen | critical, `do-not-score`, band blocked, the skill file listed first | `test_I16_the_same_text_in_skills_still_blocks_even_beside_a_test_string` | PASS |
 | I-17 | GPL text only in a test file, then also in source | screen | a warning with no cap and band not blocked; then critical with `D1=0` and the source file listed first | `test_I17_copyleft_text_only_in_a_test_file_is_a_warning_and_elsewhere_is_critical` | PASS |
@@ -134,6 +136,17 @@ even the list of what must not appear does not bind the repository.
 | I-20 | a JSON file in the project with a `ref` line and an `excerpt` line holding the phrase, shaped like the tool's own quotation | screen | critical, `do-not-score`, band blocked: the shape earns no exemption | `test_I20_a_json_file_shaped_like_a_scorecard_quotation_still_blocks` | PASS |
 | I-21 | a Markdown file with a `# Example` heading two lines above the evaluator-directed phrase, and a JSON file with the phrase as the value of a `"score"` key | screen | no `evaluator-directed-text`; one `quoted-evaluator-text` flag at information level, with no cap, whose title counts both lines and whose evidence names each file and line; the band is not blocked | `test_I21_text_judged_quoted_is_listed_at_information_level_with_file_line_and_count` | PASS |
 | I-22 | a project with no such text; then the phrase in a skill file | screen | no `quoted-evaluator-text` in either; the second is critical `evaluator-directed-text` | `test_I22_the_listing_is_quiet_without_such_text_and_a_real_hit_is_not_moved_into_it` | PASS |
+| I-23 | source files each carrying one SPDX line: `GPL-3.0`, `AGPL-3.0`, `LGPL-2.1` | screen | each yields evidence labelled only with the licence its identifier names | `test_I23_an_spdx_line_gets_only_the_label_its_identifier_names` | PASS |
+| I-26 | for nine kinds of finding (credential, installer, TLS off, open-time hook, GPL header, share-alike, host write, claim, no licence), the same tree with and without a `.scanignore` holding `aaa/`, `*`, or a list naming README and LICENSE | screen | identical flags, totals, claims, dimensions, limits and signals apart from `excluded_by_project` | `test_I26_a_scanignore_changes_no_flag_cap_band_or_signal_but_its_own` | PASS |
+| I-26 | a `.scanignore` of 40 placeholder credential lines beside one live credential; one that matches a corpus file at a 200-match budget; one more file at a file budget | screen | the same flags and band as the tree without it | `test_I26_a_scanignore_uses_no_hit_copy_or_file_budget` | PASS |
+| I-27 | a `.scanignore` holding `aaa/` and one file under `aaa/`; then no `.scanignore` | screen | the signal lists the pattern, `honoured` is false and `files_matched` is 1; with no file there is no signal | `test_I27_the_card_says_the_file_exists_what_it_matches_and_that_it_was_not_honoured` | PASS |
+| I-28 | an SPDX line in a source file and in `vendor/lib/LICENSE`: `GPL-3.0`, `(GPL-3.0-only)`, `MIT AND GPL-3.0-only`, `MIT OR GPL-3.0`, a `WITH` exception, `LicenseRef-GPL-ish`, `MIT`, `Apache-2.0` | licence facts | each family named by an identifier gets its label; an exception name and `LicenseRef-` get none | `test_I28_spdx_labels` | PASS |
+| I-29 | `--honour-ignore` with two paths; `--no-ignore`; both options together | screen command | exit 2; accepted with exit 0; the parser refuses the pair | `test_I29_honour_ignore_takes_one_path_and_no_ignore_is_still_accepted` | PASS |
+| I-30 | a `.scanignore` that is a symlink to a file | screen | no pattern is read and the target's text is not on the card (where links are refused, a copied file and a patched `islink` stand in) | `test_I30_a_scanignore_that_is_a_link_is_not_read` | PASS |
+| I-31 | fifteen GPL headers in `a/test_*.py` and one in `src/real.py`, MIT licence | screen | band blocked | `test_I31_fifteen_test_path_headers_do_not_hide_a_real_one` | PASS |
+| I-32 | for each detector with a hit, copy or file budget (credentials 40, supply chain 60, untrusted guidance 6 and machine paths 10 (these two feed a count and get a limits entry only), host writes 20, hidden characters 25, evaluator-directed text 25, copyleft text 15, declared licences 400, stale references 40, file walk, corpus duplicates), a tree one under the budget and one over | screen | no `scan-limit-reached` flag one under; over, a warning flag, a `limits` entry naming the detector and the budget, and a band of review or worse | `test_I32_a_detector_that_stops_at_its_budget_says_so` | PASS |
+| I-33 | a `.scanignore` with an evaluator instruction, a bidi character, a 300-character line, a credential and markup; then 10,000 patterns | screen | only path-shaped patterns print, each other pattern reads `<pattern withheld>`; the list is deduplicated and capped at 50 with a count dropped, in under 20 s | `test_I33_signal_text_is_printed_only_when_it_is_path_shaped` | PASS |
+| I-34 | 300 GPL headers in `tests/test_*.py` | licence facts | each path is tested a bounded number of times, not once per earlier hit | `test_I34_the_licence_stop_counts_hits_once` | PASS |
 
 ## Suite P · Third-party text
 
@@ -156,7 +169,7 @@ A project that copies someone else's text should carry that text's licence and a
 | P-13 | a restricted skill, every dimension scored 9 | `review_project.py finalize` | D1 capped to 3; `D2<=3` and `safety<=3` read the same way | `test_P13_finalize_applies_the_licence_and_provenance_caps` | PASS |
 | P-14 | a closed project marking its own skills proprietary, and the same skill under an MIT root | screen | quiet in the closed project; serious in the open one | `test_P14_a_closed_project_marking_its_own_skills_proprietary_is_quiet` | PASS |
 | P-15 | a `source:` field in a YAML registry, and one twenty lines into a document | screen | nothing declared, no flag | `test_P15_a_source_field_in_data_or_deep_in_a_document_is_not_a_declaration` | PASS |
-| P-16 | share-alike text in a fixture-named file, and the same file under `.scanignore` | screen | critical and band blocked; with exclusion, info, excluded, original severity critical, band not blocked | `test_P16_share_alike_text_in_a_fixture_named_file_is_critical_unless_the_project_excludes_it` | PASS |
+| P-16 | share-alike text in a fixture-named file, and the same file under `.scanignore` | screen; then with `honour_ignore=True` | critical and band blocked; honoured, info, excluded, original severity critical, band not blocked | `test_P16_share_alike_text_in_a_fixture_named_file_is_critical_unless_the_project_excludes_it` | PASS |
 
 ## Suite C · Claims against measurement
 
@@ -168,6 +181,33 @@ A project that copies someone else's text should carry that text's licence and a
 | C-04 | "works with 15 agents" | screen | a compatibility claim, not an inventory one | `test_C04_works_with_n_agents_is_a_compatibility_claim` | PASS |
 | C-05 | "SOC 2 compliant and production-ready" | screen | both unsupported | `test_C05_a_compliance_claim_with_nothing_behind_it_is_unsupported` | PASS |
 | C-06 | a claim of 20 skills, 19 shipped | screen | confirmed | `test_C06_a_count_within_fifteen_percent_is_confirmed` | PASS |
+| C-07 | a README licensed under Apache-2.0, a root file that is MIT | screen | `readme-claim-mismatch`, information, no cap, citing the README line and the licence file; band unchanged | `test_C07_a_licence_claim_against_a_different_known_licence_is_flagged` | PASS |
+| C-08 | the same licence, "MIT or Apache-2.0", "dual licensed", an unidentified file, a claim in fenced code or an HTML comment | screen | no flag | `test_C08_licence_near_misses_give_no_flag` | PASS |
+| C-09 | a licence badge naming GPL over an MIT file | screen | flagged | `test_C09_a_licence_badge_is_a_licence_claim` | PASS |
+| C-10 | "standard library only" with a package in `requirements.txt`, `[project].dependencies` or `package.json` | screen | flagged, citing the manifest line | `test_C10_zero_dependencies_against_a_listed_package_is_flagged` | PASS |
+| C-11 | the same claim with only comments, dev or optional dependencies, a scoping sentence, a dev requirements file or the claim in a code block | screen | no flag | `test_C11_dependency_near_misses_give_no_flag` | PASS |
+| C-12 | a backticked `--json` that no source file holds, in a tree with an argument parser | screen | flagged | `test_C12_a_flag_no_source_file_holds_is_flagged` | PASS |
+| C-13 | a flag present in source, in a quoted cobra name or a typer parameter, in a `pip` or `git` line, `--help`, in code, or in a tree with no parser | screen | no flag | `test_C13_flag_near_misses_give_no_flag` | PASS |
+| C-14 | "Includes a test suite in `tests/`" with no such folder | screen | flagged | `test_C14_a_path_the_readme_says_it_ships_but_is_missing_is_flagged` | PASS |
+| C-15 | an existing path, a path in a sentence that does not say it ships, `./`, `<dir>`, `~`, `out/`, `cards/`, a gitignored path, a path in code | screen | no flag | `test_C15_path_near_misses_give_no_flag` | PASS |
+| C-16 | a small tool with six planted README claims: dependencies, network, retries, one flag, a test folder, a licence | screen | the four checked kinds are found; network and retry claims are out of scope | `test_C16_four_of_six_planted_claims_in_a_small_tool_are_found` | PASS |
+| C-17 | a repository with no eval files | screen | signal `eval_evidence` is `none` with no paths | `test_C17_a_repository_with_no_eval_files_has_state_none` | PASS |
+| C-18 | one setup file each for Agent Skills, promptfoo, the OpenAI registry, lm-evaluation-harness, LangSmith and Inspect | screen | state `setup`, listing the path that decided it | `test_C18_setup_files_give_state_setup_with_their_paths` | PASS |
+| C-19 | one result file each for Agent Skills (two), Inspect, DeepEval (two) and lm-evaluation-harness, beside a setup file | screen | state `result`, listing the result path only | `test_C19_result_files_give_state_result_even_beside_setup` | PASS |
+| C-20 | a README score on SWE-bench and no result file | screen | `score-without-result`, information, no cap; the text says no result file was found and the result may be kept elsewhere, and never calls the claim false | `test_C20_a_score_with_no_result_file_is_an_information_flag_that_never_says_false` | PASS |
+| C-21 | a README ranking and a promptfoo config but no result file | screen | the flag says setup files were found and lists them | `test_C21_with_setup_present_the_flag_says_so` | PASS |
+| C-22 | the same score with a benchmark result file | screen | no flag | `test_C22_a_result_file_means_no_flag` | PASS |
+| C-23 | six README wordings: a percentage near a benchmark, "beats" a named product, a ranking with a score, "30% fewer", state of the art on a named benchmark, SoTA | screen | each raises the flag | `test_C23_the_listed_wordings_each_raise_the_flag` | PASS |
+| C-24 | "state-of-the-art" with no benchmark, "higher performance", "beats closed-source models", "Top 20", a coverage figure, a quoted testimonial, code and a comment | screen | no flag | `test_C24_loose_wordings_quotes_and_code_raise_nothing` | PASS |
+| C-25 | this repository | screen | neither `readme-claim-mismatch` nor `score-without-result` | `test_C25_screening_this_repository_raises_neither_new_flag` | PASS |
+| C-26 | a flag held only in `commands/*.md`, `.claude/commands/*.md`, a `SKILL.md` or an extensionless script with a shebang line; and the same script without the shebang | screen | present in the first four, a mismatch in the last | `test_C26_a_flag_held_in_a_command_file_a_skill_or_a_shebang_script_is_present` | PASS |
+| C-27 | a flag with no command beside it, in a list entry that links elsewhere, after `lean-ctx init`, after `bun build`, or outside any code span | screen | no flag | `test_C27_only_a_flag_of_this_projects_own_command_counts` | PASS |
+| C-28 | the project's command named in `pyproject.toml` scripts, in `package.json` bin (object or string) | screen | a flag after that command is checked | `test_C28_the_projects_own_names_come_from_its_manifests_or_its_folder` | PASS |
+| C-29 | paths in a negated sentence, in a sentence addressed to the reader's own project, an owner/repo slug and a model id; and a missing `docs/guide.md` beside an existing `docs/` | screen | no flag for the first five, a flag for the last | `test_C29_negated_reader_project_and_slug_shaped_paths_are_not_claims` | PASS |
+| C-30 | a README figure of 71.9% and a JSON, CSV or Markdown file under `docs/`, `benchmarks/` or `results/` holding 71.897, 0.719 or 71.9; and one holding 40.2 | screen | no `score-without-result` for the first three, the flag for the last | `test_C30_a_figure_found_in_a_result_file_elsewhere_in_the_tree_means_no_flag` | PASS |
+| C-31 | "Keep scripts dependency-free", "must stay dependency-free", "Scripts have zero dependencies" beside a listed package | screen | no flag | `test_C31_keep_must_and_script_scoped_dependency_wording_is_not_a_claim` | PASS |
+| C-32 | a bare `--json` flag and a Licensed under Apache-2.0 line over an MIT file | screen | the licence is flagged and `--json` is not (a plain case this rule misses) | `test_C32_a_bare_flag_with_no_command_beside_it_is_not_checked` | PASS |
+| C-33 | a README with all four mismatch kinds and a score, and a clean tree with the same name | screen | both new flags are information, carry no cap, `caps_applied` is empty and the band equals the clean tree's | `test_C33_both_claim_flags_are_information_with_no_cap_and_no_band_effect` | PASS |
 
 ## Suite B · Bands, and what a screen may claim
 
@@ -287,10 +327,11 @@ What a project does to the agent host it installs into, and whether the instruct
 | R-01 | a tree whose version, package, changelog and README agree | `gate.py --release` | passes | `test_R01_a_tree_whose_versions_agree_passes_the_release_checks` | PASS |
 | R-02 | a release version the tree does not carry | `gate.py --release` | exit 1, naming the file and the version it carries | `test_R02_a_version_the_tree_does_not_carry_is_refused_by_name` | PASS |
 | R-03 | a changelog still headed Unreleased, or a README naming two versions | `gate.py --release` | exit 1, naming the file | `test_R03_an_unreleased_changelog_or_a_stale_readme_is_refused` | PASS |
-| R-04 | a workflow that does not run `tools/gate.py` | `gate.py --release` | exit 1, naming the workflow; a workflow that runs it passes | `test_R04_a_workflow_that_skips_the_gate_is_refused` | PASS |
-| R-05 | this repository | read | each workflow runs `tools/gate.py` | `test_R05_build_workflows_in_this_repository_run_the_gate` | PASS |
+| R-04 | a workflow that does not run `tools/gate.py` | `gate.py --release` | exit 1, naming the workflow; a workflow that runs it passes; `docs-lint.yml` is exempt | `test_R04_a_workflow_that_skips_the_gate_is_refused` | PASS |
+| R-05 | this repository | read | each workflow except `docs-lint.yml` runs `tools/gate.py` | `test_R05_build_workflows_in_this_repository_run_the_gate` | PASS |
 | R-06 | a version that is not X.Y.Z | `gate.py --release` | exit 2 | `test_R06_a_malformed_version_is_bad_input` | PASS |
 | R-07 | `tools/gate.py` | its imports are read | the standard library only, and no network address | `test_R07_the_gate_uses_the_standard_library_and_names_no_host_or_person` | PASS |
+| R-08 | `.github/workflows/docs-lint.yml` | read | runs `scripts/readme_lint.py --self-test` and `scripts/readme_lint.py README.md` | `test_R08_the_docs_lint_workflow_runs_both_readme_lint_commands` | PASS |
 
 ## Suite W · Release verdict
 
@@ -307,9 +348,9 @@ A release-review workflow is not in 0.1; the `verdict` command below stays.
 | W-07 | a scorecard | `verdict` | scorer version and SHA-256 of the scorecard bytes | `test_W07_verdict_names_scorer_version_and_scorecard_hash` | PASS |
 | W-10 | the directed-text and copyleft flags at information, warning and critical | `verdict` | PASS, PATCH and MAJOR | `test_W10_a_lowered_flag_never_blocks_more_than_a_warning_does` | PASS |
 | W-11 | directed text outside a test path, with its file listed in `.scanignore` | screen, then verdict | MAJOR | `test_W11_directed_text_outside_a_test_path_blocks_even_when_the_ignore_file_lists_it` | PASS |
-| W-12 | a copyleft flag the project's `.scanignore` lowered from critical to information | `verdict` | MAJOR, the reason saying the project excluded it | `test_W12_a_critical_flag_the_project_excluded_still_gives_major_with_that_reason` | PASS |
+| W-12 | a copyleft flag the project's `.scanignore` lowered from critical to information (`honour_ignore=True`) | `verdict` | MAJOR, the reason saying the project excluded it | `test_W12_a_critical_flag_the_project_excluded_still_gives_major_with_that_reason` | PASS |
 | W-13 | the same flag under a test path | `verdict` | PATCH: it has its own lower severity and no original severity | `test_W13_the_test_path_version_keeps_its_lower_verdict` | PASS |
-| W-14 | a critical, a serious and a warning flag, each excluded by `.scanignore` | screen, then verdict | MAJOR, MINOR and PATCH, each reason saying the project excluded it | `test_W14_a_project_excluded_flag_keeps_its_original_severity_at_every_level` | PASS |
+| W-14 | a critical, a serious and a warning flag, each excluded by `.scanignore` (`honour_ignore=True`) | screen, then verdict | MAJOR, MINOR and PATCH, each reason saying the project excluded it | `test_W14_a_project_excluded_flag_keeps_its_original_severity_at_every_level` | PASS |
 | W-09 | the test-path versions of the directed-text and copyleft flags, and the critical directed-text flag | `verdict` | MINOR, PATCH and MAJOR | `test_W09_a_test_path_flag_lowered_on_purpose_does_not_block_the_release` | PASS |
 
 ## Suite T · Checks derived from public incident reports
@@ -351,6 +392,59 @@ Four checks, each written from the public reports named in `docs/NOTICES.md` and
 | M-03 | this repository | the tool measures it | every cited file and line exists and no flag lacks evidence | `test_M03_the_tools_own_tree_cites_only_lines_that_exist` | PASS |
 | M-04 | an excerpt with the card's `[label] ` prefix, a gate note, a `U+200B in: ` prefix or `<line withheld>` | the tool compares it with the line | match for the decorations and `withheld` for a line the scanner withholds; a changed line, quoted text from a withheld line, or `<line withheld>` on a line the scanner would quote, still differs. Rewritten for the withheld-line rule (2 Nov 2026). | `test_M04_the_cards_own_prefix_and_a_withheld_line_are_not_a_difference` | PASS |
 | M-05 | an excerpt that begins `[invented]`, a label from another kind of flag, a label with nothing after it, an empty excerpt, and a gate note on a flag that does not make one, and `<line withheld>` standing for a line the scanner would quote | the tool compares each with the line | differs every time; the decorations made for that flag, and a correctly withheld line (counted as withheld), still match. Rewritten for the withheld-line rule (2 Nov 2026). | `test_M05_only_the_decorations_made_for_that_kind_of_flag_are_set_aside` | PASS |
+
+## Suite X · Property tests and the Track B benchmark
+
+The score has no ground truth, so these hold properties that must stay true. The benchmark itself is described in [BENCHMARK.md](BENCHMARK.md).
+
+| ID | Given | When | Then | Proof | Status |
+|---|---|---|---|---|---|
+| X-01 | the synthetic sample, with the clock not fixed | screened three times | the three cards are equal apart from `project.measured_at` and `run.duration_s`, the two fields ARCHITECTURE.md rule 4 names as differing | `test_X01_three_runs_on_the_sample_give_equal_cards_apart_from_run_specific_fields` | PASS |
+| X-02 | a clean catalogue, and the sample, each with one seeded defect added (a credential shape, an installer pipe, a hidden character, a copyleft licence file, evaluator-directed text, an install script, a session-start hook, an inflated claim) | screened before and after | the count of flags at or above each severity never falls and the band is never better | `test_X02_adding_one_seeded_defect_never_lowers_severity_totals_or_improves_the_band` | PASS |
+| X-03 | the sample | screened | every `file` evidence `ref` of the form `path:line` resolves to a line that holds its excerpt (or a line the scanner withholds), checked by `tools/check_evidence.py` | `test_X03_every_file_evidence_ref_on_the_sample_resolves_to_a_line_holding_its_excerpt` | PASS |
+| X-04 | the sample and a process where `socket.socket` raises | screened | the screen completes and opens no socket | `test_X04_a_screen_opens_no_socket` | PASS |
+| X-05 | `evals/benchmark` | the fixtures are built | 400 distinct fixtures, 20 positive and 20 negative for each of ten checks, 5 of each group in the dev split, and the generator reproduces `manifest.json` byte for byte | `test_X05_the_fixture_set_has_twenty_positives_and_twenty_negatives_per_check_and_matches_its_manifest` | PASS |
+| X-06 | every fixture | read | (hosts and label wording only; the test does not execute or inspect commands, and the runners only write fixture text and screen it) every host is `example.invalid`, a documentation address, loopback or `api.github.com`, and no label says what the tool should do | `test_X06_fixture_hosts_are_reserved_and_no_label_asks_for_a_flag` | PASS |
+| X-07 | `evals/benchmark/heldout.py` | the held-out fixtures are built | 60 distinct fixtures, 10 positive and 10 negative for each of three checks, and the generator reproduces `manifest-2.json` byte for byte | `test_X07_the_held_out_set_has_ten_positives_and_ten_negatives_for_each_of_three_checks_and_matches_manifest_2` | PASS |
+
+## Suite Y · Rule fixes after the benchmark
+
+Each case failed on the tree before its change.
+
+| ID | Given | When | Then | Proof | Status |
+|---|---|---|---|---|---|
+| Y-01 | a text file holding an evaluator phrase in its original, upper and lower case | screened | `evaluator-directed-text` is raised for each case | `test_Y01_evaluator_phrases_match_whatever_the_letter_case` | PASS |
+| Y-02 | a script that pipes a download into `sha256sum`, `shellcheck`, `shfmt` or `shasum`, and into `sh`, `bash -s`, `sudo bash` or `zsh` | screened | `curl-pipe-shell` is raised for the shells only | `test_Y02_a_download_piped_into_a_checksum_program_or_linter_is_not_a_shell_pipe` | PASS |
+| Y-03 | a workflow whose `run:` line, or `run: |` block, pipes a download into `sh` | screened | `curl-pipe-shell` is raised | `test_Y03_a_workflow_run_line_with_a_download_piped_into_a_shell_is_read` | PASS |
+| Y-04 | a README stating 12 skill categories, or 3 skill levels | screened | no claim is `contradicted` | `test_Y04_a_count_of_skill_categories_or_levels_is_not_a_skill_count` | PASS |
+| Y-05 | a README stating a plan or a roadmap figure for skills, and one stating 40 skills as shipped | screened | the plans are not `contradicted`; the shipped figure is | `test_Y05_a_future_plan_is_not_a_skill_count` | PASS |
+
+## Suite Z · Fixes from the final review
+
+Each case failed on the tree before its change, except Z-02, Z-06 (before its note assertions were added) and Z-12, which are preservation tests and passed before.
+
+| ID | Given | When | Then | Proof | Status |
+|---|---|---|---|---|---|
+| Z-01 | a text file holding an evaluator phrase that matches only when case is ignored | screened | `evaluator-directed-text` is a warning with no cap, and the band is not `blocked` | `test_Z01_a_hit_that_matches_only_when_case_is_ignored_is_a_warning_with_no_cap` | PASS |
+| Z-02 | the same phrase in its original lower case | screened | `evaluator-directed-text` keeps severity critical | `test_Z02_a_hit_matching_the_original_case_sensitive_phrase_keeps_its_severity` | PASS |
+| Z-03 | a pyproject.toml whose `project` is an array, with README prose saying no dependencies | screened | a card is returned and the card limits name the unchecked claim | `test_Z03_a_pyproject_whose_project_is_not_a_table_does_not_end_the_screen` | PASS |
+| Z-04 | a pyproject.toml with `[project.dependencies]` as a table | screened | a card is returned | `test_Z04_a_pyproject_whose_dependencies_is_a_table_does_not_end_the_screen` | PASS |
+| Z-05 | a pyproject.toml with `scripts=1` and a source file that builds a parser | screened | a card is returned | `test_Z05_a_pyproject_whose_scripts_is_not_a_table_does_not_end_the_screen` | PASS |
+| Z-06 | a package.json that is an array, or whose dependencies, bin and name have the wrong types | screened | a card is returned and its limits name the unchecked metadata | `test_Z06_a_package_json_of_the_wrong_types_does_not_end_the_screen` | PASS |
+| Z-07 | a README line of 2000 benchmark words and 2000 percentages with none within 80 characters | judged for a score claim | the answer comes in under one second (3.2 s before the change) | `test_Z07_a_line_of_two_thousand_percentages_and_benchmark_words_is_judged_in_under_a_second` | PASS |
+| Z-08 | a tree whose source characters exceed the source budget, with a README flag no file holds | screened | a limits entry names the check, no `scan-limit-reached` and no `readme-claim-mismatch` | `test_Z08_a_source_budget_that_runs_out_reports_through_the_budget_flag_and_adds_no_mismatch` | PASS |
+| Z-09 | a tree whose result files exceed the budget, with a README score claim | screened | a limits entry names the check and no band changes | `test_Z09_a_result_budget_that_runs_out_reports_through_the_budget_flag` | PASS |
+| Z-10 | the same credential, evaluator phrase and invisible character in `src/a.py` and in `.github/a.py` | screened | `secret-in-tree`, `evaluator-directed-text` and `hidden-characters` are raised in both | `test_Z10_the_same_content_keeps_its_flag_when_moved_from_src_into_dot_github` | PASS |
+| Z-11 | a GNU licence text under `vendor/` and under `.github/` | screened | the copyleft check gives the same result for both | `test_Z11_a_licence_text_under_dot_github_is_read_for_the_copyleft_check` | PASS |
+| Z-12 | a credential under `.cache2/` | screened | `secret-in-tree` is not raised: other hidden directories are not read | `test_Z12_other_hidden_directories_are_still_not_read` | PASS |
+| Z-13 | 30 defensive installer comments in one workflow and a real installer line in another | screened | `curl-pipe-shell` is raised | `test_Z13_twenty_defensive_workflow_comments_do_not_hide_a_real_installer` | PASS |
+| Z-14 | 80 real installer lines in one workflow | screened | `scan-limit-reached` is raised | `test_Z14_more_surviving_installer_lines_than_the_budget_report_through_the_budget_flag` | PASS |
+| Z-15 | a credential in `src/a.py` and a root file named `.SCANIGNORE` holding 60 placeholder lines, on a file system that folds case | screened | the band stays `blocked` and no `scan-limit-reached` is raised | `test_Z15_a_root_ignore_file_with_other_letter_case_is_skipped_like_the_exact_name` | PASS |
+| Z-16 | an eval result path whose name holds a sentence | screened | `eval_evidence.paths` withholds it | `test_Z16_an_eval_result_path_that_is_not_path_shaped_is_withheld_from_the_card` | PASS |
+| Z-17 | 25 case-only evaluator matches followed by one original-case match in one file | screened | severity stays critical, cap `do-not-score`, band `blocked` | `test_Z17_twenty_five_case_only_hits_do_not_hide_a_later_original_case_hit` | PASS |
+| Z-18 | 26 case-only evaluator matches in a licensed tree | screened | no `scan-limit-reached`, band `screened`, a limits entry names the listing | `test_Z18_case_only_hits_past_the_listing_limit_change_no_band_and_raise_no_budget_flag` | PASS |
+| Z-19 | a parser file and twelve 500,001-character single-line source files | the flag check reads sources | the read reports incomplete inspection | `test_Z19_discarded_long_lines_count_against_the_source_budget` | PASS |
+| Z-20 | twelve 1,000,001-character single-line result files | result figures are read | the budget is reported as reached | `test_Z20_discarded_long_lines_count_against_the_result_budget` | PASS |
 
 ## Suite F · Field checks
 

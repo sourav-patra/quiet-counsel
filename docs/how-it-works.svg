@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-labelledby="t d" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title id="t">How Quiet Counsel works</title>
+  <desc id="d">A repository on disk is classified and scanned. Lines that hold a credential shape are withheld. The result is a scorecard in JSON, then a dashboard page. A person reads the page and rules on each flag. All steps except the last run on one machine with no network, no model and no agent run. Registries, accounts, runtime behaviour and deployed versions stay outside.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ece7da"/></marker>
+  </defs>
+  <rect width="900" height="560" fill="#1d1b17"/>
+  <rect x="20" y="20" width="860" height="360" rx="10" fill="#15140f" stroke="#78735f" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="40" y="48" font-size="15" font-weight="700" fill="#ece7da">Runs on one machine, Python standard library, no dependencies: no network, no model, no agent run</text>
+
+  <g fill="#201e17" stroke="#72d3c3" stroke-width="2">
+    <rect x="50" y="80" width="240" height="110" rx="8"/>
+    <rect x="330" y="80" width="240" height="110" rx="8"/>
+    <rect x="610" y="80" width="240" height="110" rx="8"/>
+    <rect x="610" y="240" width="240" height="110" rx="8"/>
+    <rect x="330" y="240" width="240" height="110" rx="8"/>
+    <rect x="50" y="240" width="240" height="110" rx="8"/>
+  </g>
+  <g fill="#ece7da" font-size="15" font-weight="700">
+    <text x="64" y="106">1 Repository on disk</text>
+    <text x="344" y="106">2 Classify</text>
+    <text x="624" y="106">3 Scan</text>
+    <text x="624" y="266">4 Withhold credentials</text>
+    <text x="344" y="266">5 Scorecard JSON</text>
+    <text x="64" y="266">6 Dashboard HTML</text>
+  </g>
+  <g fill="#ece7da" font-size="13">
+    <text x="64" y="128">Files, and read-only git queries.</text>
+    <text x="64" y="146">Nothing in it is executed.</text>
+    <text x="344" y="128">Decides what kind of project</text>
+    <text x="344" y="146">it is, and shows the evidence.</text>
+    <text x="624" y="128">Flags with file and line, and</text>
+    <text x="624" y="146">counts. Sets a band.</text>
+    <text x="624" y="288">A line that holds a credential</text>
+    <text x="624" y="306">shape is quoted as</text>
+    <text x="624" y="324">&lt;line withheld&gt;.</text>
+    <text x="344" y="288">Flags, signals and band.</text>
+    <text x="344" y="306">It gives no score.</text>
+    <text x="64" y="288">One page, with all project text</text>
+    <text x="64" y="306">escaped. Open it, email it or</text>
+    <text x="64" y="324">commit it.</text>
+  </g>
+  <g fill="#72d3c3" font-size="12" font-family="Consolas, Menlo, monospace">
+    <text x="64" y="176">Reads files and git history</text>
+    <text x="344" y="176">Project type</text>
+    <text x="624" y="176">Rule checks</text>
+    <text x="624" y="340">Applied to every flag</text>
+    <text x="344" y="340">One file per project</text>
+    <text x="64" y="340">One page for all projects</text>
+  </g>
+
+  <g stroke="#ece7da" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M290,135 H326"/>
+    <path d="M570,135 H606"/>
+    <path d="M730,190 V236"/>
+    <path d="M610,295 H574"/>
+    <path d="M330,295 H294"/>
+    <path d="M170,350 V426"/>
+  </g>
+
+  <rect x="50" y="430" width="240" height="90" rx="8" fill="#2b2610" stroke="#f2d98a" stroke-width="2"/>
+  <text x="64" y="456" font-size="15" font-weight="700" fill="#ece7da">7 A person rules</text>
+  <text x="64" y="478" font-size="13" fill="#ece7da">Reads each flag, opens the line,</text>
+  <text x="64" y="496" font-size="13" fill="#ece7da">and decides. The tool does not.</text>
+  <text x="182" y="410" font-size="12" fill="#ece7da">you read the page</text>
+
+  <rect x="330" y="430" width="520" height="90" rx="8" fill="#201e17" stroke="#78735f" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="344" y="456" font-size="15" font-weight="700" fill="#ece7da">Not seen by this tool</text>
+  <text x="344" y="478" font-size="13" fill="#ece7da">Package registries, stolen accounts, extension marketplaces, runtime</text>
+  <text x="344" y="496" font-size="13" fill="#ece7da">behaviour and deployed versions. It never runs the agent, so it cannot say</text>
+  <text x="344" y="514" font-size="13" fill="#ece7da">how well the agent performs.</text>
+</svg>

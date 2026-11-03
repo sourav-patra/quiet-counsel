@@ -30,4 +30,4 @@ re-checks it without seeing the reviewer's reasoning first.
 
 `src/quiet_counsel/` holds classify, screen, integrity, dashboard and the scorecard contract.
 `tests/` has one module per suite plus the traceability check. `skills/` and `agents/` are the
-agent interface, held to the same rubric the tool applies to others. `tools/` has the release gate and the generators.
+agent interface, held to the same rubric the tool applies to others. `tools/` has the release gate and the generators. `scripts/` has the README lint.

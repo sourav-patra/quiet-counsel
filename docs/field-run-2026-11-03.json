@@ -1,0 +1,25 @@
+{
+  "run_date": "2026-11-03",
+  "run_by": "the author; the repository lists are withheld so as not to name other people's projects",
+  "checks": "the two README checks (readme-claim-mismatch, score-without-result) at commit 45f0718 on the feat/claims branch, run with the .scanignore and scan-limit behaviour of the commit before it",
+  "tuning_sample": {
+    "repositories_screened": 50,
+    "description": "the 50 repositories of the 2 November run; the checks were tuned on their statements",
+    "statements_ruled_before_tightening": {"total": 21, "true": 1, "false": 19, "unclear": 1, "ruled_by": "one AI agent"},
+    "new_flags_after_tightening": {"readme-claim-mismatch": 0, "score-without-result": 0},
+    "screen_errors": 0,
+    "flags_by_severity": {"critical": 4, "serious": 31, "warning": 46, "info": 34},
+    "scan_limit_reached": {"flags": 10, "repositories": 10}
+  },
+  "fresh_sample": {
+    "repositories_screened": 50,
+    "description": "50 other repositories chosen by the same rule; nothing was tuned on them",
+    "flags_ruled": {"total": 2, "true": 1, "false": 1, "unit": "one flag; the score-without-result flag covers 2 README lines and the readme-claim-mismatch flag covers 1 README line, so 3 lines in 2 flags", "ruled_by": "the seat's AI agent, which did not build the checks"},
+    "new_flags": {"readme-claim-mismatch": 1, "score-without-result": 1},
+    "screen_errors": 0,
+    "flags_by_severity": {"critical": 8, "serious": 29, "warning": 47, "info": 27},
+    "scan_limit_reached": {"flags": 4, "repositories": 4},
+    "eval_evidence_states": {"none": 45, "setup": 5}
+  },
+  "reading": "Fewer than 5 decided statements for every kind of README claim, so no rate is stated and both checks report at information. Recall was not measured."
+}

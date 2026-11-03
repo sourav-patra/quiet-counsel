@@ -36,7 +36,7 @@ def main(argv=None):
     ap.add_argument("--corpus", help="directory of known public projects, for duplication checks")
     ap.add_argument("--dashboard", help="dashboard path (default: <out>/cohort.html)")
     ap.add_argument("--title", default="Cohort screen", help="dashboard title")
-    ap.add_argument("--no-ignore", action="store_true", help="count findings in excluded paths")
+    ap.add_argument("--no-ignore", action="store_true", help="accepted and does nothing; a .scanignore is never applied here")
     ap.add_argument("--json", action="store_true", help="print a JSON summary")
     a = ap.parse_args(argv)
     dashboard, scan = load()
@@ -50,7 +50,7 @@ def main(argv=None):
     os.makedirs(a.out, exist_ok=True)
     cards, written = [], []
     for p in dirs:
-        card = scan.screen(p, a.corpus, honour_ignore=not a.no_ignore)
+        card = scan.screen(p, a.corpus, honour_ignore=False)
         dest = os.path.join(a.out, f"{card['project']['name']}.json")
         with open(dest, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(card, fh, indent=2, ensure_ascii=False)

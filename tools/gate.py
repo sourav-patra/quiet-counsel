@@ -21,6 +21,8 @@ REPO = os.path.dirname(HERE)
 VERSIONS = ("3.11", "3.12", "3.13")
 SUITE = ["-m", "unittest", "discover", "-s", "tests", "-t", "tests"]
 NO_UTF8 = {"LC_ALL": "C", "LANG": "C", "PYTHONCOERCECLOCALE": "0", "PYTHONUTF8": "0"}
+# builds nothing; it runs the README lint (case R-08)
+NO_GATE_WORKFLOW = "docs-lint.yml"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+(-rc\.\d+)?$")
 
 
@@ -86,7 +88,7 @@ def release_problems(root, version):
                         f"its status line and install line should both name v{version.split('-')[0]}")
     wf_dir = os.path.join(root, ".github", "workflows")
     for name in sorted(os.listdir(wf_dir)) if os.path.isdir(wf_dir) else []:
-        if "tools/gate.py" not in (read(os.path.join(wf_dir, name)) or ""):
+        if name != NO_GATE_WORKFLOW and "tools/gate.py" not in (read(os.path.join(wf_dir, name)) or ""):
             problems.append(f".github/workflows/{name} does not run tools/gate.py; "
                             "every workflow must run the same gate")
     if os.path.isdir(os.path.join(root, ".git")):

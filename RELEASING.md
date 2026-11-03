@@ -16,7 +16,7 @@ From 0.2.0, patch releases (0.x.Y) carry fixes only: no new scorecard fields, no
 
 ## CI
 
-The CI lane is the GitHub workflow `.github/workflows/gate.yml`. It runs `tools/gate.py` on every push and pull request, and on a `vX.Y.Z` tag it adds the release checks for that version. Every workflow must run the gate (cases R-04 and R-05). Run the gate by hand on the release branch too, and paste its output into the pull request.
+The CI lane is the GitHub workflow `.github/workflows/gate.yml`. It runs `tools/gate.py` on every push and pull request, and on a `vX.Y.Z` tag it adds the release checks for that version. Every workflow that builds must run the gate (cases R-04 and R-05); `docs-lint.yml` builds nothing, runs the README lint instead, and is exempt (case R-08). Run the gate by hand on the release branch too, and paste its output into the pull request.
 
 ## Branches
 

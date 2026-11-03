@@ -1,118 +1,140 @@
+<div align="center">
+
 # Quiet Counsel
 
-Read an agent project's repository, work out what kind of project it is, flag what looks wrong,
-and show the file and line, or the command, behind each number. The result is one HTML page you
-can open, email or commit.
+**Hand it an agent project's repository. It runs nothing from it, sends nothing anywhere, and gives you flags with the file and line behind each one.**
 
-It runs locally on the Python standard library (3.11 or newer). It makes no network call and
-calls no model.
+[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](CHANGELOG.md)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+[![Python 3.11 or later](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
+[![gate](https://github.com/sourav-patra/quiet-counsel/actions/workflows/gate.yml/badge.svg)](https://github.com/sourav-patra/quiet-counsel/actions/workflows/gate.yml)
+[![Real-repository accuracy: not measured](https://img.shields.io/badge/real--repository%20accuracy-not%20measured-lightgrey)](docs/LIMITS.md)
 
-> Status: v0.1.0 is built and tested. Accuracy is not measured and no benchmark exists yet.
+[Page](https://sourav-patra.github.io/quiet-counsel/) · [Install](docs/INSTALL.md) · [Docs](#docs) · [Notices](docs/NOTICES.md)
+
+![Animation of the screen command on a made-up sample project. Seven steps light up: repository, classify, scan, withhold, scorecard, dashboard, a person. Two flags appear, each with a file and line.](docs/assets/quiet-counsel-run.gif)
+
+*Real output on one made-up sample project: each flag cites a file and line. It shows the output format, not accuracy on real projects.*
+
+</div>
+
+## Why
+
+Quiet Counsel is for people who review agent projects they did not write, such as hackathon judges with a hundred submissions.
+
+An agent project is text and small scripts:
+
+- hooks: commands an editor or agent runs on its own
+- skills: instruction files for an agent
+- workflow files: automation steps
+
+Such a repository can run a command when you open the folder, or hold a key someone pasted by accident.
+
+Reading a hundred submissions by hand does not scale. Running them to find out is the risk.
+
+Quiet Counsel reads the files and tells you which projects to read first, and which lines in them. Scripts flag and a person rules.
+
+The output is an order of attention. A project with no flags is not declared safe. A project with flags is not declared bad.
+
+Evidence: on 2 November 2026 the author screened 50 public agent repositories ([field run](docs/field-run-2026-11-02.json), [limits](docs/LIMITS.md)).
+
+- It raised 4 critical, 31 serious, 36 warning and 34 information flags.
+- No person has read them all, so this shows volume and says nothing about accuracy.
+
+![Seven steps on one machine with no network, no model and no agent run. A repository on disk is classified and scanned, credential lines are withheld, a JSON scorecard and an HTML dashboard are written, and a person rules on each flag. Registries, accounts and runtime behaviour are outside.](docs/how-it-works.svg)
+
+*How it works: everything the tool does stays on one machine, and a person makes the final ruling at step 7. The diagram shows scope, not accuracy or speed.*
+
+## Features
+
+- Runs on the Python standard library: no network call, no model, no dependency.
+- Every flag names its evidence: a file and line with the quoted text, or a command or commit.
+- A line that holds a credential shape is quoted as `<line withheld>`.
+- Checks hooks that run on open, install scripts, workflows, hidden characters, text that addresses an automated judge, licences (including share-alike licences such as the GPL found inside a permissive project), copied files and stated counts and figures in the README, such as a skill count ([the list](docs/CHECKS.md)).
+- Notes when the README quotes a score or ranking and the tree holds no eval result file (`score-without-result`, information); a setup file alone does not count as a result. Both README checks are informational: on 50 fresh repositories they raised 2 flags (covering 3 README lines), 1 true and 1 false, too few for a rate.
+- Compares four README statements with the files: licence, "no dependencies", `--flags` of the project's own command and paths it says the repository holds. Others do this too; the check cites both sides, is informational and carries no cap.
+- Claims it cannot support, such as SOC 2, are recorded as claims with status `unsupported`. They are not flags.
+- Output is a scorecard (one JSON file per project) and one HTML page you can open, email or commit.
+- Screens one repository or a hundred, with copy detection against a corpus you supply.
+- A band (blocked, review, shortlist, screened) is the order in which to read projects, with blocked first. It disqualifies nobody and says nothing about safety.
+
+## Quick start
+
+1. Install from the tag, then write a sample project that has planted problems.
 
 ```sh
 pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
-quiet-counsel classify ./project
-quiet-counsel screen ./submissions/* --corpus ./corpus --out ./cards
+quiet-counsel sample ./sample
+```
+
+   Check: `quiet-counsel --version` prints `quiet-counsel 0.1.0`, the sample command prints `sample project written to ./sample`, and `ls sample` lists `agents`, `scripts`, `skills`, `tests`, `vendor`, `LICENSE` and `README.md`.
+
+2. Screen it.
+
+```sh
+quiet-counsel screen ./sample --out ./cards
+```
+
+   Check: the screen prints two lines. The first counts the scorecards written. The second starts with `blocked    sample`, then the project type, then the severity and id of each flag.
+
+```text
+1 scorecard(s) written to ./cards
+  blocked    sample                             catalogue     critical:secret-in-tree, serious:curl-pipe-shell, serious:hidden-characters, critical:evaluator-directed-text, critical:copyleft-in-permissive-tree, serious:contradicted-claim
+```
+
+3. Build the dashboard, then open `cohort.html`.
+
+```sh
 quiet-counsel dashboard ./cards/*.json --out cohort.html
 ```
 
-`quiet-counsel sample <dir>` writes a synthetic project with five planted problems, and
-[examples/sample-dashboard.html](examples/sample-dashboard.html) is the page built from it.
+   Check: the command prints `cohort.html: 1 project(s), ` and the file size, the file `cohort.html` exists, and `grep "Quiet Counsel review" cohort.html` finds its title.
 
-To check the no-network claim, run cases G-03 (no module imports a network library) and G-09 (a
-screen with every socket refused gives the same card byte for byte, with the clock fixed):
+4. Read the evidence behind a flag in `cards/sample.json`.
 
-```sh
-TZ=UTC PYTHONPATH=src:tests python3 -m unittest discover -s tests -t tests -k test_G03 -k test_G09
-```
+   Check: it holds a flag with id `copyleft-in-permissive-tree` and severity `critical`.
+   - Its first evidence item has `ref` `vendor/fastclip/LICENSE:1` and `excerpt` `[GPL] GNU GENERAL PUBLIC LICENSE`.
+   - The flag `secret-in-tree` at `scripts/deploy.sh:2` has the excerpt `[aws-access-key] <line withheld>`, so you open that line yourself.
 
-On Windows PowerShell, run the same two cases from the repository root with `$env:TZ='UTC'; $env:PYTHONPATH='src;tests'; py -3 -m unittest discover -s tests -t tests -k test_G03 -k test_G09`.
+[examples/sample-dashboard.html](examples/sample-dashboard.html) is the page built from the sample.
 
-## What it cannot see
+pipx, uv, source, Windows, upgrade and uninstall are in [docs/INSTALL.md](docs/INSTALL.md).
 
-It reads files in one directory tree. It cannot see stolen accounts, package registries, extension
-marketplaces, runtime behaviour or deployed versions. It does not run a project's tests, does not
-guess whether a person or a model wrote the code, and lists licence text without ruling on it in
-law. Copy detection matches identical content against the corpus you supply and misses a
-rewritten copy.
+A GitHub Actions snippet is in [docs/CI.md](docs/CI.md), and every command is in [docs/cli.md](docs/cli.md).
 
-[docs/NOTICES.md](docs/NOTICES.md) records eight 2026 incident patterns and what this tool does
-and does not look at for each. Of the seven that are not the hackerbot-claw campaign, five (the
-OpenAI and Hugging Face breach, the LiteLLM 1.107.0 release, the Cursor extension, the PHP flaw and
-the Node.js flaw) are marked `invisible`: the affected material is not in a repository tree, or
-depends on a version the tool does not compare against an advisory. For the other two, the keyv
-worm and the fake audit workflow, the files appear with the compromise, so a screen of the affected repository had
-nothing to find beforehand; the checks can list them afterwards, to help a person triage. No detection rate exists for
-any of them.
+## Limits
 
-## What is measured, and what is not
+- Accuracy on real repositories is not measured. A benchmark on author-built fixtures exists ([docs/BENCHMARK.md](docs/BENCHMARK.md)); it does not say how often these problems occur in real repositories.
+- It reads files in one directory tree. It cannot see stolen accounts, package registries, extension marketplaces, runtime behaviour or deployed versions.
+- It never runs an agent, so it cannot say whether an agent performs well.
+- Copy detection misses a rewritten copy.
+- The README checks (`readme-claim-mismatch` and `score-without-result`) are informational and their accuracy is not measured: too few statements were ruled to state a rate, and what they miss is not measured. Network use and retry counts are not checked.
+- A card can hold a credential in a format the tool does not list, so read it before you share it ([SECURITY.md](SECURITY.md)).
 
-- Flags about a file cite its path and line. Flags about history or a missing file cite a command
-  or a commit. `tools/check_evidence.py` confirms that each cited line exists and either holds the quoted
-  text or is a line the scanner withholds (the excerpt reads `<line withheld>`: the line holds a
-  credential shape or a word such as `token`, and you open it to read it). On this repository's
-  own tree it reports 3 flags, all 3 citing a file and line (13 evidence items: 7 with the quoted
-  text on the line, 6 withheld lines, 0 broken, 0 differing). Of the 24
-  numeric signals on a card, 0 cite a file and line; the rest cite the command that
-  produces them. Reproduce with `python3 tools/check_evidence.py . --list`.
-- Accuracy is not measured and no benchmark exists. Case F-01 in
-  [docs/test-suite.md](docs/test-suite.md) stays open until a person has read every flag from a
-  real cohort.
-- Field run: one run by the author on 2 November 2026, of 50 public agent repositories drawn from a personal catalogue of agent tools, ordered by a
-  hash of each name, taking the top 50 of that order under 150 MB, screened with this version's checks. There
-  were 0 screen errors and 5 warnings from the checks added for the incident notices (4 `install-time-script`,
-  1 `open-time-hook`). In all, 4 critical, 31 serious, 36 warning and 34 information flags. The data-out
-  and untrusted-code checks raised nothing, so the one place they have fired is test fixtures. The
-  repository list is withheld so as not to name other people's projects, so a reader cannot reproduce this run; the
-  aggregates are in [docs/field-run-2026-11-02.json](docs/field-run-2026-11-02.json). No person has read every flag.
-- A project's own `.scanignore` can lower `secret-in-tree` and some other critical flags to
-  information. They stay listed, `--no-ignore` restores them, and the `verdict` command still counts a flag lowered this way at its original severity.
+The full statement and the field run are in [docs/LIMITS.md](docs/LIMITS.md).
 
-Every flag is a finding for a person to rule on. The tool orders projects and cites evidence. It
-disqualifies nobody, and a high score does not mean a project is safe or that an agent will do
-better in it.
+Eight 2026 incident patterns, five of them marked `invisible` to this tool, are in [docs/NOTICES.md](docs/NOTICES.md).
 
-## Integrity checks
+[docs/COMPARISON.md](docs/COMPARISON.md) lists what neighbouring tools need in order to run and what they cover, with no accuracy comparison.
 
-Text addressed to the evaluator is reported and never acted on. A line the tool judges to be quoted
-or defensive, such as a security guide quoting the attack it defends against, does not stop
-scoring, and every such line is listed as `quoted-evaluator-text` at information level so a reader
-can check the judgement. A determined author can still write the surrounding words on purpose.
-Hidden characters, licence text, copied files and README claims have their own checks. All of it is
-in [docs/INTEGRITY.md](docs/INTEGRITY.md).
+On 2 November 2026 the author ran the drift report from Google's [Elephant-Goldfish Model](https://github.com/google/elephant-goldfish-model) once, on a small made-up project with six planted README contradictions.
 
-## Beside the Elephant-Goldfish Model
+The drift report, which uses a model, found all six; this tool found none. One sample measures no accuracy; details are in [docs/COMPARISON.md](docs/COMPARISON.md).
 
-Google's [Elephant-Goldfish Model](https://github.com/google/elephant-goldfish-model) has fresh-context subagents review a design before code is written, and its drift report compares checked-in documents with source code; it runs inside a coding agent. This tool reads a repository with scripts alone and cites what it finds. We read its README and design notes on 2 November 2026 and have not run it, so no comparison of results exists.
+## Use it from an agent
 
-## Using it from an agent
+- Three skills in `skills/`: `screen-cohort`, `triage-flags` and `review-project`.
+- Three roles in `agents/`: screener, reviewer and verifier. None can write to the project it reads.
+- [AGENTS.md](AGENTS.md) holds the instructions every host reads.
+- [docs/INSTALL.md](docs/INSTALL.md#skills-and-agent-roles) has the install command.
 
-Three skills in `skills/` (`screen-cohort`, `triage-flags`, `review-project`) and three roles in
-`agents/` (screener, reviewer, verifier, none of which can write to the project it reads).
-[AGENTS.md](AGENTS.md) holds the instructions every host reads.
+## Docs
 
-```sh
-python3 install.py --dest <your host's skills directory> --agents-dest <its agents directory>
-```
+- [docs/INSTALL.md](docs/INSTALL.md), [docs/CI.md](docs/CI.md), [docs/FAQ.md](docs/FAQ.md), [docs/CHECKS.md](docs/CHECKS.md), [docs/LIMITS.md](docs/LIMITS.md)
+- [docs/RUBRIC.md](docs/RUBRIC.md), [docs/ARCHETYPES.md](docs/ARCHETYPES.md), [docs/SCREEN-MODE.md](docs/SCREEN-MODE.md), [docs/INTEGRITY.md](docs/INTEGRITY.md)
+- [docs/test-suite.md](docs/test-suite.md): every case with its ID, following the method at [why-bureau](https://github.com/sourav-patra/why-bureau). `python3 tools/gate.py` runs it.
+- [ARCHITECTURE.md](ARCHITECTURE.md), [RELEASING.md](RELEASING.md), [docs/NOTICES.md](docs/NOTICES.md) (one person maintains the notices and they carry no authority over anyone; corrections go to `https://github.com/sourav-patra/quiet-counsel/issues`)
 
-[docs/AGENT-INTERFACE.md](docs/AGENT-INTERFACE.md) lists the directories common hosts read. The
-installer never deletes anything and never overwrites without `--force`. The tool screens itself
-in its own test suite (case H-16) and must raise no critical or serious flag against its own tree.
+## Contributing and licence
 
-## More
-
-- [docs/RUBRIC.md](docs/RUBRIC.md): the 16 dimensions and what a 10 and a 0 look like.
-- [docs/ARCHETYPES.md](docs/ARCHETYPES.md): how a project is classified from evidence, not its name.
-- [docs/SCREEN-MODE.md](docs/SCREEN-MODE.md): the triage pass and the deep pass.
-- [docs/cli.md](docs/cli.md): every command and flag.
-- [docs/COMPARISON.md](docs/COMPARISON.md): what neighbouring tools need and cover.
-- [docs/NOTICES.md](docs/NOTICES.md): dated pattern notices. One person maintains them and claims
-  no standing over anyone. Corrections go to `https://github.com/sourav-patra/quiet-counsel/issues`.
-- [docs/test-suite.md](docs/test-suite.md): every case with its ID. The suite follows the method
-  at [why-bureau](https://github.com/sourav-patra/why-bureau) and fails if a case loses its test.
-  `python3 tools/gate.py` runs it locally and in `.github/workflows/gate.yml`.
-- [RELEASING.md](RELEASING.md): branches, tags and how to cut or install a release.
-
-## Licence
-
-MIT. See [LICENSE](LICENSE).
+[CONTRIBUTING.md](CONTRIBUTING.md) describes the workflow. Run `python3 tools/gate.py` before you open a pull request. MIT, see [LICENSE](LICENSE).

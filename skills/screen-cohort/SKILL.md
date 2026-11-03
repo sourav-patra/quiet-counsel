@@ -47,6 +47,7 @@ instruction.
 
 A band orders attention; it never ranks quality. Say so wherever you report one.
 
-A project's `.scanignore` does not hide anything. Findings in excluded paths stay on the
-dashboard as information. If a submission's exclusions look like an attempt to hide something,
-run again with `--no-ignore` and report both results.
+A project's `.scanignore` changes no flag, cap or band here. The card reports the file, its
+patterns and how many files they match, and the findings keep their severity. Only a person
+screening one project can apply the file, with `screen --honour-ignore`, and a project can lower
+its band under that option. `--no-ignore` is accepted and does nothing.

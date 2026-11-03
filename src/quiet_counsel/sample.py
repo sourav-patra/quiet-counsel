@@ -57,7 +57,6 @@ FILES = {
     "scripts/run.py": None,     # assembled in write(), it carries a zero-width space
     "vendor/fastclip/LICENSE": "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n",
     "vendor/fastclip/clip.py": (
-        "# SPDX-License-" + "Identifier: GPL-3.0\n"
         "def clip(x, lo, hi):\n    return max(lo, min(hi, x))\n"
     ),
     "tests/test_export.py": "def test_export_runs():\n    assert True\n",

