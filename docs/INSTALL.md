@@ -8,16 +8,16 @@ Pick one.
 
 ```sh
 # pip, into the Python you are using (a virtual environment is a good idea)
-pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
 
 # pipx, which keeps it in its own environment
-pipx install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+pipx install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
 
 # uv
-uv tool install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+uv tool install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
 ```
 
-The `@v0.1.0` part is a git tag, so you get that release and not whatever is on the main branch today. uv prints a warning if its tool directory is not on your PATH; run `uv tool update-shell` or add the directory it names.
+The `@v0.1.1` part is a git tag, so you get that release and not whatever is on the main branch today. uv prints a warning if its tool directory is not on your PATH; run `uv tool update-shell` or add the directory it names.
 
 ## Install from source
 
@@ -43,7 +43,7 @@ quiet-counsel sample ./sample
 quiet-counsel screen ./sample --out ./cards
 ```
 
-The version line reads `quiet-counsel 0.1.0`. The screen prints one line that starts with `blocked`, because the sample has problems planted in it.
+The version line reads `quiet-counsel 0.1.1`. The screen prints one line that starts with `blocked`, because the sample has problems planted in it.
 
 ## Check the no-network claim
 

@@ -182,9 +182,9 @@ def self_test():
     assert any("diagram source" in f for f in doc("~~~mermaid\ngraph TD\n~~~\n"))
     assert not any("hero" in f for f in doc("![Run][r]\n\n## Next\n\n[r]: run.gif\n"))
     d = tempfile.mkdtemp()
-    open(os.path.join(d, "r1.md"), "w").close()
+    open(os.path.join(d, "p1.md"), "w").close()
     rd = os.path.join(d, "README.md")
-    assert not any("link" in f for f in lint("[Review](r1%2Emd)\n", rd)[0])
+    assert not any("link" in f for f in lint("[Review](p1%2Emd)\n", rd)[0])
     missing = lint('<a href="missing.md">x</a>\n[y][m]\n\n[m]: missing.md\n', rd)[0]
     assert any("missing.md" in f for f in missing)
     print("self-test passed")

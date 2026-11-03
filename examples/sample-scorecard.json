@@ -454,7 +454,7 @@
     "Regex sweeps find shapes, not meanings: a fixture can look like a credential and a quoted licence can look like a breach. Every flag names its evidence, a file and line or a command or commit, so a reader can check."
   ],
   "run": {
-    "tool_version": "0.1.0",
+    "tool_version": "0.1.1",
     "corpus": null,
     "duration_s": 0.0
   }

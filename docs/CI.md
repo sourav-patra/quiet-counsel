@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"
-      - run: pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+      - run: pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
       - run: quiet-counsel screen . --out "$RUNNER_TEMP/cards"
       - name: Fail on a blocked band
         run: python3 -c "import json,glob,sys; sys.exit(any(json.load(open(f,encoding='utf-8'))['totals']['band']=='blocked' for f in glob.glob(sys.argv[1]+'/cards/*.json')))" "$RUNNER_TEMP"

@@ -4,7 +4,7 @@
 
 **Hand it an agent project's repository. It runs nothing from it, sends nothing anywhere, and gives you flags with the file and line behind each one.**
 
-[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue)](CHANGELOG.md)
+[![Version: 0.1.1](https://img.shields.io/badge/version-0.1.1-blue)](CHANGELOG.md)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![Python 3.11 or later](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
 [![gate](https://github.com/sourav-patra/quiet-counsel/actions/workflows/gate.yml/badge.svg)](https://github.com/sourav-patra/quiet-counsel/actions/workflows/gate.yml)
@@ -63,11 +63,11 @@ Evidence: on 2 November 2026 the author screened 50 public agent repositories ([
 1. Install from the tag, then write a sample project that has planted problems.
 
 ```sh
-pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
 quiet-counsel sample ./sample
 ```
 
-   Check: `quiet-counsel --version` prints `quiet-counsel 0.1.0`, the sample command prints `sample project written to ./sample`, and `ls sample` lists `agents`, `scripts`, `skills`, `tests`, `vendor`, `LICENSE` and `README.md`.
+   Check: `quiet-counsel --version` prints `quiet-counsel 0.1.1`, the sample command prints `sample project written to ./sample`, and `ls sample` lists `agents`, `scripts`, `skills`, `tests`, `vendor`, `LICENSE` and `README.md`.
 
 2. Screen it.
 

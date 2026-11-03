@@ -169,7 +169,7 @@ img.diagram { width: 100%; height: auto; display: block; border: 1px solid var(-
   <div class="wrap">
     <h1>quiet-counsel</h1>
     <p class="lead">Hand it a repository. It runs nothing from it, sends nothing anywhere, and gives you flags with the file and line, command or commit behind each one.</p>
-    <p class="meta">v0.1.0 &middot; MIT &middot; Python 3.11 or newer, standard library &middot; no network call, no model &middot; accuracy not measured</p>
+    <p class="meta">v0.1.1 &middot; MIT &middot; Python 3.11 or newer, standard library &middot; no network call, no model &middot; accuracy not measured</p>
     <p class="meta"><a href="#install">Install</a> &middot; <a href="#watch">Watch a run</a> &middot; <a href="https://github.com/sourav-patra/quiet-counsel">Source</a></p>
   </div>
 </header>
@@ -319,7 +319,7 @@ flags: 3
   file and line, excerpt differs: 0
   command, commit, note or path only: 0
   no evidence: 0
-evidence items on flags: match 5, withheld 4, differs 0, broken 0, no line 0</pre>
+evidence items on flags: match 6, withheld 3, differs 0, broken 0, no line 0</pre>
       <p>The output holds no score for the project. The dashboard marks the dimensions as unscored in screen mode.</p>
     </div>
   </div>
@@ -394,7 +394,7 @@ evidence items on flags: match 5, withheld 4, differs 0, broken 0, no line 0</pr
   <div class="wrap">
     <h2 id="h-install">Install and run it</h2>
     <div class="body">
-<pre tabindex="0">pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
+<pre tabindex="0">pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
 quiet-counsel sample ./sample
 quiet-counsel screen ./sample --out ./cards
 quiet-counsel dashboard ./cards/*.json --out cohort.html</pre>
