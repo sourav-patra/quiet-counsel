@@ -422,10 +422,19 @@ def read_text(path, limit=2_000_000):
     return read_counted(path, limit)[0]
 
 
+# The scanned project's own .git/config can name programs git would start (a signature checker, a
+# pager, a hook, a file-system monitor); -c outranks every config file, so none of them runs.
+GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
+            "-c", "core.hooksPath=" + os.devnull, "-c", "log.showSignature=false",
+            "-c", "diff.external=", "-c", "gpg.program=" + os.devnull,
+            "-c", "gpg.openpgp.program=" + os.devnull, "-c", "gpg.x509.program=" + os.devnull,
+            "-c", "gpg.ssh.program=" + os.devnull)
+
+
 def git(root, *args):
     try:
-        out = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True,
-                             timeout=60)
+        out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
+                             text=True, timeout=60)
         return out.stdout.strip() if out.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         return ""

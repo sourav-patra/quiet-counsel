@@ -2,7 +2,7 @@
 
 ## Does it run the project it screens?
 
-No. It reads files and makes read-only git queries. No project script, install step or test is run, and nothing is sent anywhere. Cases G-03 and G-09 in [test-suite.md](test-suite.md) check the no-network part.
+No. It reads files and makes read-only git queries, with the project's own git settings that start programs overridden (case S-26). No project script, install step or test is run, and nothing is sent anywhere. Cases G-03 and G-09 in [test-suite.md](test-suite.md) check the no-network part.
 
 ## Is a project with no flags safe?
 
