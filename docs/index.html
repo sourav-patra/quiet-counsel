@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>quiet-counsel: reads an agent project's repository and shows the evidence behind each number</title>
+<title>quiet-counsel: screen an agent project's repository, with the evidence behind each flag</title>
 <meta name="description" content="Reads an agent project's repository, works out what kind of project it is, flags what looks wrong, and shows the file and line, or the command, behind each number. Local, standard library, no network call, no model.">
 <link rel="icon" href="data:,">
 <style>
@@ -138,6 +138,28 @@ footer p { margin: 0 0 0.75rem; max-width: 68ch; }
 footer ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0 1.25rem; font-family: var(--sans); }
 footer li { margin: 0; }
 footer li a { display: inline-block; padding: 0.4rem 0; }
+/* explainer additions */
+.js .nojs { display: none; }
+html:not(.js) .jsonly { display: none; }
+.big { font-size: 1.25rem; line-height: 1.5; }
+.steps { padding-left: 0; list-style: none; }
+.steps li { border-left: 3px solid var(--edge); padding: 0.1rem 0 0.1rem 1rem; margin-bottom: 1.25rem; }
+.steps h3 { margin: 0 0 0.25rem; }
+.mod, .why { font: 0.9375rem/1.5 var(--sans); color: var(--muted); margin-bottom: 0.4rem; }
+.pipe { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
+.pipe li { margin: 0; }
+button { font: 0.9375rem/1.2 var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--edge); border-radius: 3px; padding: 0.65rem 0.9rem; min-height: 2.75rem; cursor: pointer; }
+button:hover { border-color: var(--fg); }
+button[aria-pressed="true"], button.lit { background: var(--sel-bg); color: var(--sel-fg); border-color: var(--sel-bg); }
+button.go { font-weight: 700; border-color: var(--accent); }
+.panel { background: var(--surface); border: 1px solid var(--edge); padding: 0.9rem 1rem; margin: 0 0 1rem; min-height: 9rem; }
+.panel h3 { margin-top: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
+.run { margin: 0 0 2rem; }
+.run h3 { margin-top: 0; }
+.trail { font: 0.875rem/1.5 var(--sans); color: var(--muted); margin: 0 0 0.75rem; min-height: 1.5em; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+img.diagram { width: 100%; height: auto; display: block; border: 1px solid var(--edge); background: #fff; }
 </style>
 </head>
 <body>
@@ -146,43 +168,124 @@ footer li a { display: inline-block; padding: 0.4rem 0; }
 <header>
   <div class="wrap">
     <h1>quiet-counsel</h1>
-    <p class="lead">Reads an agent project's repository, works out what kind of project it is, flags what looks wrong, and shows the file and line, or the command, behind each number.</p>
-    <p class="meta">v0.1.0 &middot; MIT &middot; Python 3.11 or newer, standard library &middot; no network call, no model</p>
+    <p class="lead">Hand it a repository. It runs nothing from it, sends nothing anywhere, and gives you flags with the file and line, command or commit behind each one.</p>
+    <p class="meta">v0.1.1 &middot; MIT &middot; Python 3.11 or newer, standard library &middot; no network call, no model &middot; accuracy not measured</p>
+    <p class="meta"><a href="#install">Install</a> &middot; <a href="#watch">Watch a run</a> &middot; <a href="https://github.com/sourav-patra/quiet-counsel">Source</a></p>
   </div>
 </header>
-
 <nav aria-label="Sections">
   <ul>
-    <li><a href="#install">Install and run</a></li>
-    <li><a href="#result">A real result</a></li>
-    <li><a href="#cannot-see">What it cannot see</a></li>
-    <li><a href="#measured">What is measured</a></li>
-    <li><a href="#notices">Notices</a></li>
-    <li><a href="#compare">How it differs</a></li>
+    <li><a href="#problem">Problem</a></li><li><a href="#picture">Big picture</a></li><li><a href="#how">How it works</a></li><li><a href="#watch">Watch a run</a></li><li><a href="#finds">What it finds</a></li><li><a href="#works">Does it work</a></li><li><a href="#cannot-see">Cannot see</a></li><li><a href="#compare">Compare</a></li><li><a href="#install">Install</a></li>
   </ul>
 </nav>
 
+
 <main id="main">
 
-<section id="install" aria-labelledby="h-install">
+<section id="problem" aria-labelledby="h-problem">
   <div class="wrap">
-    <h2 id="h-install">Install and run</h2>
+    <h2 id="h-problem">The problem</h2>
     <div class="body">
-<pre tabindex="0">pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.0"
-quiet-counsel classify ./project
-quiet-counsel screen ./submissions/* --corpus ./corpus --out ./cards
-quiet-counsel dashboard ./cards/*.json --out cohort.html</pre>
-      <p>It runs locally on the Python standard library (3.11 or newer). It makes no network call and calls no model. The result is one HTML page you can open, email or commit.</p>
-      <p><code>quiet-counsel sample &lt;dir&gt;</code> writes a synthetic project with five planted problems, and <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/examples/sample-dashboard.html">examples/sample-dashboard.html</a> is the page built from it.</p>
-      <p>To check the no-network claim, run cases G-03 (no module imports a network library) and G-09 (a screen with every socket refused gives the same card byte for byte, with the clock fixed):</p>
-<pre tabindex="0">TZ=UTC PYTHONPATH=src:tests python3 -m unittest discover -s tests -t tests -k test_G03 -k test_G09</pre>
+      <p class="big">Before you open someone else's agent project, ask what already runs by itself when you do.</p>
+      <p>Agent setups are mostly text and small scripts: instructions, skills, hooks, workflow files. A repository can ask your editor or agent to run a command the moment you open the folder. It can ask a package manager to run a script at install. It can hold a key someone pasted by accident, or a sentence written for whoever is judging it.</p>
+      <p>Published 2026 incident reports describe patterns like these:</p>
+      <ul>
+        <li>Commands that run when a folder opens, and install-time package scripts.</li>
+        <li>A workflow step that sends secrets or history to a bare web address.</li>
+        <li>Pull request content run with secrets or agent write access.</li>
+        <li>A published package version replaced by a compromised release.</li>
+      </ul>
+      <p>Reading every file by hand does not scale to a hundred submissions or a vendor's whole setup, and running the project to find out is the risk you are trying to avoid. quiet-counsel reads the files, runs nothing from them, and hands you a short list of places to look. <a href="#cannot-see">What it cannot see</a> says which of these patterns it can list and which it cannot.</p>
+
     </div>
   </div>
 </section>
+<section id="picture" aria-labelledby="h-picture">
+  <div class="wrap">
+    <h2 id="h-picture">The big picture</h2>
+    <div class="body">
+      <p>Everything happens on one machine, on the Python standard library: no network call, no model, no agent run. Package registries, accounts and runtime behaviour sit outside what it sees.</p>
+      <img class="diagram" src="how-it-works.svg" alt="Seven steps. On one machine with no network, no model and no agent run: a repository on disk is classified and scanned, lines holding a credential shape are withheld, and the result is written as a JSON scorecard and then an HTML dashboard. A person then reads the page and rules on each flag. Package registries, accounts, runtime behaviour and deployed versions are outside what the tool sees.">
+      <p style="margin-top:1rem">Scripts flag and a person rules. The band orders your attention (blocked, review, shortlist, screened) and disqualifies nobody.</p>
 
+    </div>
+  </div>
+</section>
+<section id="how" aria-labelledby="h-how">
+  <div class="wrap">
+    <h2 id="h-how">How it works</h2>
+    <div class="body">
+      <p>Seven steps. With JavaScript on, choose a step to read about it. Without it, all seven are listed below.</p>
+      <div class="jsonly"><ul class="pipe" id="pipe-explain"></ul><div class="panel" id="explain" aria-live="polite"></div></div>
+      <div class="nojs" id="steps-static"><ol class="steps" id="steps">
+<li data-step="0"><h3>1. Repository on disk</h3><p class="mod">Module: <code>scan.walk, scan.git</code></p><p>The tool opens the folder you point it at and reads files, plus a few read-only git queries such as the commit history. Nothing in the folder is executed, no install script runs and no network is used.</p><p class="why">Why it matters: Reading a file is not running it. A hostile project can only put text in front of the tool.</p></li>
+<li data-step="1"><h3>2. Classify</h3><p class="mod">Module: <code>scan.classify</code></p><p>It decides what kind of project this is (a skill catalogue, a harness, an application and so on) from the files present, not from the name, and lists the evidence for that choice.</p><p class="why">Why it matters: Different kinds of project get different expectations, so a tool repository is not judged as a catalogue.</p></li>
+<li data-step="2"><h3>3. Scan</h3><p class="mod">Module: <code>scan.screen, checks.py</code></p><p>It looks for patterns: credential shapes, commands piped into a shell, hooks that run on open, hidden characters, text aimed at an evaluator, licence conflicts, stated counts in the README that the files contradict, and claims it cannot support such as SOC 2. Each hit becomes a flag with a file and line, or a command or commit, and a severity, except unsupported claims, which are recorded as claims with status unsupported and are not flags.</p><p class="why">Why it matters: Every flag points at something you can open and read.</p></li>
+<li data-step="3"><h3>4. Withholding rule</h3><p class="mod">Module: <code>scan.clip, scan.redact_all</code></p><p>If a line holds a credential shape, or a word such as token, secret or password, the flag keeps the file and line but the quoted text reads &lt;line withheld&gt;.</p><p class="why">Why it matters: The card never repeats a secret it found, so you can share it more safely. A credential in a format the tool does not list can still get through.</p></li>
+<li data-step="4"><h3>5. Scorecard JSON</h3><p class="mod">Module: <code>schema.py</code></p><p>Flags, numeric signals and a band (blocked, review, shortlist or screened) are written as a JSON file. The score fields stay empty in screen mode.</p><p class="why">Why it matters: The data is the product. Other scripts can read it, and the dashboard step uses nothing else.</p></li>
+<li data-step="5"><h3>6. Dashboard HTML</h3><p class="mod">Module: <code>dashboard.py</code></p><p>One self-contained page lists every project with its band and flags. All project text is escaped, and each number has the command that produced it printed beside it.</p><p class="why">Why it matters: One file you can open, email or commit, with no server.</p></li>
+<li data-step="6"><h3>7. A person rules</h3><p class="mod">Module: <code>you</code></p><p>You read each flag, open the line, and decide. The tool orders attention and disqualifies nobody.</p><p class="why">Why it matters: A band says nothing about safety or about how well an agent performs.</p></li>
+</ol></div>
+
+    </div>
+  </div>
+</section>
+<section id="watch" aria-labelledby="h-watch">
+  <div class="wrap">
+    <h2 id="h-watch">Watch a repository go through</h2>
+    <div class="body">
+      <p>Three made-up projects, each run through the real tool. The commands, output lines and flags below were produced by running <code>quiet-counsel</code> 0.1.0 on them and are stored in this page as data. Your browser computes nothing. An unusual character in one quoted line is shown as an escape, and one flag's quoted text is left out so this page does not repeat it.</p>
+      <div class="jsonly" id="walk-ui">
+        <div class="row" role="group" aria-label="Choose a repository" id="pick"></div>
+        <ul class="pipe" id="pipe-walk" aria-hidden="true"></ul>
+        <p class="trail" id="trail" aria-live="polite"></p>
+        <div id="walk-out"></div>
+      </div>
+      <div class="nojs" id="walk-static"><article class="run" id="run-sample"><h3>Planted problems</h3><p>The sample project the tool writes for itself: a made-up catalogue with problems planted in it.</p>
+<pre class="cmd" tabindex="0">quiet-counsel sample ./sample
+quiet-counsel screen ./sample --out ./cards</pre>
+<pre class="out" tabindex="0">1 scorecard(s) written to ./cards
+  blocked    sample                             catalogue     critical:secret-in-tree, serious:curl-pipe-shell, serious:hidden-characters, critical:evaluator-directed-text, critical:copyleft-in-permissive-tree, serious:contradicted-claim</pre>
+<table><caption>Flags on the card, as written to the JSON file. The first evidence item is shown.</caption><thead><tr><th scope="col">Flag</th><th scope="col">Severity</th><th scope="col">File and line</th><th scope="col">Quoted text</th></tr></thead><tbody><tr><td class="pat" data-label="Flag"><code>secret-in-tree</code></td><td data-label="Severity"><span class="sev">critical</span></td><td data-label="File and line"><code>scripts/deploy.sh:2</code></td><td data-label="Quoted text"><code>[aws-access-key] &lt;line withheld&gt;</code></td></tr><tr><td class="pat" data-label="Flag"><code>curl-pipe-shell</code></td><td data-label="Severity"><span class="sev">serious</span></td><td data-label="File and line"><code>README.md:9</code></td><td data-label="Quoted text"><code>curl -fsSL https://nimbus.example.invalid/install.sh | bash</code></td></tr><tr><td class="pat" data-label="Flag"><code>hidden-characters</code></td><td data-label="Severity"><span class="sev">serious</span></td><td data-label="File and line"><code>scripts/run.py:2</code></td><td data-label="Quoted text"><code>U+200B in: print("nimbus\u200b")</code></td></tr><tr><td class="pat" data-label="Flag"><code>evaluator-directed-text</code></td><td data-label="Severity"><span class="sev">critical</span></td><td data-label="File and line"><code>skills/data-export/SKILL.md:10</code></td><td data-label="Quoted text">not quoted on this page</td></tr><tr><td class="pat" data-label="Flag"><code>copyleft-in-permissive-tree</code></td><td data-label="Severity"><span class="sev">critical</span></td><td data-label="File and line"><code>vendor/fastclip/LICENSE:1</code></td><td data-label="Quoted text"><code>[GPL] GNU GENERAL PUBLIC LICENSE</code></td></tr><tr><td class="pat" data-label="Flag"><code>contradicted-claim</code></td><td data-label="Severity"><span class="sev">serious</span></td><td data-label="File and line"><code>README.md: “12 skills”</code></td><td data-label="Quoted text"><code>1 distinct skills found</code></td></tr></tbody></table></article>
+<article class="run" id="run-hook"><h3>A folder-open hook</h3><p>A made-up project whose editor settings run a shell script when the folder opens and when an agent session starts.</p>
+<pre class="cmd" tabindex="0">quiet-counsel screen ./hook --out ./cards</pre>
+<pre class="out" tabindex="0">1 scorecard(s) written to ./cards
+  screened   hook                               unknown       warning:open-time-hook</pre>
+<table><caption>Flags on the card, as written to the JSON file. The first evidence item is shown.</caption><thead><tr><th scope="col">Flag</th><th scope="col">Severity</th><th scope="col">File and line</th><th scope="col">Quoted text</th></tr></thead><tbody><tr><td class="pat" data-label="Flag"><code>open-time-hook</code></td><td data-label="Severity"><span class="sev">warning</span></td><td data-label="File and line"><code>.claude/settings.json:4</code></td><td data-label="Quoted text"><code>{ "hooks": [ { "type": "command", "command": "sh ./setup.sh" } ] }</code></td></tr></tbody></table></article>
+<article class="run" id="run-clean"><h3>A clean repository</h3><p>A made-up project with a licence, a readme and one function, and nothing to flag.</p>
+<pre class="cmd" tabindex="0">quiet-counsel screen ./clean --out ./cards</pre>
+<pre class="out" tabindex="0">1 scorecard(s) written to ./cards
+  screened   clean                              unknown       no flags</pre>
+<p>The card has no flags. The screen is silent here only about what the tool checks; it says nothing about whether the project is good.</p></article></div>
+      <p>The flag <code>secret-in-tree</code> in the first run shows the withholding rule: the file and line are kept, and the text reads <code>&lt;line withheld&gt;</code>.</p>
+
+    </div>
+  </div>
+</section>
+<section id="finds" aria-labelledby="h-finds">
+  <div class="wrap">
+    <h2 id="h-finds">What it finds</h2>
+    <div class="body">
+      <table>
+        <caption>Check groups and the flag ids behind them.</caption>
+        <thead><tr><th scope="col">Group</th><th scope="col">Flag ids</th><th scope="col">Reads</th></tr></thead>
+        <tbody>
+          <tr><td class="pat" data-label="Group">Secrets and risky commands</td><td data-label="Flag ids"><code>secret-in-tree</code>, <code>curl-pipe-shell</code>, <code>credential-shaped-fixtures</code></td><td data-label="Reads">Source and script lines</td></tr>
+          <tr><td class="pat" data-label="Group">Runs without being asked</td><td data-label="Flag ids"><code>open-time-hook</code>, <code>agent-hook</code>, <code>install-time-script</code>, <code>writes-host-config</code></td><td data-label="Reads">Agent and editor settings, <code>package.json</code></td></tr>
+          <tr><td class="pat" data-label="Group">Workflows</td><td data-label="Flag ids"><code>workflow-data-out</code>, <code>untrusted-code-with-power</code></td><td data-label="Reads"><code>.github/workflows</code></td></tr>
+          <tr><td class="pat" data-label="Group">Text aimed at the evaluator</td><td data-label="Flag ids"><code>evaluator-directed-text</code>, <code>quoted-evaluator-text</code>, <code>hidden-characters</code></td><td data-label="Reads">Every text file</td></tr>
+          <tr><td class="pat" data-label="Group">Licence and copying</td><td data-label="Flag ids"><code>no-licence</code>, <code>restricted-licence-text</code>, <code>share-alike-text</code>, <code>copyleft-in-permissive-tree</code>, <code>licence-needs-reading</code>, <code>copied-without-attribution</code>, <code>corpus-duplication</code></td><td data-label="Reads">Licence files, skill files, a corpus you supply</td></tr>
+          <tr><td class="pat" data-label="Group">Claims and history</td><td data-label="Flag ids"><code>contradicted-claim</code>, <code>stale-instructions</code>, <code>work-predates-event</code></td><td data-label="Reads">stated counts and figures in the README (such as a skill count), claims it cannot support, instruction files, git history</td></tr>
+        </tbody>
+      </table>
+      <p>It is used by a platform team vetting a third-party agent setup, a maintainer before a release, a security reviewer, and an event judge with many submissions. The cases behind each check are in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/test-suite.md">docs/test-suite.md</a>.</p>
+
+    </div>
+  </div>
+</section>
 <section id="result" aria-labelledby="h-result">
   <div class="wrap">
-    <h2 id="h-result">A real result</h2>
+    <h2 id="h-result">A real result, line by line</h2>
     <div class="body">
       <h3>A flag from a synthetic project</h3>
       <p>This run is on the sample project the tool writes for itself. It is synthetic: a made-up catalogue with five problems planted in it. The output is pasted as the tool printed it, and the flag fields are read from the card file it wrote.</p>
@@ -207,7 +310,7 @@ quiet-counsel screen ./sample-project --out ./scards</pre>
       <p>This run is on the tool's own repository at v0.1.0, from a clone in a folder named quiet-counsel.</p>
 <pre class="cmd" tabindex="0">quiet-counsel screen ./quiet-counsel --out ./cards</pre>
 <pre class="out" tabindex="0">1 scorecard(s) written to ./cards
-  shortlist  quiet-counsel                          harness       info:credential-shaped-fixtures, info:quoted-evaluator-text, info:copyleft-in-permissive-tree</pre>
+  shortlist  quiet-counsel                          harness       info:credential-shaped-fixtures, info:quoted-evaluator-text, warning:copyleft-in-permissive-tree</pre>
       <p>A second script reads the card and confirms that each cited line exists and either holds the quoted text or is a line the scanner withholds. Seven lines of its output, as printed:</p>
 <pre class="cmd" tabindex="0">python3 tools/check_evidence.py . --list</pre>
 <pre class="out" tabindex="0">screened .
@@ -216,13 +319,24 @@ flags: 3
   file and line, excerpt differs: 0
   command, commit, note or path only: 0
   no evidence: 0
-evidence items on flags: match 7, withheld 6, differs 0, broken 0, no line 0</pre>
+evidence items on flags: match 6, withheld 3, differs 0, broken 0, no line 0</pre>
       <p>The output holds no score for the project. The dashboard marks the dimensions as unscored in screen mode.</p>
     </div>
   </div>
-</section>
-
-<section id="cannot-see" class="limits" aria-labelledby="h-cannot">
+</section><section id="works" aria-labelledby="h-measured">
+  <div class="wrap">
+    <h2 id="h-measured">Does it work? Not measured</h2>
+    <div class="body">
+      <ul>
+        <li>Flags about a file cite its path and line. Flags about history or a missing file cite a command or a commit. <code>tools/check_evidence.py</code> confirms that each cited line exists and either holds the quoted text or is a line the scanner withholds (the excerpt reads <code>&lt;line withheld&gt;</code>: the line holds a credential shape or a word such as <code>token</code>, and you open it to read it). On this repository's own tree it reports 3 flags, all 3 citing a file and line (9 evidence items: 5 with the quoted text on the line, 4 withheld lines, 0 broken, 0 differing). Of the 22 numeric signals on a card, 0 cite a file and line; the rest cite the command that produces them. Reproduce with <code>python3 tools/check_evidence.py . --list</code>.</li>
+        <li>Accuracy is not measured and no benchmark exists. Case F-01 in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/test-suite.md">docs/test-suite.md</a> stays open until a person has read every flag from a real cohort.</li>
+        <li>Field run: one run by the author on 2 November 2026, of 50 public agent repositories drawn from a personal catalogue of agent tools, ordered by a hash of each name, taking the top 50 of that order under 150 MB, screened with this version's checks. There were 0 screen errors and 5 warnings from the checks added for the incident notices (4 <code>install-time-script</code>, 1 <code>open-time-hook</code>). In all, 4 critical, 31 serious, 36 warning and 34 information flags. The data-out and untrusted-code checks raised nothing, so the one place they have fired is test fixtures. The repository list is withheld so as not to name other people's projects, so a reader cannot reproduce this run; the aggregates are in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/field-run-2026-11-02.json">docs/field-run-2026-11-02.json</a>. No person has read every flag.</li>
+        <li>A project's own <code>.scanignore</code> changes no flag, cap or band unless the person screening passes <code>--honour-ignore</code> for that one project; when the file holds a usable pattern the card reports the file, its path-shaped patterns and how many files they match. Under that option the file can lower <code>secret-in-tree</code> and some other critical flags to information, and a project can lower its band. They stay listed, and the <code>verdict</code> command still counts a flag lowered this way at its original severity. <code>--no-ignore</code> is accepted and does nothing.</li>
+      </ul>
+      <p>Every flag is a finding for a person to rule on. The tool orders projects and cites evidence. It disqualifies nobody, and a high score does not mean a project is safe or that an agent will do better in it.</p>
+    </div>
+  </div>
+</section><section id="cannot-see" class="limits" aria-labelledby="h-cannot">
   <div class="wrap">
     <h2 id="h-cannot">What it cannot see</h2>
     <div class="body">
@@ -231,24 +345,30 @@ evidence items on flags: match 7, withheld 6, differs 0, broken 0, no line 0</pr
       <p class="key">For the other two, the keyv worm and the fake audit workflow, the files appear with the compromise, so a screen of the affected repository had nothing to find beforehand; the checks can list them afterwards, to help a person triage. No detection rate exists for any of them.</p>
     </div>
   </div>
-</section>
-
-<section id="measured" aria-labelledby="h-measured">
+</section><section id="compare" aria-labelledby="h-compare">
   <div class="wrap">
-    <h2 id="h-measured">What is measured, and what is not</h2>
+    <h2 id="h-compare">How it differs, by what each one needs</h2>
     <div class="body">
-      <ul>
-        <li>Flags about a file cite its path and line. Flags about history or a missing file cite a command or a commit. <code>tools/check_evidence.py</code> confirms that each cited line exists and either holds the quoted text or is a line the scanner withholds (the excerpt reads <code>&lt;line withheld&gt;</code>: the line holds a credential shape or a word such as <code>token</code>, and you open it to read it). On this repository's own tree it reports 3 flags, all 3 citing a file and line (13 evidence items: 7 with the quoted text on the line, 6 withheld lines, 0 broken, 0 differing). Of the 24 numeric signals on a card, 0 cite a file and line; the rest cite the command that produces them. Reproduce with <code>python3 tools/check_evidence.py . --list</code>.</li>
-        <li>Accuracy is not measured and no benchmark exists. Case F-01 in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/test-suite.md">docs/test-suite.md</a> stays open until a person has read every flag from a real cohort.</li>
-        <li>Field run: one run by the author on 2 November 2026, of 50 public agent repositories drawn from a personal catalogue of agent tools, ordered by a hash of each name, taking the top 50 of that order under 150 MB, screened with this version's checks. There were 0 screen errors and 5 warnings from the checks added for the incident notices (4 <code>install-time-script</code>, 1 <code>open-time-hook</code>). In all, 4 critical, 31 serious, 36 warning and 34 information flags. The data-out and untrusted-code checks raised nothing, so the one place they have fired is test fixtures. The repository list is withheld so as not to name other people's projects, so a reader cannot reproduce this run; the aggregates are in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/field-run-2026-11-02.json">docs/field-run-2026-11-02.json</a>. No person has read every flag.</li>
-        <li>A project's own <code>.scanignore</code> can lower <code>secret-in-tree</code> and some other critical flags to information. They stay listed, <code>--no-ignore</code> restores them, and the <code>verdict</code> command still counts a flag lowered this way at its original severity.</li>
-      </ul>
-      <p>Every flag is a finding for a person to rule on. The tool orders projects and cites evidence. It disqualifies nobody, and a high score does not mean a project is safe or that an agent will do better in it.</p>
+      <p>This tool reads one repository, or a hundred, without running anything, and reports what the files contain and the file and line, command or commit behind each number. The projects below answer nearby questions, and what each one needs in order to run is the place to start comparing. The table gives requirements as each project's page states them. It compares no accuracy and gives no ranking.</p>
+      <table>
+        <caption>Read on 2 November 2026 from each project's own page. These projects change often, so check the page before repeating anything here.</caption>
+        <thead><tr><th scope="col">Project</th><th scope="col">What it does</th><th scope="col">What it needs</th></tr></thead>
+        <tbody>
+          <tr><td class="pat" data-label="Project">This tool</td><td data-label="What it does">Reads a repository and reports what it contains, with evidence for each number</td><td data-label="What it needs">Python 3.11 or newer and the standard library. No network call and no model (cases G-03 and G-09)</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/SkillOpt">SkillOpt</a></td><td data-label="What it does">Improves one skill document for a frozen agent</td><td data-label="What it needs">Live model runs for training, and a score for each rollout</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/NVIDIA/SkillSpector/blob/v2.13.2/README.md">SkillSpector</a> (tag v2.13.2)</td><td data-label="What it does">Scans an agent skill for security problems</td><td data-label="What it needs">LLM analysis is the default and sends file contents to the configured provider; <code>--no-llm</code> keeps contents local. The dependency check sends dependency names and versions to OSV.dev even with <code>--no-llm</code>, and needs outbound HTTPS to <code>api.osv.dev</code> for live vulnerability data; when that is unreachable it uses a small built-in fallback list</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/ambient-code/agentready">AgentReady</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">Python and pip. The page gives no runtime network or model requirement</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/tjboudreaux/ready-agent-1/blob/main/README.md">Ready Agent 1</a></td><td data-label="What it does">Scores how ready a repository is for coding agents, citing the file, commit or setting behind each check</td><td data-label="What it needs">Python 3.11 or newer, no runtime dependencies. Offline by default; GitHub checks and command execution are opt-in</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://docs.factory.com/web/agent-readiness/overview">Factory Agent Readiness</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">The Factory app, the Droid CLI or an API. The page does not say whether an account is required</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/agentrc/blob/main/README.md">AgentRC</a></td><td data-label="What it does">Scores AI readiness, and generates and maintains instruction files</td><td data-label="What it needs">Node.js 22 or newer. GitHub sign-in or a token, and the Copilot CLI for generation. Marked experimental</td></tr>
+          <tr><td class="pat" data-label="Project"><a href="https://github.com/ossf/scorecard/blob/main/README.md">OpenSSF Scorecard</a></td><td data-label="What it does">Checks supply-chain practice. None of the checks its page lists is specific to agents</td><td data-label="What it needs">A GitHub or GitLab token for higher rate limits; Go for the standalone CLI, or a Docker image</td></tr>
+        </tbody>
+      </table>
+      <p>Google's <a href="https://github.com/google/elephant-goldfish-model">Elephant-Goldfish Model</a> has fresh-context subagents review a design before code is written, and its drift report compares checked-in documents with source code; it runs inside a coding agent. This tool reads a repository with scripts alone and cites what it finds. On 2 November 2026 the author also ran its drift report once on a small made-up project with six planted README contradictions. The drift report found all six and also flagged the one true claim as differing in contract. This tool found none, since it checks only stated counts and figures (tests, skills, coverage, speed-up) and a short list of claims it cannot support, such as SOC 2 or production-ready. The drift report used a model and about 238,000 tokens; this tool used neither. One sample measures no accuracy. The author did not run its review pipeline. Results from one sample do not make a comparison.</p>
+      <p>For the security of a single skill or agent configuration, use a dedicated scanner: the safety sweep here is a coarse pass across many projects and goes nowhere near that depth. For supply-chain practice in general, use OpenSSF Scorecard. To find out whether a project's code works, run its tests; nothing here runs them. The full comparison, including what was and was not checked, is in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/COMPARISON.md">docs/COMPARISON.md</a>.</p>
     </div>
   </div>
-</section>
-
-<section id="notices" aria-labelledby="h-notices">
+</section><section id="notices" aria-labelledby="h-notices">
   <div class="wrap">
     <h2 id="h-notices">Pattern notices</h2>
     <div class="body">
@@ -270,33 +390,22 @@ evidence items on flags: match 7, withheld 6, differs 0, broken 0, no line 0</pr
       <p>The notices describe patterns that published reports document. A company appears in them as the publisher of a fact its source states, and the account owner in a takeover is treated as a victim.</p>
     </div>
   </div>
-</section>
-
-<section id="compare" aria-labelledby="h-compare">
+</section><section id="install" aria-labelledby="h-install">
   <div class="wrap">
-    <h2 id="h-compare">How it differs, by what each one needs</h2>
+    <h2 id="h-install">Install and run it</h2>
     <div class="body">
-      <p>This tool reads one repository, or a hundred, without running anything, and reports what the files contain and the file and line, command or commit behind each number. The projects below answer nearby questions, and what each one needs in order to run is the place to start comparing. The table gives requirements as each project's page states them. It compares no accuracy and gives no ranking.</p>
-      <table>
-        <caption>Read on 2 November 2026 from each project's own page. These projects change often, so check the page before repeating anything here.</caption>
-        <thead><tr><th scope="col">Project</th><th scope="col">What it does</th><th scope="col">What it needs</th></tr></thead>
-        <tbody>
-          <tr><td class="pat" data-label="Project">This tool</td><td data-label="What it does">Reads a repository and reports what it contains, with evidence for each number</td><td data-label="What it needs">Python 3.11 or newer and the standard library. No network call and no model (cases G-03 and G-09)</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/SkillOpt">SkillOpt</a></td><td data-label="What it does">Improves one skill document for a frozen agent</td><td data-label="What it needs">Live model runs for training, and a score for each rollout</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/NVIDIA/SkillSpector/blob/v2.13.2/README.md">SkillSpector</a> (tag v2.13.2)</td><td data-label="What it does">Scans an agent skill for security problems</td><td data-label="What it needs">LLM analysis is the default and sends file contents to the configured provider; <code>--no-llm</code> keeps contents local. The dependency check sends dependency names and versions to OSV.dev even with <code>--no-llm</code>, and needs outbound HTTPS to <code>api.osv.dev</code> for live vulnerability data; when that is unreachable it uses a small built-in fallback list</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/ambient-code/agentready">AgentReady</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">Python and pip. The page gives no runtime network or model requirement</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/tjboudreaux/ready-agent-1/blob/main/README.md">Ready Agent 1</a></td><td data-label="What it does">Scores how ready a repository is for coding agents, citing the file, commit or setting behind each check</td><td data-label="What it needs">Python 3.11 or newer, no runtime dependencies. Offline by default; GitHub checks and command execution are opt-in</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://docs.factory.com/web/agent-readiness/overview">Factory Agent Readiness</a></td><td data-label="What it does">Scores how ready a repository is for coding agents</td><td data-label="What it needs">The Factory app, the Droid CLI or an API. The page does not say whether an account is required</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/microsoft/agentrc/blob/main/README.md">AgentRC</a></td><td data-label="What it does">Scores AI readiness, and generates and maintains instruction files</td><td data-label="What it needs">Node.js 22 or newer. GitHub sign-in or a token, and the Copilot CLI for generation. Marked experimental</td></tr>
-          <tr><td class="pat" data-label="Project"><a href="https://github.com/ossf/scorecard/blob/main/README.md">OpenSSF Scorecard</a></td><td data-label="What it does">Checks supply-chain practice. None of the checks its page lists is specific to agents</td><td data-label="What it needs">A GitHub or GitLab token for higher rate limits; Go for the standalone CLI, or a Docker image</td></tr>
-        </tbody>
-      </table>
-      <p>Google's <a href="https://github.com/google/elephant-goldfish-model">Elephant-Goldfish Model</a> has fresh-context subagents review a design before code is written, and its drift report compares checked-in documents with source code; it runs inside a coding agent. This tool reads a repository with scripts alone and cites what it finds. We read its README and design notes on 2 November 2026 and have not run it, so no comparison of results exists.</p>
-      <p>For the security of a single skill or agent configuration, use a dedicated scanner: the safety sweep here is a coarse pass across many projects and goes nowhere near that depth. For supply-chain practice in general, use OpenSSF Scorecard. To find out whether a project's code works, run its tests; nothing here runs them. The full comparison, including what was and was not checked, is in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/COMPARISON.md">docs/COMPARISON.md</a>.</p>
+<pre tabindex="0">pip install "git+https://github.com/sourav-patra/quiet-counsel@v0.1.1"
+quiet-counsel sample ./sample
+quiet-counsel screen ./sample --out ./cards
+quiet-counsel dashboard ./cards/*.json --out cohort.html</pre>
+      <p>Other install forms (pipx, uv, from source, Windows, upgrade, uninstall) are in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/INSTALL.md">docs/INSTALL.md</a>, and a GitHub Actions snippet is in <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/docs/CI.md">docs/CI.md</a>.</p>
+      <p>It runs locally on the Python standard library (3.11 or newer). It makes no network call and calls no model. The result is one HTML page you can open, email or commit.</p>
+      <p><code>quiet-counsel sample &lt;dir&gt;</code> writes a synthetic project with five planted problems, and <a href="https://github.com/sourav-patra/quiet-counsel/blob/main/examples/sample-dashboard.html">examples/sample-dashboard.html</a> is the page built from it.</p>
+      <p>To check the no-network claim, run cases G-03 (no module imports a network library) and G-09 (a screen with every socket refused gives the same card byte for byte, with the clock fixed):</p>
+<pre tabindex="0">TZ=UTC PYTHONPATH=src:tests python3 -m unittest discover -s tests -t tests -k test_G03 -k test_G09</pre>
     </div>
   </div>
 </section>
-
 </main>
 
 <footer>
@@ -312,5 +421,35 @@ evidence items on flags: match 7, withheld 6, differs 0, broken 0, no line 0</pr
     </ul>
   </div>
 </footer>
+<script>
+(function(){
+document.documentElement.className+=' js';
+var STEPS=[{"t": "Repository on disk", "m": "scan.walk, scan.git", "x": "The tool opens the folder you point it at and reads files, plus a few read-only git queries such as the commit history. Nothing in the folder is executed, no install script runs and no network is used.", "w": "Reading a file is not running it. A hostile project can only put text in front of the tool."}, {"t": "Classify", "m": "scan.classify", "x": "It decides what kind of project this is (a skill catalogue, a harness, an application and so on) from the files present, not from the name, and lists the evidence for that choice.", "w": "Different kinds of project get different expectations, so a tool repository is not judged as a catalogue."}, {"t": "Scan", "m": "scan.screen, checks.py", "x": "It looks for patterns: credential shapes, commands piped into a shell, hooks that run on open, hidden characters, text aimed at an evaluator, licence conflicts, stated counts in the README that the files contradict, and claims it cannot support such as SOC 2. Each hit becomes a flag with a file and line, or a command or commit, and a severity, except unsupported claims, which are recorded as claims with status unsupported and are not flags.", "w": "Every flag points at something you can open and read."}, {"t": "Withholding rule", "m": "scan.clip, scan.redact_all", "x": "If a line holds a credential shape, or a word such as token, secret or password, the flag keeps the file and line but the quoted text reads <line withheld>.", "w": "The card never repeats a secret it found, so you can share it more safely. A credential in a format the tool does not list can still get through."}, {"t": "Scorecard JSON", "m": "schema.py", "x": "Flags, numeric signals and a band (blocked, review, shortlist or screened) are written as a JSON file. The score fields stay empty in screen mode.", "w": "The data is the product. Other scripts can read it, and the dashboard step uses nothing else."}, {"t": "Dashboard HTML", "m": "dashboard.py", "x": "One self-contained page lists every project with its band and flags. All project text is escaped, and each number has the command that produced it printed beside it.", "w": "One file you can open, email or commit, with no server."}, {"t": "A person rules", "m": "you", "x": "You read each flag, open the line, and decide. The tool orders attention and disqualifies nobody.", "w": "A band says nothing about safety or about how well an agent performs."}], RUNS=[{"key": "sample", "name": "Planted problems", "blurb": "The sample project the tool writes for itself: a made-up catalogue with problems planted in it.", "cmd": "quiet-counsel sample ./sample\nquiet-counsel screen ./sample --out ./cards", "out": "1 scorecard(s) written to ./cards\n  blocked    sample                             catalogue     critical:secret-in-tree, serious:curl-pipe-shell, serious:hidden-characters, critical:evaluator-directed-text, critical:copyleft-in-permissive-tree, serious:contradicted-claim", "band": "blocked", "flags": [{"id": "secret-in-tree", "sev": "critical", "title": "1 credential-shaped string(s) outside test and example paths", "n": 1, "ref": "scripts/deploy.sh:2", "text": "[aws-access-key] <line withheld>"}, {"id": "curl-pipe-shell", "sev": "serious", "title": "Installer pipes a download into a shell", "n": 2, "ref": "README.md:9", "text": "curl -fsSL https://nimbus.example.invalid/install.sh | bash"}, {"id": "hidden-characters", "sev": "serious", "title": "Hidden or direction-changing characters in 1 line(s)", "n": 1, "ref": "scripts/run.py:2", "text": "U+200B in: print(\"nimbus\\u200b\")"}, {"id": "evaluator-directed-text", "sev": "critical", "title": "Text in the submission addresses the evaluator", "n": 2, "ref": "skills/data-export/SKILL.md:10", "text": null}, {"id": "copyleft-in-permissive-tree", "sev": "critical", "title": "Copyleft licence text inside a MIT-licensed tree", "n": 4, "ref": "vendor/fastclip/LICENSE:1", "text": "[GPL] GNU GENERAL PUBLIC LICENSE"}, {"id": "contradicted-claim", "sev": "serious", "title": "1 claim(s) the repository contradicts", "n": 1, "ref": "README.md: “12 skills”", "text": "1 distinct skills found"}]}, {"key": "hook", "name": "A folder-open hook", "blurb": "A made-up project whose editor settings run a shell script when the folder opens and when an agent session starts.", "cmd": "quiet-counsel screen ./hook --out ./cards", "out": "1 scorecard(s) written to ./cards\n  screened   hook                               unknown       warning:open-time-hook", "band": "screened", "flags": [{"id": "open-time-hook", "sev": "warning", "title": "Commands set to run when a folder opens or an agent session starts", "n": 2, "ref": ".claude/settings.json:4", "text": "{ \"hooks\": [ { \"type\": \"command\", \"command\": \"sh ./setup.sh\" } ] }"}]}, {"key": "clean", "name": "A clean repository", "blurb": "A made-up project with a licence, a readme and one function, and nothing to flag.", "cmd": "quiet-counsel screen ./clean --out ./cards", "out": "1 scorecard(s) written to ./cards\n  screened   clean                              unknown       no flags", "band": "screened", "flags": []}];
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+function pipe(ul,onclick){ul.innerHTML='';return STEPS.map(function(s,i){var li=el('li'),b=el('button',null,(i+1)+'. '+s.t);b.type='button';if(onclick)b.addEventListener('click',function(){onclick(i);});li.appendChild(b);ul.appendChild(li);return b;});}
+var pe=document.getElementById('pipe-explain'),ex=document.getElementById('explain');
+var eb=pipe(pe,function(i){show(i);});
+function show(i){eb.forEach(function(b,j){b.setAttribute('aria-pressed',j===i?'true':'false');});var s=STEPS[i];ex.innerHTML='';ex.appendChild(el('h3',null,(i+1)+'. '+s.t));var m=el('p','mod','Module: ');m.appendChild(el('code',null,s.m));ex.appendChild(m);ex.appendChild(el('p',null,s.x));ex.appendChild(el('p','why','Why it matters: '+s.w));}
+show(0);
+var pick=document.getElementById('pick'),wp=document.getElementById('pipe-walk'),wb=pipe(wp,null),trail=document.getElementById('trail'),out=document.getElementById('walk-out'),cur=0,timer=null;
+wb.forEach(function(b){b.tabIndex=-1;});
+var pb=RUNS.map(function(r,i){var b=el('button',null,r.name);b.type='button';b.addEventListener('click',function(){choose(i);});pick.appendChild(b);return b;});
+var go=el('button','go','Run the tool on it');go.type='button';pick.appendChild(go);
+function table(r){var w=el('div');if(!r.flags.length){w.appendChild(el('p',null,'The card has no flags. That says nothing about whether the project is good, only that these checks found nothing.'));return w;}
+ var t=el('table');t.appendChild(el('caption',null,'Flags on the card. The first evidence item is shown.'));var th=el('thead'),tr=el('tr');['Flag','Severity','File and line','Quoted text'].forEach(function(h){var x=el('th',null,h);x.scope='col';tr.appendChild(x);});th.appendChild(tr);t.appendChild(th);var tb=el('tbody');
+ r.flags.forEach(function(f){var row=el('tr');var cells=[['Flag',f.id,'code'],['Severity',f.sev,'span'],['File and line',f.ref,'code'],['Quoted text',f.text==null?'not quoted on this page':f.text,f.text==null?'span':'code']];
+  cells.forEach(function(a,k){var td=el('td',k===0?'pat':null);td.setAttribute('data-label',a[0]);td.appendChild(el(a[2],k===1?'sev':null,a[1]));row.appendChild(td);});tb.appendChild(row);});
+ t.appendChild(tb);w.appendChild(t);return w;}
+function render(r){out.innerHTML='';var a=el('pre','cmd',r.cmd);a.tabIndex=0;var b=el('pre','out',r.out);b.tabIndex=0;out.appendChild(a);out.appendChild(b);out.appendChild(table(r));}
+function choose(i){clearTimeout(timer);cur=i;pb.forEach(function(b,j){b.setAttribute('aria-pressed',j===i?'true':'false');});wb.forEach(function(b){b.classList.remove('lit');});out.innerHTML='';out.appendChild(el('p',null,RUNS[i].blurb));trail.textContent='Press the run button to send it through the seven steps.';}
+function run(){clearTimeout(timer);var r=RUNS[cur],i=0;out.innerHTML='';wb.forEach(function(b){b.classList.remove('lit');});
+ function tick(){if(i>0)wb[i-1].classList.remove('lit');if(i>=STEPS.length){trail.textContent='Done. This is what the tool printed.';render(r);return;}
+  wb[i].classList.add('lit');trail.textContent='Step '+(i+1)+' of '+STEPS.length+': '+STEPS[i].t+(i===3?' (a credential line becomes <line withheld>)':'');i++;if(reduce){tick();}else{timer=setTimeout(tick,650);}}
+ tick();}
+go.addEventListener('click',run);choose(0);
+})();
+
+</script>
 </body>
 </html>

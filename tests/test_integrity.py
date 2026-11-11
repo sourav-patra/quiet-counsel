@@ -51,6 +51,17 @@ class Licence(unittest.TestCase):
         self.assertEqual(flag(card, "no-licence")["severity"], "serious")
         self.assertEqual(card["signals"]["licence_declared"]["value"], "none")
 
+    def test_I23_an_spdx_line_gets_only_the_label_its_identifier_names(self):
+        spdx = "# SPDX-License-" + "Identifier: "
+        for ident, label in (("GPL-3.0", "GPL"), ("AGPL-3.0", "AGPL"), ("LGPL-2.1", "LGPL")):
+            files = {**MINIMAL, "src/a.py": spdx + ident + chr(10) + "x = 1" + chr(10)}
+            hits = scan.licence_facts(project(files))["copyleft_hits"]
+            self.assertEqual([h[0] for h in hits], [label], ident)
+        for ident in ("MIT", "Apache-2.0", "MPL-2.0", "BSD-3-Clause"):
+            files = {**MINIMAL, "src/a.py": spdx + ident + chr(10) + "x = 1" + chr(10)}
+            self.assertEqual(scan.licence_facts(project(files))["copyleft_hits"], [], ident)
+
+
 
 class Duplication(unittest.TestCase):
     BODY = "def helper():\n" + "    return 42  # padding to clear the size floor\n" * 20
@@ -99,8 +110,8 @@ class Provenance(unittest.TestCase):
 class Exclusions(unittest.TestCase):
     def test_I13_a_finding_in_an_excluded_path_stays_visible_as_information(self):
         from helpers import fake_key
-        card = screen({**MINIMAL, ".scanignore": "# evidence, not source\nreports/\n",
-                       "reports/old.sh": f"K={fake_key()}\n"})
+        card = scan.screen(project({**MINIMAL, ".scanignore": "# evidence, not source\nreports/\n",
+                                    "reports/old.sh": f"K={fake_key()}\n"}), honour_ignore=True)
         f = next(f for f in card["flags"] if f["id"] == "secret-in-tree")
         self.assertEqual(f["severity"], "info")
         self.assertTrue(f["excluded"])

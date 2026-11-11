@@ -26,7 +26,7 @@ GENERIC = (r"(/Us" r"ers/[a-z]|C:\\Users\\|/home/[a-z]+/Projects"
 
 PUBLIC = ("src", "docs", "tests", "tools", "examples", "skills", "agents", "evals", "README.md",
           "AGENTS.md", "CLAUDE.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
-          "RELEASING.md", "pyproject.toml", "install.py", "install.sh", ".scanignore")
+          "RELEASING.md", "pyproject.toml", "install.py", "install.sh")
 
 
 def forbidden():
@@ -143,3 +143,48 @@ class AnyDirectory(unittest.TestCase):
         self.assertFalse(hist["available"])
         self.assertIn("reason", hist)
         self.assertTrue(any("Provenance was not measured" in l for l in card["limits"]))
+
+    def test_G10_the_fixture_folders_a_test_process_makes_are_gone_when_it_exits(self):
+        code = ("import sys; sys.path.insert(0, sys.argv[1]); import helpers; "
+                "print(helpers.project({'a': 'x'}, git=True)); print(helpers.SCRATCH)")
+        r = subprocess.run([sys.executable, "-c", code, str(Path(__file__).parent)],
+                           capture_output=True, text=True, check=True)
+        fixture, scratch = (Path(x) for x in r.stdout.splitlines()[:2])
+        self.assertEqual(fixture.parent.parent, scratch)
+        self.assertFalse(scratch.exists())
+        self.assertEqual(r.stderr, "")
+
+    def test_G11_a_transient_permission_denied_from_git_add_is_retried_and_other_failures_raise(self):
+        import helpers
+        real = subprocess.run
+        objects = b"error: unable to write file .git/objects/30/ab: Permission denied"
+
+        def attempts(code, message, fail_times):
+            """How many times `git add` ran, and whether the build raised."""
+            calls = []
+
+            def fake(cmd, *a, **kw):
+                if "add" in cmd:
+                    calls.append(cmd)
+                    if len(calls) <= fail_times:
+                        raise subprocess.CalledProcessError(code, cmd, b"", message)
+                return real(cmd, *a, **kw)
+
+            helpers.subprocess.run = fake
+            try:
+                helpers.project({"a": "x"}, git=True)
+                raised = False
+            except subprocess.CalledProcessError:
+                raised = True
+            finally:
+                helpers.subprocess.run = real
+            return len(calls), raised
+
+        for label, code, message, fail_times, expected in (
+                ("transient, then success", 128, objects, 1, (2, False)),
+                ("an unrelated error", 128, b"fatal: not a git repository", 99, (1, True)),
+                ("permission denied on another path", 128, b'error: open("src/a.py"): Permission denied', 99, (1, True)),
+                ("a persistent matching failure", 128, objects, 99, (4, True)),
+                ("matching text, another exit code", 1, objects, 99, (1, True))):
+            with self.subTest(label):
+                self.assertEqual(attempts(code, message, fail_times), expected)

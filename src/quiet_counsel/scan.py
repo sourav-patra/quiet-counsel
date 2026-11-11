@@ -38,14 +38,14 @@ HIDDEN_RE = HIDING_RE
 # Text addressed to whatever is reading the repository. Deliberately narrow: these phrases have
 # no innocent use inside a submission, and a wider net would flag ordinary documentation.
 EVALUATOR_DIRECTED = [
-    r"ignore (all |any )?(previous|prior|above) instructions",
-    r"disregard (all |any )?(previous|prior|above)",
-    r"you (are|act) (now )?(a|an) (judge|evaluator|grader|scorer)\b.{0,80}(score|rate|award)",
-    r"(give|award|assign) (this|it|us) (a )?(perfect|full|10|ten|max)",
-    r"(score|rate) (this|it|us) (a )?(10|ten|highest|maximum)",
-    r"this (project|submission|repo(sitory)?) (has already been|is) (verified|approved|pre-?approved)",
-    r"do not (report|flag|mention) (any|the) (issues?|problems?|findings?)",
-    r"system prompt:.{0,60}(score|grade|judge)",
+    r"(?i)ignore (all |any )?(previous|prior|above) instructions",
+    r"(?i)disregard (all |any )?(previous|prior|above)",
+    r"(?i)you (are|act) (now )?(a|an) (judge|evaluator|grader|scorer)\b.{0,80}(score|rate|award)",
+    r"(?i)(give|award|assign) (this|it|us) (a )?(perfect|full|10|ten|max)",
+    r"(?i)(score|rate) (this|it|us) (a )?(10|ten|highest|maximum)",
+    r"(?i)this (project|submission|repo(sitory)?) (has already been|is) (verified|approved|pre-?approved)",
+    r"(?i)do not (report|flag|mention) (any|the) (issues?|problems?|findings?)",
+    r"(?i)system prompt:.{0,60}(score|grade|judge)",
 ]
 
 # High-confidence shapes: these strings have essentially no innocent form. Low-confidence ones
@@ -79,7 +79,7 @@ SECRET_PATTERNS = [
 ]
 
 SUPPLY_CHAIN_PATTERNS = [
-    ("curl-pipe-shell", r"(curl|wget)[^\n|]{0,120}\|\s*(sudo\s+)?(ba)?sh"),
+    ("curl-pipe-shell", r"(curl|wget)[^\n|]{0,120}\|\s*(sudo\s+(-\S+\s+)*)?(ba|z|da)?sh(?![\w-])"),
     ("tls-verification-off",
      r"(NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*['\"]?0|verify\s*=\s*False|rejectUnauthorized:\s*false"
      r"|curl[^\n]{0,80}(-k\b|--insecure)|GIT_SSL_NO_VERIFY)"),
@@ -87,7 +87,7 @@ SUPPLY_CHAIN_PATTERNS = [
 ]
 
 COPYLEFT_MARKERS = [
-    ("GPL", r"GNU GENERAL PUBLIC LICENSE|GPL-[23]\.0|SPDX-License-Identifier:\s*GPL"),
+    ("GPL", r"GNU GENERAL PUBLIC LICENSE|(?<![A-Za-z])GPL-[23]\.0|SPDX-License-Identifier:\s*GPL"),
     ("AGPL", r"GNU AFFERO GENERAL PUBLIC LICENSE|AGPL-3\.0|SPDX-License-Identifier:\s*AGPL"),
     ("LGPL", r"GNU LESSER GENERAL PUBLIC LICENSE|LGPL-[23]"),
 ]
@@ -153,6 +153,9 @@ def host_config_writes(root):
     for path, rel in walk(root, CODE_EXT, include_hidden=True):
         if FIXTURE_PATH_RE.search(rel):
             continue
+        if len(hits) >= 20:
+            reached("host-config writes", 20)
+            break
         lines = read_text(path, 500_000).splitlines()
         code = [ln for ln in lines if not ln.lstrip().startswith(("#", "//", "*", "/*"))]
         gated = any(GATE_RE.search(ln) for ln in code)
@@ -174,8 +177,6 @@ def host_config_writes(root):
                 if v and _writes_target(line, v.start(), name):
                     hits.append((rel, i, clip(line), gated))
                     break
-        if len(hits) >= 20:
-            break
     return hits
 
 
@@ -239,6 +240,8 @@ def stale_rulebook_paths(root):
                 exists = glob.glob(target, recursive=True) if "*" in ref else os.path.exists(target)
                 if not exists:
                     out.append((name, i, WITHHELD if hidden else ref))
+    if len(out) > 40:
+        reached("stale references", 40)
     return out[:40]
 
 
@@ -328,13 +331,48 @@ def ev(kind, ref, excerpt=None, label=""):
     return out
 
 
-def walk(root, exts=None, max_files=40000, include_hidden=False):
+# Budgets a detector can reach while a screen runs: (detector, budget). screen() empties it first
+# and turns each entry into a card limit and one warning, because a detector that stopped early has
+# not read the rest of the tree.
+_REACHED = []
+_NOTES = []  # limits that are not a budget: input a check could not use
+
+
+def limit_note(text):
+    """Record on the card that a check left something unchecked, with the reason."""
+    if text not in _NOTES:
+        _NOTES.append(text)
+
+
+def reached(detector, budget, count_only=False):
+    """Record that a detector stopped. A `count_only` detector feeds a number on the card and no
+    flag, so the card says the count is a floor and nothing else changes."""
+    if (detector, budget, count_only) not in _REACHED:
+        _REACHED.append((detector, budget, count_only))
+
+
+def _is_ignore_file(root, name):
+    """The root ignore file, by the same rule as its lookup: on a file system that folds case,
+    `.SCANIGNORE` is the file the lookup opens. On one that does not, it is an ordinary file."""
+    if name == IGNORE_FILE:
+        return True
+    if name.lower() != IGNORE_FILE:
+        return False
+    try:
+        return os.path.samefile(os.path.join(root, name), os.path.join(root, IGNORE_FILE))
+    except OSError:
+        return False
+
+
+def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
     """Yield (abs_path, rel_path) for files under root, skipping build and VCS directories.
 
     Hidden directories are skipped by default. This matters more than it looks: a catalogue
     installed into `.agents/` or `.claude/` is a COPY of the same definitions, and counting both
     triples the apparent size of the project. `include_hidden=True` counts the copies too, and
-    the screen reports the difference rather than silently picking one.
+    the screen reports the difference rather than silently picking one. `.github` holds workflows
+    and issue templates that a reader and a CI run both read, so `github=True` keeps it in a walk
+    that otherwise skips hidden directories. Only `.git` itself is a version-control directory.
     """
     n = 0
     for dirpath, dirnames, filenames in os.walk(root):
@@ -342,9 +380,12 @@ def walk(root, exts=None, max_files=40000, include_hidden=False):
         # is reproducible byte for byte.
         dirnames[:] = [d for d in sorted(dirnames)
                        if d not in SKIP_DIRS
-                       and not d.startswith(".git")
-                       and (include_hidden or not d.startswith("."))]
+                       and (include_hidden or not d.startswith(".") or (github and d == ".github"))]
         for name in sorted(filenames):
+            # The project's ignore file is read by the signal alone: in no detector's hit, copy or
+            # file budget, so a repository cannot use it to push a real finding past a limit.
+            if dirpath == root and _is_ignore_file(root, name):
+                continue
             if exts and os.path.splitext(name)[1].lower() not in exts:
                 continue
             p = os.path.join(dirpath, name)
@@ -354,29 +395,46 @@ def walk(root, exts=None, max_files=40000, include_hidden=False):
                 continue
             # Forward slashes on every OS, so a scorecard built on Windows is identical to one
             # built on Linux and every path pattern below means the same thing everywhere.
+            if n >= max_files:
+                reached("file walk", max_files)
+                return
             yield p, os.path.relpath(p, root).replace(os.sep, "/")
             n += 1
-            if n >= max_files:
-                return
 
 
-def read_text(path, limit=2_000_000):
-    """The file's text up to `limit` characters. A final line the limit cut in two is dropped, so
-    detection and evidence see whole lines only."""
+def read_counted(path, limit=2_000_000):
+    """(text, characters consumed). The text is up to `limit` characters with a final line the
+    limit cut in two dropped, so detection and evidence see whole lines only. The count is what
+    was read before that trimming, for a caller that keeps a budget."""
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
             text = fh.read(limit)
-            if len(text) == limit and fh.read(1) not in ("", "\n") and not text.endswith("\n"):
+            used = len(text)
+            if used == limit and fh.read(1) not in ("", "\n") and not text.endswith("\n"):
                 text = text[:text.rfind("\n") + 1]
-            return text
+            return text, used
     except OSError:
-        return ""
+        return "", 0
+
+
+def read_text(path, limit=2_000_000):
+    """The file's text up to `limit` characters, whole lines only."""
+    return read_counted(path, limit)[0]
+
+
+# The scanned project's own .git/config can name programs git would start (a signature checker, a
+# pager, a hook, a file-system monitor); -c outranks every config file, so none of them runs.
+GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
+            "-c", "core.hooksPath=" + os.devnull, "-c", "log.showSignature=false",
+            "-c", "diff.external=", "-c", "gpg.program=" + os.devnull,
+            "-c", "gpg.openpgp.program=" + os.devnull, "-c", "gpg.x509.program=" + os.devnull,
+            "-c", "gpg.ssh.program=" + os.devnull)
 
 
 def git(root, *args):
     try:
-        out = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True,
-                             timeout=60)
+        out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
+                             text=True, timeout=60)
         return out.stdout.strip() if out.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -399,21 +457,23 @@ def frontmatter(text):
     return keys
 
 
-def grep(root, patterns, exts=TEXT_EXT, max_hits=40):
+def grep(root, patterns, exts=TEXT_EXT, max_hits=40, detector=None, count_only=False):
     """Return [(label, rel_path, line_no, line)] for each pattern hit. The line is stripped and
     whole, because callers judge the text; ev() withholds a line that holds a secret before it is cut."""
     hits = []
     for hit in iter_grep(root, patterns, exts):
-        hits.append(hit)
         if len(hits) >= max_hits:
+            if detector:
+                reached(detector, max_hits, count_only)
             break
+        hits.append(hit)
     return hits
 
 
 def iter_grep(root, patterns, exts=TEXT_EXT):
     """Yield (label, rel_path, line_no, line) for each pattern hit, in a stable order."""
     compiled = [(label, re.compile(pat)) for label, pat in patterns]
-    for path, rel in walk(root, exts):
+    for path, rel in walk(root, exts, github=True):
         if os.path.getsize(path) > 2_000_000:
             continue
         text = read_text(path)
@@ -586,16 +646,17 @@ def hidden_char_hits(root):
     zero-width character on purpose is the defence against this, not an instance of it.
     """
     hits = []
-    for path, rel in walk(root, TEXT_EXT):
+    for path, rel in walk(root, TEXT_EXT, github=True):
         text = read_text(path, 500_000)
         for i, line in enumerate(text.splitlines(), 1):
             probe = line.lstrip("\ufeff")
             m = HIDING_RE.search(probe)
             if m and not defensive(root, rel, i, line) and not FIXTURE_PATH_RE.search(rel):
                 cps = " ".join(f"U+{ord(c):04X}" for c in set(HIDING_RE.findall(probe) or m.group()))
-                hits.append((rel, i, cps, clip(line, 120)))
                 if len(hits) >= 25:
+                    reached("hidden characters", 25)
                     return hits
+                hits.append((rel, i, cps, clip(line, 120)))
     return hits
 
 
@@ -638,7 +699,9 @@ def evaluator_directed_hits(root, limit=DIRECTED_LIMIT, judged_quoted=None):
     """
     # The limit applies after the defensive-text test, separately inside and outside test paths,
     # so early test strings cannot hide a later instruction.
-    outside, inside, cached = [], [], (None, [])
+    # Case-only matches have their own lists, so they cannot use up the room an original-case hit needs.
+    sides = {False: ([], []), True: ([], [])}
+    cached = (None, [])
     for label, rel, lineno, line in iter_grep(
             root, [("evaluator-directed", p) for p in EVALUATOR_DIRECTED],
             TEXT_EXT | {".json", ".yaml", ".yml"}):
@@ -652,10 +715,15 @@ def evaluator_directed_hits(root, limit=DIRECTED_LIMIT, judged_quoted=None):
             if judged_quoted is not None and not any(q[1:3] == (rel, lineno) for q in judged_quoted[-1:]):
                 judged_quoted.append((label, rel, lineno, line))  # one entry per line, whatever matched it
             continue
-        side = inside if TEST_PATH_RE.search(rel) else outside
+        folded = not any(re.search(q[4:], line) for q in EVALUATOR_DIRECTED)
+        if folded:
+            label = "evaluator-directed-folded"  # matches only with case ignored
+        side = sides[folded][bool(TEST_PATH_RE.search(rel))]
         if len(side) < limit:
             side.append((label, rel, lineno, line))
-    return outside + inside
+        else:  # a warning listing has no band effect, so its limit is a count and raises no flag
+            reached("evaluator-directed text", limit, count_only=folded)
+    return sides[False][0] + sides[False][1] + sides[True][0] + sides[True][1]
 
 
 def _normalised_hash(data):
@@ -753,7 +821,7 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
             normalised.setdefault(n, rel)
 
     dups, checked = [], 0
-    for path, rel in walk(root, None):
+    for path, rel in walk(root, None, github=True):
         try:
             size = os.path.getsize(path)
             if size < min_bytes:
@@ -772,13 +840,14 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
         if match is None:
             continue
         licence, found_in, project, hidden = _source_licence(corpus, match)
+        if len(dups) >= limit:
+            reached("corpus duplicates", limit)
+            break
         dups.append({"file": rel, "bytes": size, "corpus_match": match, "match": how,
                      "source_project": project, "source_licence": WITHHELD if hidden else licence or "none",
                      "source_licence_found": found_in,
                      "source_class": licence_class(licence),
                      "attribution": attribution_for(root, rel, project)})
-        if len(dups) >= limit:
-            break
     return dups, checked, len(index)
 
 
@@ -817,6 +886,17 @@ def history_facts(root):
     }
 
 
+def spdx_labels(line):
+    """The copyleft families an SPDX line names, or None for any other line. Every identifier
+    counts whatever joins it: the check reads names and a person reads AND and OR. The word after
+    WITH names an exception, not a licence."""
+    m = re.search(r"SPDX-License-Identifier:\s*([\w.+:()\s-]*)", line)
+    if not m:
+        return None
+    ids = re.findall(r"[\w.+:-]+", re.sub(r"\bWITH\s+\S+", "", m.group(1), flags=re.I))
+    return {label for label, _ in COPYLEFT_MARKERS for i in ids if i.upper().startswith(label)}
+
+
 def licence_facts(root):
     declared, declared_file = None, None
     for name in sorted(os.listdir(root)):
@@ -825,15 +905,18 @@ def licence_facts(root):
             declared = identify_licence(read_text(os.path.join(root, name), 20000))
             break
     nested = []
-    for path, rel in walk(root, {".md", ".txt", ""}):
+    for path, rel in walk(root, {".md", ".txt", ""}, github=True):
         base = os.path.basename(path)
         if re.match(r"(?i)^(licen[cs]e|copying)(\.|$)", base) and rel != declared_file:
             nested.append(rel)
     # Only a licence FILE or an SPDX header counts. Prose that mentions GPL — a list of licence
     # options, a comparison table, a question in a wizard — is not redistribution of GPL code,
     # and treating it as one produced a critical flag on three clean repositories in testing.
-    copyleft_inside = []
-    for path, rel in walk(root, None):
+    copyleft_inside, live_hits = [], 0
+    for path, rel in walk(root, None, github=True):
+        if live_hits >= 15:  # hits under a test path do not use this budget
+            reached("copyleft licence text", 15)
+            break
         base = os.path.basename(path)
         is_licence_file = bool(re.match(r"(?i)^(licen[cs]e|copying|notice)(\.|$)", base))
         if not is_licence_file and os.path.splitext(base)[1].lower() not in TEXT_EXT:
@@ -843,12 +926,11 @@ def licence_facts(root):
         text = read_text(path, 200_000)
         for label, pat in COPYLEFT_MARKERS:
             for i, line in enumerate(text.splitlines()[:400], 1):
-                if re.search(r"SPDX-License-Identifier:\s*(GPL|AGPL|LGPL)", line) or \
-                        (is_licence_file and re.search(pat, line)):
+                labels = spdx_labels(line)
+                if label in labels if labels is not None else is_licence_file and re.search(pat, line):
                     copyleft_inside.append((label, rel, i, clip(line)))
+                    live_hits += not TEST_PATH_RE.search(rel)
                     break
-        if len(copyleft_inside) >= 15:
-            break
     return {"declared": declared, "declared_file": declared_file,
             "nested_licences": nested[:20], "copyleft_hits": copyleft_inside}
 
@@ -942,7 +1024,10 @@ def declared_licences(text, data_file=False):
 def provenance_facts(root):
     """Every file that declares a licence of its own or a source it was copied from."""
     records = []
-    for path, rel in walk(root, TEXT_EXT):
+    for path, rel in walk(root, TEXT_EXT, github=True):
+        if len(records) >= 400:
+            reached("declared licences", 400)
+            break
         try:
             if os.path.getsize(path) > 500_000:
                 continue
@@ -953,9 +1038,20 @@ def provenance_facts(root):
             records.append({"file": rel, "line": line, "licence": WITHHELD if hidden else licence or "not stated",
                             "class": licence_class(licence) if licence else "unknown",
                             "kind": kind, "source": WITHHELD if hidden and source else source})
-        if len(records) >= 400:
-            break
     return records
+
+
+FUTURE_RE = re.compile(r"(?i)(plans?(ned)? to|will (add|ship|include|have|offer)|roadmap|going to)")
+NOT_COUNT_AFTER_RE = re.compile(r"\s*(?i:categor|levels?\b)")
+
+
+def _not_a_count(text, m):
+    """A figure followed by 'categories' or 'levels', or in a sentence about a future plan, is not a
+    count of what the tree ships."""
+    if NOT_COUNT_AFTER_RE.match(text, m.end()):
+        return True
+    sentence = re.split(r"[.!?]\s|\n", text[:m.start()])[-1]
+    return bool(FUTURE_RE.search(sentence))
 
 
 def extract_claims(root):
@@ -971,6 +1067,8 @@ def extract_claims(root):
                                 r"funciona con|available (in|on)|integrat)")
             for label, pat in CLAIM_PATTERNS:
                 for m in re.finditer(pat, text):
+                    if label in ("skills", "agents", "commands") and _not_a_count(text, m):
+                        continue
                     ctx = text[max(0, m.start() - 80):m.end() + 40]
                     claims.append({"claim": m.group(0).strip(), "kind": label,
                                    "location": f"{name}", "status": "unchecked",
@@ -994,6 +1092,9 @@ def extract_claims(root):
 # ----------------------------------------------------------------------------- screen
 
 IGNORE_FILE = ".scanignore"
+PATTERN_TEXT_RE = re.compile(r"^[\w./*?!\[\]-]{1,200}\Z")
+PATTERN_WITHHELD = "<pattern withheld>"
+PATTERNS_SHOWN = 50
 
 
 def ignore_patterns(root):
@@ -1001,11 +1102,12 @@ def ignore_patterns(root):
 
     A pattern ending in / excludes a directory prefix; anything else is a glob matched against
     the path from the project root. The file does not hide anything: findings under an excluded
-    path are still reported, downgraded to information and marked, and --no-ignore restores them.
-    A project that uses its ignore file to dodge a finding therefore displays what it dodged.
+    path are still reported, downgraded to information and marked, but only when the person
+    screening passes --honour-ignore. By default the patterns are a signal and change no flag.
+    A symlink is refused: its target's lines would print on the card.
     """
     path = os.path.join(root, IGNORE_FILE)
-    if not os.path.isfile(path):
+    if os.path.islink(path) or not os.path.isfile(path):
         return []
     out = []
     for line in read_text(path, 20000).splitlines():
@@ -1034,7 +1136,7 @@ def _evidence_path(e):
 
 
 # Flags a project's own ignore file cannot lower. The text is aimed at the evaluator, so a
-# project that excluded it would be choosing whether the evaluator is told. --no-ignore still
+# project that excluded it would be choosing whether the evaluator is told. --honour-ignore
 # changes nothing for these, and every other flag keeps the downgrade rule above.
 NEVER_EXCLUDED = {"evaluator-directed-text"}
 
@@ -1064,8 +1166,9 @@ def apply_ignore(flags, patterns):
         out.append({
             "id": f["id"], "severity": "info",
             "title": f"In a path the project excludes: {f['title']}",
-            "detail": f"Downgraded from {f['severity']} because {IGNORE_FILE} excludes these "
-                      f"paths. Re-run with --no-ignore to count them.",
+            "detail": f"Downgraded from {f['severity']} because the person screening asked "
+                      f"(--honour-ignore) to apply {IGNORE_FILE}. Without that option these "
+                      f"findings count at full severity.",
             "excluded": True, "original_severity": f["severity"],
             "evidence": excluded,
         })
@@ -1081,7 +1184,9 @@ def _now():
     return _dt.datetime.now(_dt.timezone.utc)
 
 
-def screen(root, corpus=None, event=None, honour_ignore=True):
+def screen(root, corpus=None, event=None, honour_ignore=False):
+    _REACHED.clear()
+    _NOTES.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)
@@ -1171,7 +1276,8 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
     signals["jenkinsfile"] = sig(os.path.exists(os.path.join(root, "Jenkinsfile")), "test -f Jenkinsfile")
 
     # --- safety signals
-    secret_hits = grep(root, SECRET_PATTERNS, TEXT_EXT | {".pem", ".key", ""}, max_hits=40)
+    secret_hits = grep(root, SECRET_PATTERNS, TEXT_EXT | {".pem", ".key", ""}, max_hits=40,
+                       detector="credential-shaped values")
     live, benign = [], []
     for h in secret_hits:
         label, rel, lineno, line = h
@@ -1206,12 +1312,25 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
         if FIXTURE_PATH_RE.search(rel):
             return False
         if label == "curl-pipe-shell":
-            stripped = line.lstrip("$# \t`")
+            stripped = re.sub(r"^(-\s+)?run:\s*", "", line.lstrip("$# \t`"))
             return bool(re.match(r"(sudo\s+)?(curl|wget)\b", stripped))
         return True
 
-    supply = [h for h in grep(root, SUPPLY_CHAIN_PATTERNS, TEXT_EXT, max_hits=60)
-              if not defensive(root, h[1], h[2], h[3]) and executable_context(h[0], h[1], h[3])]
+    # Filter first, then bound: a hit that is quoted or defensive must not use up the budget.
+    supply, more, seen = [], False, 0
+    for h in iter_grep(root, SUPPLY_CHAIN_PATTERNS, TEXT_EXT):
+        seen += 1
+        if seen > 2000:  # raw matches examined, so quoted lines cannot cost unbounded work
+            more = True
+            break
+        if defensive(root, h[1], h[2], h[3]) or not executable_context(h[0], h[1], h[3]):
+            continue
+        if len(supply) >= 60:
+            more = True
+            break
+        supply.append(h)
+    if more:
+        reached("supply-chain patterns", 60)
     signals["supply_chain_hits"] = sig(len(supply), "installer and TLS patterns")
     for label in sorted({h[0] for h in supply}):
         sample = [h for h in supply if h[0] == label][:3]
@@ -1238,7 +1357,8 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
 
     untrusted = grep(root, [("untrusted-guidance",
                              r"(?i)(prompt injection|untrusted (content|input|text)"
-                             r"|treat .{0,30}as data)")], TEXT_EXT, max_hits=6)
+                             r"|treat .{0,30}as data)")], TEXT_EXT, max_hits=6,
+                     detector="untrusted-content guidance", count_only=True)
     signals["untrusted_content_guidance_hits"] = sig(len(untrusted), "guidance phrases")
 
     writes = host_config_writes(root)
@@ -1287,9 +1407,11 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
 
     quoted_hits = []
     directed = evaluator_directed_hits(root, judged_quoted=quoted_hits)
+    folded = [h for h in directed if h[0] == "evaluator-directed-folded"]
+    directed = [h for h in directed if h[0] != "evaluator-directed-folded"]
     outside = [h for h in directed if not TEST_PATH_RE.search(h[1])]
     if outside:
-        shown = [ev("file", f"{h[1]}:{h[2]}", h[3]) for h in outside + [d for d in directed if d not in outside]]
+        shown = [ev("file", f"{h[1]}:{h[2]}", h[3]) for h in outside + [d for d in directed if d not in outside] + folded]
         if len(outside) >= DIRECTED_LIMIT:
             shown = shown[:4] + [ev("note", "evaluator-directed-text",
                                     f"listing stopped at the limit of {DIRECTED_LIMIT} hits outside "
@@ -1308,7 +1430,17 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
             "detail": "Every hit is under a test path, where a project keeps strings that defend "
                       "against this. Listed for a person to read; scoring is not stopped. A "
                       "project can place text under a test path to receive this lower severity.",
-            "evidence": [ev("file", f"{h[1]}:{h[2]}", h[3]) for h in directed[:5]],
+            "evidence": [ev("file", f"{h[1]}:{h[2]}", h[3]) for h in (directed + folded)[:5]],
+        })
+    elif folded:
+        flags.append({
+            "id": "evaluator-directed-text", "severity": "warning",
+            "title": "Text that may address the evaluator (matched with case ignored)",
+            "detail": "The wording matches a phrase only when capital letters are ignored. On 100 "
+                      "field repositories every critical or serious flag of this kind was ruled "
+                      "false by one AI reader, so it is a warning: no cap and no effect on the "
+                      "band. Listed for a person to read.",
+            "evidence": [ev("file", f"{h[1]}:{h[2]}", h[3]) for h in folded[:5]],
         })
     if quoted_hits:
         flags.append({
@@ -1518,31 +1650,74 @@ def screen(root, corpus=None, event=None, honour_ignore=True):
                          for c in contradicted[:5]],
         })
 
+    # Own module, new check: no caps until a field run has measured its false positives.
+    from .claims import eval_evidence, readme_claim_flag, score_flag
+    evals = eval_evidence(root)
+    signals["eval_evidence"] = sig(
+        evals, "known eval setup and result file names and decorators, by path and content",
+        note="setup shows evals are configured; only a result file shows a run wrote output")
+    scored = score_flag(root, evals)
+    if scored:
+        flags.append(scored)
+    mismatch = readme_claim_flag(root, lic["declared"], lic["declared_file"])
+    if mismatch:
+        flags.append(mismatch)
+
     # --- product signals
     signals["readme_bytes"] = sig(
         next((os.path.getsize(os.path.join(root, n)) for n in sorted(os.listdir(root))
               if re.match(r"(?i)^readme(\.|$)", n)), 0), "wc -c README")
     abs_paths = grep(root, [("absolute-path", r"(?<![\w.])/(Users|home)/[a-zA-Z0-9._-]+/")],
-                     TEXT_EXT, max_hits=10)
+                     TEXT_EXT, max_hits=10,
+                     detector="machine-specific paths", count_only=True)
     signals["absolute_path_hits"] = sig(len(abs_paths), "machine-specific paths in text files")
 
     # --- the project's own exclusions: shown, never hidden
-    patterns = ignore_patterns(root) if honour_ignore else []
-    flags, downgraded = apply_ignore(flags, patterns)
-    if patterns or not honour_ignore:
+    patterns = ignore_patterns(root)
+    flags, downgraded = apply_ignore(flags, patterns if honour_ignore else [])
+    if patterns:
+        # Only a path-shaped pattern prints; anything else (instructions, control or bidi
+        # characters, a credential, markup, an overlong line) is shown as a placeholder.
+        shown = []
+        for pat in patterns:
+            text = pat if PATTERN_TEXT_RE.match(pat) and not holds_secret(pat) else PATTERN_WITHHELD
+            if text not in shown:
+                shown.append(text)
+        unique = list(dict.fromkeys(patterns))
         signals["excluded_by_project"] = sig(
-            {"file": IGNORE_FILE, "patterns": [WITHHELD if holds_secret(p) else p for p in patterns],
+            {"file": IGNORE_FILE, "patterns": shown[:PATTERNS_SHOWN],
+             "patterns_dropped": max(0, len(shown) - PATTERNS_SHOWN),
              "honoured": honour_ignore,
+             "files_matched": sum(is_ignored(rel, unique) for _, rel in walk(root, include_hidden=True)),
              "findings_downgraded": downgraded},
             f"patterns read from {IGNORE_FILE}",
-            note="findings in excluded paths stay on the page as information")
+            note="a pattern list changes no flag unless the person screening asked for --honour-ignore")
+        if honour_ignore:
+            limits.append(f"--honour-ignore applied {IGNORE_FILE}: findings in the paths it lists became "
+                          "information, so this band can be lower than the same tree screens without it.")
     contradicted = [c for c in claims if c["status"] == "contradicted"]
+
+    # --- a detector that stopped at its budget has not read the rest of the tree
+    stopped = [(d, b) for d, b, count_only in _REACHED if not count_only]
+    for detector, budget, count_only in _REACHED:
+        limits.append(f"{detector}: " + (f"stopped at its budget of {budget}; the count or result is a floor. No flag or band changed." if count_only else
+                      f"stopped at its budget of {budget}; later files were not read for this check, "
+                      "so its result is incomplete."))
+    limits.extend(_NOTES)
+    if stopped:
+        flags.append({
+            "id": "scan-limit-reached", "severity": "warning",
+            "title": f"{len(stopped)} check(s) stopped at a budget before the whole tree was read",
+            "detail": "Later files were not read for these checks and their result is incomplete. "
+                      "A credential or licence line past the budget would not appear on this card.",
+            "evidence": [ev("note", "scan-limit-reached", f"{d}: budget {b}") for d, b in stopped[:5]],
+        })
 
     # --- band
     sev = {f["severity"] for f in flags}
     if "critical" in sev:
         band = "blocked"
-    elif "serious" in sev or contradicted:
+    elif "serious" in sev or contradicted or stopped:  # an incomplete read is not "nothing to see"
         band = "review"
     elif len(test_files) > 0 and lic["declared"] and (workflows or signals["jenkinsfile"]["value"]):
         band = "shortlist"

@@ -1,11 +1,13 @@
 """Shared fixtures. Every project a test needs is built in a temporary directory from a dict of
 files, so no test depends on a real repository and none leaves anything behind in the tree."""
 
+import atexit
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,12 @@ SRC = REPO / "src"
 PKG = "quiet_counsel"
 ENV = "QUIET_COUNSEL"
 os.environ[f"{ENV}_NOW"] = "2026-09-24T00:00:00Z"
+
+# One scratch folder per test process: every mkdtemp in the suite lands inside it, and it is
+# removed at exit (read-only git objects included) so repeated runs leave nothing in %TEMP%.
+SCRATCH = tempfile.mkdtemp(prefix="scan-test-run-")
+tempfile.tempdir = SCRATCH
+atexit.register(shutil.rmtree, SCRATCH, onerror=lambda f, p, e: (os.chmod(p, 0o700), f(p)))
 
 from quiet_counsel import dashboard, sample, scan, schema  # noqa: E402
 
@@ -58,7 +66,16 @@ def project(files, git=False, commits=None, name=None):
         run = lambda *a: subprocess.run(["git", "-C", str(root), *a], check=True, env=env,
                                         capture_output=True)
         run("init", "-q")
-        run("add", "-A")
+        for attempt in range(4):
+            try:
+                run("add", "-A")
+                break
+            except subprocess.CalledProcessError as e:
+                # Windows briefly locks .git/objects (about 1 run in 40); any other failure raises.
+                err = e.stderr or b""
+                if attempt == 3 or e.returncode != 128 or b".git/objects" not in err                         or b"Permission denied" not in err:
+                    raise
+                time.sleep(0.2)
         run("commit", "-qm", "first", "--date", (commits or {}).get("first_date",
                                                                   "2026-09-20T10:00:00Z"))
     return str(root)

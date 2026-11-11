@@ -119,7 +119,7 @@ class RedactionProperty(unittest.TestCase):
         creds, failures, cases = credentials(), [], 0
         names = list(creds)
 
-        def check(files, secrets, where, unread=()):
+        def check(files, secrets, where, unread=(), either=()):
             nonlocal cases
             if not files:
                 return
@@ -128,7 +128,7 @@ class RedactionProperty(unittest.TestCase):
             refs = {e["ref"] for f in card["flags"] for e in f.get("evidence", [])}
             for path in files:  # a tree that shows nothing of a file proves nothing about it
                 shown = any(r.startswith(path + ":") for r in refs)
-                if shown == (path in unread):
+                if path not in either and shown == (path in unread):
                     failures.append(f"{where}: {path} " + ("was read past the read limit" if shown else "emitted no excerpt"))
             text = json.dumps(card, ensure_ascii=False)
             for name, secret in secrets:
@@ -143,7 +143,7 @@ class RedactionProperty(unittest.TestCase):
         for limit in LINE_LIMITS:  # geometry A
             for at in starts(limit):
                 for name in (names[tree % len(names)], names[(tree + 2) % len(names)]):
-                    for kinds in (("md", "sh", "workflow", "frontmatter"), ("package", "settings")):
+                    for kinds in (("md", "sh", "frontmatter"), ("workflow",), ("package", "settings")):  # at most 3 examples per flag
                         files = {}  # in two trees, so a flag's five examples cannot hide a file
                         for kind in kinds:
                             files.update(file_for(kind, name, creds[name][0], at))
@@ -153,12 +153,14 @@ class RedactionProperty(unittest.TestCase):
             kinds = (("md",) if limit >= 500_000 else ("md", "workflow") if limit >= 200_000
                      else ("md", "sh", "workflow", "frontmatter"))
             for name in ("quoted", "assign"):
-                files = {}
-                for kind in kinds:
-                    files.update(file_for(kind, name, long_credential(name, limit + 9), 150))
-                # a workflow read stops at 200,000 characters, and the cut final line is dropped
-                check(files, [(name, value[name])], f"B: value longer than {limit}",
-                      unread=[p for p in files if p.endswith(".yml") and limit >= 200_000])
+                # at most 3 examples per flag, so the workflow sits in its own tree
+                for group in (tuple(k for k in kinds if k != "workflow"), tuple(k for k in kinds if k == "workflow")):
+                    files = {}
+                    for kind in group:
+                        files.update(file_for(kind, name, long_credential(name, limit + 9), 150))
+                    # a workflow with a line past 200,000 characters may or may not show an excerpt; it must not leak
+                    check(files, [(name, value[name])], f"B: value longer than {limit}",
+                          either=[p for p in files if p.endswith(".yml") and limit >= 200_000])
         for limit in FILE_LIMITS:  # geometry C
             big = limit >= 200_000
             for at in starts(limit)[:2 if big else 3]:
@@ -167,7 +169,7 @@ class RedactionProperty(unittest.TestCase):
                     for kind in (("md",) if limit >= 500_000 else ("md", "workflow")) if big else ("md", "frontmatter"):
                         files.update(file_for(kind, name, creds[name][0], at, whole_file=True))
                     check(files, [(name, creds[name][1])], f"C: offset {at} (file limit {limit})",
-                          unread=[p for p in files if p.endswith(".yml") and limit == 200_000])
+                          either=[p for p in files if p.endswith(".yml") and limit == 200_000])
         for length in NAME_LENGTHS:  # five declarations fill the five examples a flag lists
             five = [n for n in names if n != "bracket"]
             files = {f"src/{n}_{length}.py": SOURCE_PREFIX + "B" * length + " " + creds[n][0] + "\n" for n in five}

@@ -132,9 +132,16 @@
       "command": "git rev-list / log"
     },
     "third_party_declarations": {
-      "value": 1,
-      "command": "frontmatter licence keys, source lines and SPDX headers",
-      "note": "share-alike 1"
+      "value": 0,
+      "command": "frontmatter licence keys, source lines and SPDX headers"
+    },
+    "eval_evidence": {
+      "value": {
+        "state": "none",
+        "paths": []
+      },
+      "command": "known eval setup and result file names and decorators, by path and content",
+      "note": "setup shows evals are configured; only a result file shows a run wrote output"
     },
     "readme_bytes": {
       "value": 242,
@@ -220,21 +227,6 @@
           "kind": "file",
           "ref": "vendor/fastclip/LICENSE:1",
           "excerpt": "[GPL] GNU GENERAL PUBLIC LICENSE"
-        },
-        {
-          "kind": "file",
-          "ref": "vendor/fastclip/clip.py:1",
-          "excerpt": "[GPL] # SPDX-License-Identifier: GPL-3.0"
-        },
-        {
-          "kind": "file",
-          "ref": "vendor/fastclip/clip.py:1",
-          "excerpt": "[AGPL] # SPDX-License-Identifier: GPL-3.0"
-        },
-        {
-          "kind": "file",
-          "ref": "vendor/fastclip/clip.py:1",
-          "excerpt": "[LGPL] # SPDX-License-Identifier: GPL-3.0"
         }
       ]
     },
@@ -462,7 +454,7 @@
     "Regex sweeps find shapes, not meanings: a fixture can look like a credential and a quoted licence can look like a breach. Every flag names its evidence, a file and line or a command or commit, so a reader can check."
   ],
   "run": {
-    "tool_version": "0.1.0",
+    "tool_version": "0.1.1",
     "corpus": null,
     "duration_s": 0.0
   }

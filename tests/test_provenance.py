@@ -183,7 +183,7 @@ class Quiet(unittest.TestCase):
         f = flag(card, "share-alike-text")
         self.assertEqual(f["severity"], "critical")
         self.assertEqual(card["totals"]["band"], "blocked")
-        card = screen({**files, ".scanignore": "skills/*/evals/files/*\n"})
+        card = scan.screen(project({**files, ".scanignore": "skills/*/evals/files/*\n"}), honour_ignore=True)
         f = flag(card, "share-alike-text")
         self.assertEqual(f["severity"], "info")
         self.assertTrue(f["excluded"])

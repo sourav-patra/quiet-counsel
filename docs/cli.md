@@ -28,7 +28,8 @@ A mechanical pass over one or many projects.
 | `--out` | write one scorecard per project into this directory |
 | `--event-start` | the date the event opened, to flag earlier history |
 | `--event-end` | the date the event closed |
-| `--no-ignore` | count findings in paths the project's .scanignore excludes |
+| `--honour-ignore` | apply the project's .scanignore to one project: findings in the paths it lists become information, so a project can lower its own band under this option |
+| `--no-ignore` | accepted and does nothing: a .scanignore is not applied unless --honour-ignore is passed |
 
 ## quiet-counsel integrity
 
