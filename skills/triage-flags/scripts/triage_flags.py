@@ -88,6 +88,11 @@ def main(argv=None):
     ap.add_argument("--show-directed-text", action="store_true",
                     help="print text addressed to the evaluator (credential text is never printed)")
     a = ap.parse_args(argv)
+    # Source lines hold any character. A console or pipe on a non-UTF-8 locale (Windows by
+    # default) would stop the run with UnicodeEncodeError, so the streams are set to UTF-8 here.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     scan = load()
 
     try:

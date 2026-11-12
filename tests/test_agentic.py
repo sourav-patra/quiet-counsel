@@ -258,6 +258,21 @@ class DeepReview(unittest.TestCase):
         self.assertIn(">     2 | r = get(u, verify=False)", r.stdout)
         self.assertNotIn("withheld", r.stdout)
 
+    def test_H27_triage_writes_utf_8_to_a_pipe_without_the_utf_8_environment_variable(self):
+        line = "r = get(u, verify=False)  # caf\u00e9 \u2713 \u4e2d\u6587"
+        root = project({**MINIMAL, "src/c.py": f"a = 1\n{line}\nb = 2\n"})
+        card = os.path.join(tempfile.mkdtemp(), "c.json")
+        with open(card, "w", encoding="utf-8") as fh:
+            json.dump(scan.screen(root), fh)
+        env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONIOENCODING")}
+        env.update(PYTHONUTF8="0", PYTHONCOERCECLOCALE="0", LC_ALL="C", LANG="C")
+        tool = str(REPO / "skills" / "triage-flags" / "scripts" / "triage_flags.py")
+        for extra in ([], ["--json"]):
+            r = subprocess.run([sys.executable, tool, card, "--project", root, *extra],
+                               capture_output=True, env=env)
+            self.assertEqual(r.returncode, 0, r.stderr.decode("utf-8", "replace"))
+            self.assertIn(line.encode("utf-8"), r.stdout)
+
     def test_H23_verify_compares_the_whole_excerpt_and_rejects_line_zero(self):
         root = project({"a.txt": "first line\nlast line\n"})
         ws = {"project": {"path": root}, "dimensions": [{"id": "A1", "evidence": [
