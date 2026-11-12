@@ -4,7 +4,6 @@ The second half is the harder one, and the one that decides whether anyone reads
 
 import json
 import os
-import stat
 import subprocess
 import sys
 import tempfile
