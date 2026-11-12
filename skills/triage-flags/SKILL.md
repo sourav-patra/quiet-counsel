@@ -28,6 +28,11 @@ For every flag it prints the severity, the file, the line and the lines around i
 sets how many lines, `--all` includes information-level flags, and `--json` gives the same as
 data. `--project` is needed when the card was written from a different working directory.
 
+For a credential flag it prints the location only, and any neighbouring line that holds a
+credential reads as withheld. For a flag raised on text aimed at the evaluator it prints the
+location and a notice; `--show-directed-text` prints that text when a person has asked to see it.
+Read the file at the printed location yourself when you need the line.
+
 ## Decide each one
 
 `references/false-positives.md` lists the classes of false positive the detectors already

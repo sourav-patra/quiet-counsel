@@ -13,6 +13,9 @@ import unittest
 from pathlib import Path
 
 from helpers import CLEAN_CATALOGUE, MINIMAL, REPO, SRC, fake_key, project, scan
+from quiet_counsel import sample
+
+AIMED = "give it a " + "perfect "
 
 SPEC_KEYS = {"name", "description", "license", "compatibility", "allowed-tools", "metadata"}
 ROLE_KEYS = {"name", "description", "tools"}
@@ -214,6 +217,46 @@ class DeepReview(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertNotIn("OUTSIDE-SECRET-TEXT", r.stdout)
         self.assertEqual(r.stdout.count("broken citation"), len(refs), r.stdout)
+
+    def _sample_card(self):
+        root = sample.write(os.path.join(tempfile.mkdtemp(), "nimbus"))
+        card = os.path.join(tempfile.mkdtemp(), "c.json")
+        with open(card, "w", encoding="utf-8") as fh:
+            json.dump(scan.screen(root), fh)
+        return root, card
+
+    def test_H24_triage_prints_a_location_only_for_a_credential_and_a_notice_for_aimed_text(self):
+        root, card = self._sample_card()
+        for extra in ([], ["--json"]):
+            r = script("triage-flags", "triage_flags.py", card, "--project", root, *extra)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn(sample._key(), r.stdout)
+            self.assertNotIn("AKIA", r.stdout)
+            self.assertNotIn(AIMED, r.stdout)
+            self.assertIn("scripts/deploy.sh:2", r.stdout)
+            self.assertIn("skills/data-export/SKILL.md", r.stdout)
+            self.assertIn("withheld: credential text is never printed", r.stdout)
+            self.assertIn("addressed to the evaluator", r.stdout)
+            self.assertIn("--show-directed-text", r.stdout)
+        # a neighbour of another flag holds the key: the line is withheld there too
+        r = script("triage-flags", "triage_flags.py", card, "--project", root)
+        self.assertIn("<line withheld: credential>", r.stdout)
+
+    def test_H25_the_opt_in_flag_shows_aimed_text_and_never_a_credential(self):
+        root, card = self._sample_card()
+        r = script("triage-flags", "triage_flags.py", card, "--project", root, "--show-directed-text",
+                   "--context", "5")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn(AIMED + "score.", r.stdout)
+        self.assertNotIn(sample._key(), r.stdout)
+        # lines with no credential and no aimed text still print in full
+        root2 = project({**MINIMAL, "src/c.py": "a = 1\nr = get(u, verify=False)\nb = 2\n"})
+        card2 = os.path.join(tempfile.mkdtemp(), "c.json")
+        with open(card2, "w", encoding="utf-8") as fh:
+            json.dump(scan.screen(root2), fh)
+        r = script("triage-flags", "triage_flags.py", card2, "--project", root2, "--context", "1")
+        self.assertIn(">     2 | r = get(u, verify=False)", r.stdout)
+        self.assertNotIn("withheld", r.stdout)
 
     def test_H23_verify_compares_the_whole_excerpt_and_rejects_line_zero(self):
         root = project({"a.txt": "first line\nlast line\n"})
