@@ -21,12 +21,43 @@ os.environ[f"{ENV}_NOW"] = "2026-09-24T00:00:00Z"
 # removed at exit (read-only git objects included) so repeated runs leave nothing in %TEMP%.
 SCRATCH = tempfile.mkdtemp(prefix="scan-test-run-")
 tempfile.tempdir = SCRATCH
-atexit.register(shutil.rmtree, SCRATCH, onerror=lambda f, p, e: (os.chmod(p, 0o700), f(p)))
+
+
+def _make_writable_and_retry(func, path, _exc):
+    """rmtree error hook: read-only git objects get their mode fixed; a path that has already
+    vanished (a background git job removed it) is not an error."""
+    if not os.path.lexists(path):
+        return
+    os.chmod(path, 0o700)
+    func(path)
+
+
+def _remove_scratch(tries=6):
+    """Remove the scratch folder without writing to stderr. A background git job (auto gc or
+    maintenance) can still be writing into a fixture repo while the tree is deleted, which makes
+    rmtree fail on a directory that is not yet empty; waiting briefly and deleting again clears it."""
+    for attempt in range(tries):
+        try:
+            shutil.rmtree(SCRATCH, onerror=_make_writable_and_retry)
+        except OSError:
+            pass
+        if not os.path.exists(SCRATCH):
+            return
+        time.sleep(0.25 * (attempt + 1))
+    shutil.rmtree(SCRATCH, ignore_errors=True)
+
+
+atexit.register(_remove_scratch)
 
 from quiet_counsel import dashboard, sample, scan, schema  # noqa: E402
 
 GIT_ENV = {"GIT_AUTHOR_NAME": "fixture", "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
-           "GIT_COMMITTER_NAME": "fixture", "GIT_COMMITTER_EMAIL": "fixture@example.invalid"}
+           "GIT_COMMITTER_NAME": "fixture", "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
+           # No background gc or maintenance job may outlive a fixture git call and write into
+           # the folder while it is being deleted at exit.
+           "GIT_CONFIG_COUNT": "2",
+           "GIT_CONFIG_KEY_0": "gc.auto", "GIT_CONFIG_VALUE_0": "0",
+           "GIT_CONFIG_KEY_1": "maintenance.auto", "GIT_CONFIG_VALUE_1": "false"}
 
 
 def fake_key():
