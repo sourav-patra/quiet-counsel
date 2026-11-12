@@ -7,7 +7,7 @@ description: >
   skill when a project needs a real verdict rather than a screen, when evaluating a harness
   release, when someone asks for an independent score, or when the file-and-line citations in
   a verdict need checking against the repository. Not for fixing the project.
-license: Apache-2.0
+license: MIT
 compatibility: >
   Needs git and Python 3.11 or newer, with the quiet-counsel package installed or a clone
   of its repository on the path. No network access and no model calls by the scripts.

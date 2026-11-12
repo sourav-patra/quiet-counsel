@@ -6,7 +6,7 @@ description: >
   skill when a screen has raised flags, before reporting any flag to a person, when someone
   asks why a project landed in its band, or when a project's owner disputes a flag. Checking a
   review's citations belongs to review-project; this skill neither scores nor changes anything.
-license: Apache-2.0
+license: MIT
 compatibility: >
   Needs Python 3.11 or newer and read access to the project the scorecard describes. No
   network access and no model calls.

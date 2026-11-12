@@ -331,6 +331,22 @@ class Install(unittest.TestCase):
             self.assertEqual(frontmatter(Path(d) / "s" / skill.name / "SKILL.md")["name"], skill.name)
         self.assertEqual(sorted(os.listdir(f"{d}/a")), sorted(p.name for p in ROLES))
 
+    def test_H26_every_skill_declares_the_repository_licence_and_installs_with_a_copy_of_it(self):
+        licence = (REPO / "LICENSE").read_text(encoding="utf-8")
+        self.assertTrue(licence.startswith("MIT License"))
+        d = tempfile.mkdtemp()
+        self.assertEqual(install("--dest", f"{d}/s").returncode, 0)
+        for skill in SKILLS:
+            self.assertEqual(frontmatter(skill / "SKILL.md")["license"], "MIT", skill.name)
+            copy = Path(d) / "s" / skill.name / "LICENSE"
+            self.assertEqual(copy.read_bytes(), (REPO / "LICENSE").read_bytes(), skill.name)
+        # a dry run writes no licence copy, and the plan counts it as a file
+        d2 = tempfile.mkdtemp()
+        r = install("--dest", f"{d2}/s", "--dry-run", "--json")
+        self.assertFalse(os.path.exists(f"{d2}/s"))
+        self.assertEqual(json.loads(r.stdout)["files"],
+                         sum(1 for s in SKILLS for f in s.rglob("*") if f.is_file() and "__pycache__" not in f.parts)
+                         + len(SKILLS))
     def test_H12_install_never_overwrites_without_force_and_dry_run_writes_nothing(self):
         d = tempfile.mkdtemp()
         r = install("--dest", f"{d}/s", "--dry-run")
