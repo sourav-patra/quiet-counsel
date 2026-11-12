@@ -17,8 +17,11 @@ DIRECTED_FLAG = "evaluator-directed-text"
 SECRET_NOTICE = "withheld: credential text is never printed; read the file at this location yourself"
 DIRECTED_NOTICE = ("withheld: this text is addressed to the evaluator; read the file at this location "
                    "yourself, or pass --show-directed-text to print it")
-LINE_SECRET = "<line withheld: credential>"
-LINE_DIRECTED = "<line withheld: text addressed to the evaluator>"
+# A block that carries a secret as lines of ordinary-looking text (a PEM-style key body is
+# base64, which no credential-shape rule matches line by line).
+BLOCK_BEGIN = re.compile(r"-{5}BEGIN [A-Z0-9 ]+-{5}")
+BLOCK_END = re.compile(r"-{5}END [A-Z0-9 ]+-{5}")
+BLOCK_NOTICE = "<line withheld: credential>"
 
 
 def load():
@@ -40,13 +43,41 @@ def load():
     return scan
 
 
-def withhold(scan, text, show_directed):
-    """The text to print for a source line: the line, or a notice that it was withheld."""
-    if scan.holds_secret(text):
-        return LINE_SECRET
+def withhold(scan, text, show_directed, what="line", shapes_only=False):
+    """The text to print for anything that came from the scanned project (a source line, a path,
+    a title, an error string): the text itself, or a notice that it was withheld. `what` names
+    the kind of text in the notice. A source line is tested for credential words as well as
+    credential shapes. A path, a title or an error string is tested for shapes only, as the scan
+    itself does for names (`redact`): a word such as "token" in a file name is no credential, and
+    withholding it would hide which file a flag is about."""
+    if not isinstance(text, str):
+        return text
+    if shapes_only:
+        secret = any(rx.search(text) for _, rx in scan.SHAPE_RES)
+    else:
+        secret = scan.holds_secret(text)
+    if secret:
+        return f"<{what} withheld: credential>"
     if not show_directed and any(re.search(p, text) for p in scan.EVALUATOR_DIRECTED):
-        return LINE_DIRECTED
+        return f"<{what} withheld: text addressed to the evaluator>"
     return text
+
+
+def block_lines(lines):
+    """The 1-based numbers of every line inside a BEGIN to END block, both marker lines included.
+    The whole file is scanned, so a block whose opening marker lies outside the lines a caller
+    shows is still found. A block that never closes runs to the end of the file."""
+    inside, out = False, set()
+    for i, text in enumerate(lines, 1):
+        opened = None if inside else BLOCK_BEGIN.search(text)
+        if opened:
+            inside = True
+            out.add(i)
+            inside = not BLOCK_END.search(text, opened.end())  # opened and closed on one line
+        elif inside:
+            out.add(i)
+            inside = not BLOCK_END.search(text)
+    return out
 
 
 def locate(ref):
@@ -65,17 +96,24 @@ def inside(root, rel):
         return None
 
 
-def context(root, rel, line, n):
+def read_lines(root, rel):
+    """(lines, error) for a file named by a reference."""
     path = inside(root, rel)
     if not path:
         return None, "broken citation: the reference leaves the project"
     try:
         with open(path, encoding="utf-8", errors="replace") as fh:
-            lines = fh.read().splitlines()
+            return fh.read().splitlines(), None
     except OSError as exc:
         return None, str(exc)
+
+
+def context(lines, line, n, blocked):
+    """The rows around `line`. A line inside a sensitive block is replaced by a notice here, so
+    no caller can print it by forgetting to check."""
     lo, hi = max(1, line - n), min(len(lines), line + n)
-    return [{"line": i, "text": lines[i - 1], "hit": i == line} for i in range(lo, hi + 1)], None
+    return [{"line": i, "text": BLOCK_NOTICE if i in blocked else lines[i - 1], "hit": i == line}
+            for i in range(lo, hi + 1)]
 
 
 def main(argv=None):
@@ -119,16 +157,29 @@ def main(argv=None):
             if f["id"] == SECRET_FLAG or (f["id"] == DIRECTED_FLAG and not a.show_directed_text):
                 item["excerpt"] = None
                 item["withheld"] = SECRET_NOTICE if f["id"] == SECRET_FLAG else DIRECTED_NOTICE
-                items.append(item)
-                continue
-            if item["excerpt"]:
-                item["excerpt"] = withhold(scan, item["excerpt"], a.show_directed_text)
-            if e.get("kind") == "file":
-                rel, line = locate(e["ref"])
-                if line:
-                    item["context"], item["error"] = context(root, rel, line, a.context)
-                    for row in item["context"] or []:
-                        row["text"] = withhold(scan, row["text"], a.show_directed_text)
+            else:
+                if item["excerpt"]:
+                    item["excerpt"] = withhold(scan, item["excerpt"], a.show_directed_text)
+                if e.get("kind") == "file":
+                    rel, line = locate(e["ref"])
+                    if line:
+                        item["context"] = None
+                        lines, item["error"] = read_lines(root, rel)
+                        if lines is not None:
+                            blocked = block_lines(lines)
+                            if line in blocked:
+                                item["excerpt"] = BLOCK_NOTICE if item["excerpt"] else item["excerpt"]
+                            item["context"] = context(lines, line, a.context, blocked)
+                            for row in item["context"]:
+                                row["text"] = withhold(scan, row["text"], a.show_directed_text)
+            # Every string that came from the scanned project (a path, a title, an error text)
+            # passes the same test as a source line, so a file name cannot carry either kind of
+            # text past it. The location is withheld rather than shown with the text removed.
+            for key, what in (("flag", "flag id"), ("severity", "severity"), ("title", "title"),
+                              ("ref", "reference"), ("excerpt", "excerpt"), ("error", "error")):
+                if key in item:
+                    item[key] = withhold(scan, item[key], a.show_directed_text, what,
+                                         shapes_only=key != "excerpt")
             items.append(item)
 
     if a.json:
