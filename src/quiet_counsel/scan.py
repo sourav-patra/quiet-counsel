@@ -184,8 +184,11 @@ PATH_SPAN_RE = re.compile(r"`([A-Za-z0-9_.][\w./*-]*)`")
 
 
 def _ignored_tops(root):
+    path = os.path.join(root, ".gitignore")
+    if leaves_root(root, path):
+        return set()
     try:
-        with open(os.path.join(root, ".gitignore"), encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return {ln.strip().strip("/") for ln in fh if ln.strip() and not ln.startswith(("#", "!"))}
     except OSError:
         return set()
@@ -200,7 +203,7 @@ def stale_rulebook_paths(root):
         p = os.path.join(root, name)
         if not os.path.isfile(p):
             continue
-        raw = read_text(p, 200_000)
+        raw = read_text(p, 200_000, root)
         original = raw.splitlines()
         # A fence becomes spaces, every line break in it stays where it was (splitlines() breaks on
         # more than \n), so line numbers of `text` and `original` agree.
@@ -225,19 +228,22 @@ def stale_rulebook_paths(root):
                         names = {os.path.basename(r)
                                  for _, r in walk(root, None, max_files=200000, include_hidden=True)}
                     # walk() skips .github, so a workflow named bare is looked up where it lives
-                    in_workflows = os.path.exists(os.path.join(root, ".github", "workflows", ref))
-                    if ref not in names and not in_workflows and                             not os.path.exists(os.path.join(root, ref)):
+                    in_workflows = exists_inside(root, os.path.join(root, ".github", "workflows", ref))
+                    if ref not in names and not in_workflows and \
+                            not exists_inside(root, os.path.join(root, ref)):
                         out.append((name, i, WITHHELD if hidden else ref))
                     continue
                 # owner/repo names such as `someone/tool` are references, not paths: a slash
                 # counts only when the first segment is in the tree or the span is explicitly a
                 # path; build outputs the project ignores are expected to be missing
-                rooted = os.path.exists(os.path.join(root, first)) or ref.endswith("/") or \
+                rooted = exists_inside(root, os.path.join(root, first)) or ref.endswith("/") or \
                     ref.startswith("./") or re.search(r"\.(md|py|sh|js|ts|json|toml|ya?ml|txt)$", ref)
                 if not rooted or first in ignored:
                     continue
                 target = os.path.join(root, ref.rstrip("/"))
-                exists = glob.glob(target, recursive=True) if "*" in ref else os.path.exists(target)
+                # a match that resolves outside the root is not a path of the project
+                exists = any(not leaves_root(root, m) for m in glob.glob(target, recursive=True)) \
+                    if "*" in ref else exists_inside(root, target)
                 if not exists:
                     out.append((name, i, WITHHELD if hidden else ref))
     if len(out) > 40:
@@ -364,12 +370,13 @@ def _is_ignore_file(root, name):
         return False
 
 
-_OUTSIDE_SKIPS = []  # relative paths of files skipped because they resolve outside the root
+_OUTSIDE_SKIPS = []  # (name, kind) of paths skipped because they resolve outside the root
 _OUTSIDE_SHOWN = 10  # how many of them the card names; the rest are counted
 
 
-def _under(root, path):
-    """True when the real path of `path` is the real root or inside it."""
+def contained(root, path):
+    """True when the real path of `path` is the real root or inside it. Every read of a path in
+    a scanned project goes through this test, because a link in the project can point anywhere."""
     base, real = os.path.realpath(root), os.path.realpath(path)
     try:
         return os.path.commonpath([base, real]) == base
@@ -377,12 +384,33 @@ def _under(root, path):
         return False
 
 
-def _skipped_outside(rel):
-    if rel not in _OUTSIDE_SKIPS:
-        _OUTSIDE_SKIPS.append(rel)
+def leaves_root(root, path, tag=""):
+    """True, with the path recorded for the card's limits, when `path` resolves outside `root`.
+    A caller that gets True does not read, list or open the path."""
+    if contained(root, path):
+        return False
+    try:
+        name = os.path.relpath(path, root).replace(os.sep, "/")
+    except ValueError:  # another drive
+        name = os.path.basename(path)
+    kind = "directory" if os.path.isdir(path) else "file" if os.path.isfile(path) else "path"
+    entry = (tag + name, kind)
+    if entry not in _OUTSIDE_SKIPS:
+        _OUTSIDE_SKIPS.append(entry)
+    return True
 
 
-def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
+def exists_inside(root, path):
+    """os.path.exists, but a path that resolves outside `root` does not count as present."""
+    return os.path.exists(path) and not leaves_root(root, path)
+
+
+def size_inside(root, path):
+    """The size of a file under `root`, 0 for one that resolves outside it."""
+    return 0 if leaves_root(root, path) else os.path.getsize(path)
+
+
+def walk(root, exts=None, max_files=40000, include_hidden=False, github=False, *, tag=""):
     """Yield (abs_path, rel_path) for files under root, skipping build and VCS directories.
 
     Hidden directories are skipped by default. This matters more than it looks: a catalogue
@@ -391,16 +419,19 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
     the screen reports the difference rather than silently picking one. `.github` holds workflows
     and issue templates that a reader and a CI run both read, so `github=True` keeps it in a walk
     that otherwise skips hidden directories. Only `.git` itself is a version-control directory.
+    A directory or a file that resolves outside `root` is neither entered nor read; `tag` prefixes
+    its name on the card when `root` is not the project (the corpus).
     """
     n = 0
     for dirpath, dirnames, filenames in os.walk(root):
-        # Once per directory: a junction or a link above the file moves it out of the root too.
-        dir_inside = dirpath == root or _under(root, dirpath)
         # Sorted, so evidence order is the same on every filesystem and the committed example
         # is reproducible byte for byte.
         dirnames[:] = [d for d in sorted(dirnames)
                        if d not in SKIP_DIRS
                        and (include_hidden or not d.startswith(".") or (github and d == ".github"))]
+        # A junction (or a link the walk would follow) to a directory outside the root is pruned
+        # here, before the walk descends, so nothing in it is listed, counted or read.
+        dirnames[:] = [d for d in dirnames if not leaves_root(root, os.path.join(dirpath, d), tag)]
         for name in sorted(filenames):
             # The project's ignore file is read by the signal alone: in no detector's hit, copy or
             # file budget, so a repository cannot use it to push a real finding past a limit.
@@ -415,8 +446,8 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
                 continue
             # A link whose target lies outside the scanned root would read, and could quote on the
             # card, a file that is not part of the project. It is skipped and named on the card.
-            if not dir_inside or (os.path.islink(p) and not _under(root, p)):
-                _skipped_outside(os.path.relpath(p, root).replace(os.sep, "/"))
+            # (the directory above is inside the root, so only a link can move the file out)
+            if os.path.islink(p) and leaves_root(root, p, tag):
                 continue
             # Forward slashes on every OS, so a scorecard built on Windows is identical to one
             # built on Linux and every path pattern below means the same thing everywhere.
@@ -427,10 +458,13 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
             n += 1
 
 
-def read_counted(path, limit=2_000_000):
+def read_counted(path, limit=2_000_000, root=None):
     """(text, characters consumed). The text is up to `limit` characters with a final line the
     limit cut in two dropped, so detection and evidence see whole lines only. The count is what
-    was read before that trimming, for a caller that keeps a budget."""
+    was read before that trimming, for a caller that keeps a budget. With `root`, a path that
+    resolves outside it is not opened and reads as empty."""
+    if root is not None and leaves_root(root, path):
+        return "", 0
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
             text = fh.read(limit)
@@ -442,9 +476,10 @@ def read_counted(path, limit=2_000_000):
         return "", 0
 
 
-def read_text(path, limit=2_000_000):
-    """The file's text up to `limit` characters, whole lines only."""
-    return read_counted(path, limit)[0]
+def read_text(path, limit=2_000_000, root=None):
+    """The file's text up to `limit` characters, whole lines only; empty for a path that resolves
+    outside `root` when one is given."""
+    return read_counted(path, limit, root)[0]
 
 
 # The scanned project's own .git/config can name programs git would start (a signature checker, a
@@ -457,6 +492,9 @@ GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
 
 
 def git(root, *args):
+    # A .git that is a link to a directory elsewhere would make git read that repository.
+    if os.path.lexists(os.path.join(root, ".git")) and leaves_root(root, os.path.join(root, ".git")):
+        return ""
     try:
         out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
                              text=True, timeout=60)
@@ -617,7 +655,7 @@ def classify(root):
         evidence.append(ev("file", f"{len(checkers)} checker scripts", checkers[0]))
 
     gov = [n for n in ("RELEASES.md", "GOVERNANCE.md", "MAINTAINERS.md", "SECURITY.md",
-                       "CHANGELOG.md", "RECORDS.md") if os.path.exists(os.path.join(root, n))]
+                       "CHANGELOG.md", "RECORDS.md") if exists_inside(root, os.path.join(root, n))]
     if gov:
         scores["harness" if skills else "application"] += 1.5 if skills else 0.5
         evidence.append(ev("file", "governance documents", ", ".join(gov)))
@@ -632,8 +670,8 @@ def classify(root):
 
     for manifest in ("package.json", "pyproject.toml", "Cargo.toml", "go.mod"):
         p = os.path.join(root, manifest)
-        if os.path.exists(p):
-            text = read_text(p, 4000)
+        if exists_inside(root, p):
+            text = read_text(p, 4000, root)
             if manifest == "package.json" and ('"bin"' in text or '"main"' in text):
                 scores["tool"] += 2
             else:
@@ -645,8 +683,8 @@ def classify(root):
     if len(app_markers) >= 3:
         scores["application"] += 2.5
         evidence.append(ev("file", "application sources", ", ".join(app_markers[:3])))
-    if os.path.exists(os.path.join(root, "Dockerfile")) or \
-            os.path.exists(os.path.join(root, "docker-compose.yml")):
+    if exists_inside(root, os.path.join(root, "Dockerfile")) or \
+            exists_inside(root, os.path.join(root, "docker-compose.yml")):
         scores["application"] += 0.5
         scores["tool"] += 0.5
 
@@ -699,7 +737,7 @@ def defensive(root, rel, lineno, line, window=3):
     """True when a hit sits inside text that is fighting the thing, not doing it."""
     if DEFENSIVE_CONTEXT.search(line):
         return True
-    lines = read_text(os.path.join(root, rel), 500_000).splitlines()
+    lines = read_text(os.path.join(root, rel), 500_000, root).splitlines()
     lo, hi = max(0, lineno - window), min(len(lines), lineno + window - 1)
     return bool(DEFENSIVE_CONTEXT.search(" ".join(lines[lo:hi])))
 
@@ -731,7 +769,7 @@ def evaluator_directed_hits(root, limit=DIRECTED_LIMIT, judged_quoted=None):
             root, [("evaluator-directed", p) for p in EVALUATOR_DIRECTED],
             TEXT_EXT | {".json", ".yaml", ".yml"}):
         if cached[0] != rel:
-            cached = (rel, read_text(os.path.join(root, rel), 500_000).splitlines())
+            cached = (rel, read_text(os.path.join(root, rel), 500_000, root).splitlines())
         text = cached[1]
         lo, hi = max(0, lineno - 3), min(len(text), lineno + 2)
         context = " ".join(text[lo:hi])
@@ -767,15 +805,15 @@ def _source_licence(corpus, rel):
     """The licence of the corpus project a file came from: the file's own declaration if it has
     one, else the nearest licence file above it inside the corpus."""
     path = os.path.join(corpus, rel)
-    own = declared_licences(read_text(path, 200_000))
+    own = declared_licences(read_text(path, 200_000, corpus))
     if own:
         return own[0][1], "the file's own declaration", _project_of(rel), own[0][4]
     parts = rel.split("/")[:-1]
     while True:
         here = os.path.join(corpus, *parts) if parts else corpus
-        found = _licence_file_in(here)
+        found = _licence_file_in(here, corpus)
         if found:
-            label = identify_licence(read_text(os.path.join(here, found), 20000))
+            label = identify_licence(read_text(os.path.join(here, found), 20000, corpus))
             where = "/".join(parts + [found])
             return label, f"corpus {where}", _project_of(rel), False
         if not parts:
@@ -787,14 +825,19 @@ def _project_of(rel):
     return rel.split("/")[0] if "/" in rel else "."
 
 
-def _licence_file_in(directory):
+def _licence_file_in(directory, root):
+    """The licence file in `directory`, a folder of `root`. A folder or a file that resolves
+    outside `root` is not listed or used."""
+    if leaves_root(root, directory):
+        return None
     try:
         names = sorted(os.listdir(directory))
     except OSError:
         return None
     for name in names:
         if re.match(r"(?i)^(licen[cs]e|copying)(\.|$)", name) and \
-                os.path.isfile(os.path.join(directory, name)):
+                os.path.isfile(os.path.join(directory, name)) and \
+                not leaves_root(root, os.path.join(directory, name)):
             return name
     return None
 
@@ -807,7 +850,7 @@ def attribution_for(root, rel, source_project):
     """Where a copied file's credit lives, or None. The file's own source or licence line, a
     licence file beside it or above it below the root, or a root NOTICE, third-party, credits or
     attribution file naming the source project. A README mention is too loose to count."""
-    text = read_text(os.path.join(root, rel), 200_000)
+    text = read_text(os.path.join(root, rel), 200_000, root)
     head = text.splitlines()[:15]
     for i, line in enumerate(head, 1):
         if PROVENANCE_RE.search(line) or LICENCE_LINE_RE.match(line) or \
@@ -815,14 +858,14 @@ def attribution_for(root, rel, source_project):
             return f"{rel}:{i}"
     parts = rel.split("/")[:-1]
     while parts:
-        found = _licence_file_in(os.path.join(root, *parts))
+        found = _licence_file_in(os.path.join(root, *parts), root)
         if found:
             return "/".join(parts + [found])
         parts.pop()
     name = os.path.basename(source_project.rstrip("/")) if source_project != "." else None
     for fname in sorted(os.listdir(root)):
         if ATTRIBUTION_FILE_RE.match(fname) and name and os.path.isfile(os.path.join(root, fname)):
-            if name.lower() in read_text(os.path.join(root, fname), 200_000).lower():
+            if name.lower() in read_text(os.path.join(root, fname), 200_000, root).lower():
                 return fname
     return None
 
@@ -832,7 +875,7 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
     byte for byte or once provenance and licence lines are set aside. Each match carries the
     source project's licence and where the copy credits it, if anywhere."""
     index, normalised = {}, {}
-    for path, rel in walk(corpus, None, max_files=200000):
+    for path, rel in walk(corpus, None, max_files=200000, tag="corpus: "):
         try:
             if os.path.getsize(path) < min_bytes:
                 continue
@@ -877,7 +920,8 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
 
 
 def history_facts(root):
-    if not os.path.isdir(os.path.join(root, ".git")):
+    gitdir = os.path.join(root, ".git")
+    if not os.path.isdir(gitdir) or leaves_root(root, gitdir):
         return {"available": False, "reason": "no git directory — history cannot be measured"}
     if git(root, "rev-parse", "--is-shallow-repository") == "true":
         return {"available": False, "shallow": True,
@@ -926,8 +970,10 @@ def licence_facts(root):
     declared, declared_file = None, None
     for name in sorted(os.listdir(root)):
         if re.match(r"(?i)^(licen[cs]e|copying)(\.|$)", name):
+            if leaves_root(root, os.path.join(root, name)):
+                continue  # a licence file that is a link to a file elsewhere is not the project's
             declared_file = name
-            declared = identify_licence(read_text(os.path.join(root, name), 20000))
+            declared = identify_licence(read_text(os.path.join(root, name), 20000, root))
             break
     nested = []
     for path, rel in walk(root, {".md", ".txt", ""}, github=True):
@@ -1084,7 +1130,7 @@ def extract_claims(root):
     claims = []
     for name in sorted(os.listdir(root)):
         if re.match(r"(?i)^readme(\.|$)", name):
-            text = read_text(os.path.join(root, name), 200000)
+            text = read_text(os.path.join(root, name), 200000, root)
             # "Works with 15 agents" is a compatibility claim about hosts, not an inventory
             # claim about definitions. Reading it as inventory produced a false contradiction
             # against a clean repository, so context decides which kind of claim it is.
@@ -1132,10 +1178,13 @@ def ignore_patterns(root):
     A symlink is refused: its target's lines would print on the card.
     """
     path = os.path.join(root, IGNORE_FILE)
-    if os.path.islink(path) or not os.path.isfile(path):
+    if os.path.islink(path):
+        leaves_root(root, path)  # named on the card when it leaves the root
+        return []
+    if not os.path.isfile(path):
         return []
     out = []
-    for line in read_text(path, 20000).splitlines():
+    for line in read_text(path, 20000, root).splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
             out.append(line)
@@ -1254,7 +1303,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
             _seen.add(key)
             first_of_identity.append(rel)
     for rel in first_of_identity:
-        fm = frontmatter(read_text(os.path.join(root, rel), 20000))
+        fm = frontmatter(read_text(os.path.join(root, rel), 20000, root))
         d = fm.get("description", "")
         desc_chars += len(d)
         if "when" not in d.lower():
@@ -1275,7 +1324,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
     rulebook = {}
     for name in RULEBOOKS:
         p = os.path.join(root, name)
-        if os.path.exists(p):
+        if exists_inside(root, p):
             rulebook[name] = os.path.getsize(p)
     signals["always_loaded_rulebook_bytes"] = sig(rulebook, "wc -c on root instruction files")
 
@@ -1287,11 +1336,13 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                         if re.search(r"(^|/)evals?/", rel)})
     signals["eval_dirs"] = sig(eval_dirs, "directories named eval/ or evals/")
     wf_dir = os.path.join(root, ".github", "workflows")
-    workflows = sorted(os.listdir(wf_dir)) if os.path.isdir(wf_dir) else []
+    workflows = [w for w in sorted(os.listdir(wf_dir))
+                 if not leaves_root(root, os.path.join(wf_dir, w))] \
+        if os.path.isdir(wf_dir) and not leaves_root(root, wf_dir) else []
     signals["ci_workflow_files"] = sig(len(workflows), "ls .github/workflows")
     uses, pinned = 0, 0
     for w in workflows:
-        for line in read_text(os.path.join(wf_dir, w), 200000).splitlines():
+        for line in read_text(os.path.join(wf_dir, w), 200000, root).splitlines():
             m = re.search(r"uses:\s*([^\s]+)", line)
             if m:
                 uses += 1
@@ -1299,7 +1350,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                     pinned += 1
     signals["ci_actions_pinned_by_digest"] = sig(f"{pinned}/{uses}" if uses else "0/0",
                                                  "uses: lines pinned to a 40-char digest")
-    signals["jenkinsfile"] = sig(os.path.exists(os.path.join(root, "Jenkinsfile")), "test -f Jenkinsfile")
+    signals["jenkinsfile"] = sig(exists_inside(root, os.path.join(root, "Jenkinsfile")), "test -f Jenkinsfile")
 
     # --- safety signals
     secret_hits = grep(root, SECRET_PATTERNS, TEXT_EXT | {".pem", ".key", ""}, max_hits=40,
@@ -1378,7 +1429,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
 
     lockfiles = [n for n in ("package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock",
                              "requirements.txt", "Cargo.lock", "go.sum")
-                 if os.path.exists(os.path.join(root, n))]
+                 if exists_inside(root, os.path.join(root, n))]
     signals["lockfiles"] = sig(lockfiles, "test -f on known lockfiles")
 
     untrusted = grep(root, [("untrusted-guidance",
@@ -1691,7 +1742,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
 
     # --- product signals
     signals["readme_bytes"] = sig(
-        next((os.path.getsize(os.path.join(root, n)) for n in sorted(os.listdir(root))
+        next((size_inside(root, os.path.join(root, n)) for n in sorted(os.listdir(root))
               if re.match(r"(?i)^readme(\.|$)", n)), 0), "wc -c README")
     abs_paths = grep(root, [("absolute-path", r"(?<![\w.])/(Users|home)/[a-zA-Z0-9._-]+/")],
                      TEXT_EXT, max_hits=10,
@@ -1730,10 +1781,12 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                       f"stopped at its budget of {budget}; later files were not read for this check, "
                       "so its result is incomplete."))
     limits.extend(_NOTES)
-    for rel in _OUTSIDE_SKIPS[:_OUTSIDE_SHOWN]:
-        limits.append(f"{rel}: resolves to a file outside the scanned root, so it was not read.")
+    for rel, kind in _OUTSIDE_SKIPS[:_OUTSIDE_SHOWN]:
+        what = {"file": "a file", "directory": "a directory", "path": "a path"}[kind]
+        limits.append(f"{rel}: resolves to {what} outside the scanned root, so it was not "
+                      f"{'entered' if kind == 'directory' else 'read'}.")
     if len(_OUTSIDE_SKIPS) > _OUTSIDE_SHOWN:
-        limits.append(f"{len(_OUTSIDE_SKIPS) - _OUTSIDE_SHOWN} more files that resolve outside the scanned root were not read.")
+        limits.append(f"{len(_OUTSIDE_SKIPS) - _OUTSIDE_SHOWN} more paths that resolve outside the scanned root were not read.")
     if stopped:
         flags.append({
             "id": "scan-limit-reached", "severity": "warning",

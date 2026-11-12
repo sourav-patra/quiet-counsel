@@ -229,7 +229,7 @@ def open_time_hooks(root, unreadable):
     the agent's other hook events. A file too deeply nested to read is added to `unreadable`."""
     hits = {"open-time-hook": [], "agent-hook": []}
     rel = ".claude/settings.json"
-    text = _s.read_text(os.path.join(root, rel), 500_000)
+    text = _s.read_text(os.path.join(root, rel), 500_000, root)
     if text:
         lines = text.splitlines()
         data, state = _load_json(text)
@@ -250,7 +250,7 @@ def open_time_hooks(root, unreadable):
                     hits["agent-hook"].append({**_hit(rel, n or 1, lines, "info"), "event": event,
                                                "event_hidden": hidden})
     rel = ".vscode/tasks.json"
-    text = _s.read_text(os.path.join(root, rel), 500_000)
+    text = _s.read_text(os.path.join(root, rel), 500_000, root)
     lines = text.splitlines()
     for pos, task in (_folder_open_tasks(text) if text else ()):
         cmd = " ".join(TASK_CMD_RE.findall(task))[:MAX_CMD]
@@ -295,14 +295,16 @@ MAX_LINE = 2000  # characters of a workflow line the patterns look at
 
 def _workflows(root):
     d = os.path.join(root, ".github", "workflows")
+    if _s.leaves_root(root, d):
+        return
     try:
         names = sorted(os.listdir(d))
     except OSError:
         return
     for name in names:
         p = os.path.join(d, name)
-        if name.endswith((".yml", ".yaml")) and os.path.isfile(p):
-            lines = _s.read_text(p, 200_000).splitlines()
+        if name.endswith((".yml", ".yaml")) and os.path.isfile(p) and not _s.leaves_root(root, p):
+            lines = _s.read_text(p, 200_000, root).splitlines()
             # the cut lines are for detection; evidence takes the whole line, and ev() withholds it if it holds a secret
             yield f".github/workflows/{name}", [ln[:MAX_LINE] for ln in lines], lines
 

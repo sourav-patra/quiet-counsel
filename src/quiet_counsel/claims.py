@@ -48,8 +48,8 @@ def prose_lines(text):
 
 def _readme(root):
     for name in sorted(os.listdir(root)):
-        if re.match(r"(?i)^readme(\.|$)", name):
-            return name, prose_lines(_s.read_text(os.path.join(root, name), 200000))
+        if re.match(r"(?i)^readme(\.|$)", name) and not _s.leaves_root(root, os.path.join(root, name)):
+            return name, prose_lines(_s.read_text(os.path.join(root, name), 200000, root))
     return None, []
 
 
@@ -90,7 +90,7 @@ def licence_mismatch(root, prose, declared, declared_file):
         return None
     n, line, fam = claims[0]
     return {"kind": "licence", "line": n, "text": line,
-            "other": _s.ev("file", f"{declared_file}:1", _line_at(os.path.join(root, declared_file), 1)),
+            "other": _s.ev("file", f"{declared_file}:1", _line_at(os.path.join(root, declared_file), 1, root)),
             "what": f"README names {fam}, {declared_file} is identified as {declared}"}
 
 
@@ -99,7 +99,7 @@ def licence_mismatch(root, prose, declared, declared_file):
 def _requirement(root):
     for name in sorted(os.listdir(root)):
         if re.match(r"requirements[^/]*\.txt$", name) and not re.search(r"dev|test|doc", name):
-            for i, line in enumerate(_s.read_text(os.path.join(root, name), 100000).splitlines(), 1):
+            for i, line in enumerate(_s.read_text(os.path.join(root, name), 100000, root).splitlines(), 1):
                 s = line.strip()
                 if s and not s.startswith(("#", "-")):
                     return name, i, s
@@ -112,7 +112,7 @@ def _toml_project(root, what):
     if not (tomllib and os.path.isfile(p)):
         return {}
     try:
-        proj = tomllib.loads(_s.read_text(p, 200000)).get("project", {})
+        proj = tomllib.loads(_s.read_text(p, 200000, root)).get("project", {})
     except (tomllib.TOMLDecodeError, RecursionError):
         return {}
     if not isinstance(proj, dict):
@@ -126,7 +126,7 @@ def _package_json(root, what):
     if not os.path.isfile(p):
         return {}
     try:
-        data = json.loads(_s.read_text(p, 200000))
+        data = json.loads(_s.read_text(p, 200000, root))
     except (ValueError, RecursionError):  # deeply nested input is not usable metadata
         return {}
     if not isinstance(data, dict):
@@ -144,26 +144,26 @@ def _first_dependency(root):
         _s.limit_note("pyproject.toml: [project] dependencies is not a list, so the dependency claim was left unchecked.")
         deps = []
     if deps and isinstance(deps[0], str) and deps[0].split():
-        return _dep_ev(os.path.join(root, "pyproject.toml"), deps[0].split()[0])
+        return _dep_ev(os.path.join(root, "pyproject.toml"), deps[0].split()[0], root)
     deps = _package_json(root, "the dependency claim").get("dependencies")
     if isinstance(deps, dict) and deps:
-        return _dep_ev(os.path.join(root, "package.json"), str(next(iter(deps))))
+        return _dep_ev(os.path.join(root, "package.json"), str(next(iter(deps))), root)
     if deps is not None and not isinstance(deps, dict):
         _s.limit_note("package.json: dependencies is not an object, so the dependency claim was left unchecked.")
     return None
 
 
-def _line_at(path, n):
-    lines = _s.read_text(path, 200000).splitlines()
+def _line_at(path, n, root):
+    lines = _s.read_text(path, 200000, root).splitlines()
     return lines[n - 1].strip() if 0 < n <= len(lines) else ""
 
 
-def _dep_ev(path, needle):
+def _dep_ev(path, needle, root):
     """Evidence on the first line of a manifest that holds the dependency name."""
-    for i, line in enumerate(_s.read_text(path, 200000).splitlines(), 1):
+    for i, line in enumerate(_s.read_text(path, 200000, root).splitlines(), 1):
         if needle in line:
             return _s.ev("file", f"{os.path.basename(path)}:{i}", line.strip())
-    return _s.ev("file", f"{os.path.basename(path)}:1", _line_at(path, 1))
+    return _s.ev("file", f"{os.path.basename(path)}:1", _line_at(path, 1, root))
 
 
 def dependency_mismatch(root, prose):
@@ -292,7 +292,7 @@ def flag_mismatches(root, prose):
 
 def _gitignored(root, rel):
     p = os.path.join(root, ".gitignore")
-    for pat in _s.read_text(p, 20000).splitlines() if os.path.isfile(p) else []:
+    for pat in _s.read_text(p, 20000, root).splitlines() if os.path.isfile(p) else []:
         pat = pat.strip().strip("/")
         if pat and not pat.startswith(("#", "!")) and (
                 fnmatch.fnmatch(rel.strip("/"), pat) or rel.strip("/").startswith(pat + "/")
@@ -312,10 +312,11 @@ def path_mismatches(root, prose):
                     or span.startswith(("./", "../", "/")) or ".." in parts or parts[0] in GENERATED_TOPS
                     or _gitignored(root, span)
                     # owner/repo and model ids: two names, no dot, and no such folder here
-                    or (len(parts) == 2 and "." not in span and not os.path.isdir(os.path.join(root, parts[0])))):
+                    or (len(parts) == 2 and "." not in span and not (os.path.isdir(os.path.join(root, parts[0]))
+                                            and not _s.leaves_root(root, os.path.join(root, parts[0]))))):
                 continue
             seen.add(span)
-            if not os.path.exists(os.path.join(root, span)):
+            if not _s.exists_inside(root, os.path.join(root, span)):
                 out.append({"kind": "path", "line": n, "text": line,
                             "other": _s.ev("command", f"test -e {span}", "not found"),
                             "what": f"README says the repository holds {span}, it does not"})
