@@ -351,3 +351,32 @@ class GitConfiguration(unittest.TestCase):
         card = scan.screen(root)
         self.assertFalse(os.path.exists(marker), "a program named in the project's git configuration ran")
         self.assertEqual(card["signals"]["history"]["value"]["commits"], 1)
+
+
+class LinksOutsideTheRoot(unittest.TestCase):
+    def _link(self, target, where):
+        """Create a link at `where`, or skip the test: Windows refuses link creation without a
+        privilege or developer mode (WinError 1314), and some file systems refuse it too."""
+        try:
+            os.symlink(target, where)
+        except (OSError, NotImplementedError, AttributeError) as exc:
+            self.skipTest(f"this system refused to create a link: {exc}")
+
+    def test_S27_a_file_link_that_leaves_the_scanned_root_is_not_read_and_is_named_on_the_card(self):
+        root = project(MINIMAL)
+        outside = os.path.join(os.path.dirname(root), "outside.sh")
+        with open(outside, "w", encoding="utf-8") as fh:
+            fh.write(f"export KEY={fake_key()}\n")
+        self._link(outside, os.path.join(root, "linked.sh"))
+        card = scan.screen(root)
+        self.assertNotIn("secret-in-tree", flag_ids(card))
+        self.assertNotIn(fake_key(), json.dumps(card))
+        self.assertTrue(any(l.startswith("linked.sh: resolves to a file outside the scanned root")
+                            for l in card["limits"]), card["limits"])
+
+    def test_S28_a_link_to_a_file_inside_the_root_is_still_read_and_not_listed(self):
+        root = project({**MINIMAL, "scripts/deploy.sh": f"export KEY={fake_key()}\n"})
+        self._link(os.path.join(root, "scripts", "deploy.sh"), os.path.join(root, "alias.sh"))
+        card = scan.screen(root)
+        self.assertIn("secret-in-tree", flag_ids(card))
+        self.assertFalse(any("outside the scanned root" in l for l in card["limits"]), card["limits"])

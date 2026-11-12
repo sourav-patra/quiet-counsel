@@ -364,6 +364,24 @@ def _is_ignore_file(root, name):
         return False
 
 
+_OUTSIDE_SKIPS = []  # relative paths of files skipped because they resolve outside the root
+_OUTSIDE_SHOWN = 10  # how many of them the card names; the rest are counted
+
+
+def _under(root, path):
+    """True when the real path of `path` is the real root or inside it."""
+    base, real = os.path.realpath(root), os.path.realpath(path)
+    try:
+        return os.path.commonpath([base, real]) == base
+    except ValueError:  # another drive
+        return False
+
+
+def _skipped_outside(rel):
+    if rel not in _OUTSIDE_SKIPS:
+        _OUTSIDE_SKIPS.append(rel)
+
+
 def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
     """Yield (abs_path, rel_path) for files under root, skipping build and VCS directories.
 
@@ -376,6 +394,8 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
     """
     n = 0
     for dirpath, dirnames, filenames in os.walk(root):
+        # Once per directory: a junction or a link above the file moves it out of the root too.
+        dir_inside = dirpath == root or _under(root, dirpath)
         # Sorted, so evidence order is the same on every filesystem and the committed example
         # is reproducible byte for byte.
         dirnames[:] = [d for d in sorted(dirnames)
@@ -392,6 +412,11 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
             # Pipes, sockets and devices, or links to them, are never opened: reading one can
             # hang the screen or never end.
             if not os.path.isfile(p):
+                continue
+            # A link whose target lies outside the scanned root would read, and could quote on the
+            # card, a file that is not part of the project. It is skipped and named on the card.
+            if not dir_inside or (os.path.islink(p) and not _under(root, p)):
+                _skipped_outside(os.path.relpath(p, root).replace(os.sep, "/"))
                 continue
             # Forward slashes on every OS, so a scorecard built on Windows is identical to one
             # built on Linux and every path pattern below means the same thing everywhere.
@@ -1187,6 +1212,7 @@ def _now():
 def screen(root, corpus=None, event=None, honour_ignore=False):
     _REACHED.clear()
     _NOTES.clear()
+    _OUTSIDE_SKIPS.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)
@@ -1704,6 +1730,10 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                       f"stopped at its budget of {budget}; later files were not read for this check, "
                       "so its result is incomplete."))
     limits.extend(_NOTES)
+    for rel in _OUTSIDE_SKIPS[:_OUTSIDE_SHOWN]:
+        limits.append(f"{rel}: resolves to a file outside the scanned root, so it was not read.")
+    if len(_OUTSIDE_SKIPS) > _OUTSIDE_SHOWN:
+        limits.append(f"{len(_OUTSIDE_SKIPS) - _OUTSIDE_SHOWN} more files that resolve outside the scanned root were not read.")
     if stopped:
         flags.append({
             "id": "scan-limit-reached", "severity": "warning",
