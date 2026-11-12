@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 (2026-11-13)
+
+- Security: `triage_flags.py` printed each flagged line and its neighbours as they stand in the file, so a triage run could put a credential or text aimed at the evaluator in front of an agent. A `secret-in-tree` flag now prints its location only. An `evaluator-directed-text` flag prints its location and a fixed notice; `--show-directed-text` prints the text when a person has asked for it. Any neighbouring line that holds a credential reads as withheld, under every flag, and the credential is never printed by any option (cases H-24 and H-25).
+- Security: a file link in a scanned project that resolves outside the scanned root was followed, so the scan could read a file that is not part of the project. Such a file is now skipped, and the card lists each skip in its limits (the first 10 by path, the rest counted). Cases S-27 and S-28 skip, with the reason, on a system that refuses link creation.
+- The three skills declared `license: Apache-2.0` while the repository is MIT. They now declare MIT, and `install.py` copies the repository `LICENSE` into each installed skill (case H-26). The skill descriptions are unchanged: the selection-eval prompt is byte-identical before and after.
+- `triage_flags.py` stopped with `UnicodeEncodeError` on a non-UTF-8 console or pipe when a flagged line held a character that locale lacks, and needed `PYTHONUTF8=1` on Windows. It now sets its own output to UTF-8 (case H-27).
+- Removed an unused import from `tests/test_safety.py`.
+
 ## 0.1.1 (2026-11-04)
 
 - Security: 0.1.0 read history by running `git` with the scanned project's own `.git/config`, so a project that set `log.showSignature=true` and `gpg.program` to a script, and held a commit with a signature header, ran that script during `screen`. Every git call now puts overrides for the settings that start a program (signature checkers, pager, hooks path, file-system monitor, external diff) before the subcommand, and the script no longer runs (case S-26).
