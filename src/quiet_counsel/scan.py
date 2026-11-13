@@ -10,7 +10,6 @@ This module measures, flags and bands. It never scores: every dimension it emits
 
 import datetime as _dt
 import fnmatch
-import glob
 import hashlib
 import json
 import os
@@ -198,7 +197,7 @@ def stale_rulebook_paths(root):
     """[(file, line_no, path)] for every repository path a root instruction file names in inline
     code that does not exist. Stale instructions mislead the agent that loads them every
     session; the research names this context debt."""
-    out, names, ignored = [], None, _ignored_tops(root)
+    out, names, ignored, tree = [], None, _ignored_tops(root), None
     for name in RULEBOOKS:
         p = os.path.join(root, name)
         if not os.path.isfile(p):
@@ -241,9 +240,23 @@ def stale_rulebook_paths(root):
                 if not rooted or first in ignored:
                     continue
                 target = os.path.join(root, ref.rstrip("/"))
-                # a match that resolves outside the root is not a path of the project
-                exists = any(not leaves_root(root, m) for m in glob.glob(target, recursive=True)) \
-                    if "*" in ref else exists_inside(root, target)
+                if "*" in ref:
+                    # Matched against the paths the containment-aware walk yields; the file system
+                    # is never asked to expand a pattern a project wrote.
+                    rx = _glob_regex(ref)
+                    if rx is None:  # starts with .. or is absolute: outside the root by its text
+                        skip_outside(ref)
+                        exists = False
+                    elif set(_literal_prefix(ref)) & SKIP_DIRS:
+                        # the walk skips build output and dependency folders, so the folder
+                        # holding the pattern is checked for, not enumerated
+                        exists = exists_inside(root, os.path.join(root, *_literal_prefix(ref)))
+                    else:
+                        if tree is None:
+                            tree = _tree_paths(root)
+                        exists = any(rx.fullmatch(p) for p in tree)
+                else:
+                    exists = exists_inside(root, target)
                 if not exists:
                     out.append((name, i, WITHHELD if hidden else ref))
     if len(out) > 40:
@@ -400,6 +413,57 @@ def leaves_root(root, path, tag=""):
     return True
 
 
+def skip_outside(name, kind="path"):
+    """Record on the card that `name` names a place outside the root and was not read."""
+    entry = (name, kind)
+    if entry not in _OUTSIDE_SKIPS:
+        _OUTSIDE_SKIPS.append(entry)
+
+
+def _glob_parts(pattern):
+    return [p for p in pattern.replace("\\", "/").split("/") if p not in ("", ".")]
+
+
+def _literal_prefix(pattern):
+    """The segments of a path pattern before the first one that holds a wildcard."""
+    out = []
+    for part in _glob_parts(pattern):
+        if "*" in part or "?" in part:
+            break
+        out.append(part)
+    return out
+
+
+def _glob_regex(pattern):
+    """A regular expression for a path pattern written in a project (`*` within a segment, `**`
+    for any number of directories, a leading dot matched only by a pattern that names it), to be
+    matched with fullmatch against "/" plus a path relative to the root. None for a pattern that
+    starts at, or climbs out of, a place other than the root: an absolute path or a `..` segment."""
+    parts = _glob_parts(pattern)
+    if (not parts or ".." in parts or os.path.isabs(pattern) or pattern.startswith(("/", "\\"))
+            or os.path.splitdrive(pattern)[0]):
+        return None
+    rx = ""
+    for part in parts:
+        if part == "**":
+            rx += r"(?:/(?!\.)[^/]+)*"
+            continue
+        seg = "".join("[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in part)
+        rx += "/" + ("(?!\\.)" if part[0] in "*?" else "") + seg
+    return re.compile(rx, re.S)
+
+
+def _tree_paths(root):
+    """Every file under `root` that the containment-aware walk yields, and every folder above
+    one, as "/" plus the path relative to the root."""
+    out = set()
+    for _, rel in walk(root, None, max_files=200000, include_hidden=True):
+        parts = rel.split("/")
+        for i in range(1, len(parts) + 1):
+            out.add("/" + "/".join(parts[:i]))
+    return out
+
+
 def exists_inside(root, path):
     """os.path.exists, but a path that resolves outside `root` does not count as present."""
     return os.path.exists(path) and not leaves_root(root, path)
@@ -491,13 +555,152 @@ GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
             "-c", "gpg.ssh.program=" + os.devnull)
 
 
+# Variables that move git to another repository, object store or index; the caller's copy of any of
+# them is dropped so only the three set below decide where git reads.
+GIT_LOCATION_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+                    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_INDEX_FILE", "GIT_CEILING_DIRECTORIES",
+                    "GIT_NAMESPACE", "GIT_PREFIX", "GIT_GRAFT_FILE", "GIT_SHALLOW_FILE",
+                    "GIT_REPLACE_REF_BASE", "GIT_DISCOVERY_ACROSS_FILESYSTEM")
+_INCLUDE_RE = re.compile(r"\[\s*include", re.I)  # include and includeIf sections
+_GIT_SETUP = {}  # realpath of a root -> (git environment, None) or (None, reason); cleared by screen()
+
+
+def _read_small(path, limit=1_000_000):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read(limit)
+    except OSError:
+        return ""
+
+
+def _alternates_problem(root, objects, depth):
+    """The reason the object store `objects` borrows from somewhere that leaves `root`, or None.
+    An alternate that is inside the root is followed for alternates of its own."""
+    if depth > 8:
+        return "the repository chains through too many alternate object stores"
+    for name in ("alternates", "http-alternates"):
+        path = os.path.join(objects, "info", name)
+        if not os.path.lexists(path):
+            continue
+        if not contained(root, path):
+            return f"the repository's {name} file is a link that leaves the scanned root"
+        for line in _read_small(path, 100_000).splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            target = os.path.join(objects, line)
+            if "://" in line or not contained(root, target):
+                return "the repository borrows objects from a store outside the scanned root"
+            if name == "alternates":
+                problem = _alternates_problem(root, os.path.realpath(target), depth + 1)
+                if problem:
+                    return problem
+    return None
+
+
+def _git_pointer_problem(root, gitdir, depth=0):
+    """The reason `gitdir` (a repository directory) cannot be read without leaving `root`, or None.
+    Looks at what git itself follows: the configuration (an include is a read of another file),
+    `commondir`, the alternate object stores, and any entry of the directories git lists (top
+    level, objects, objects/info, objects/pack, info and all of refs) that is a link elsewhere."""
+    if depth > 2:
+        return "the repository points at a common directory that points at another"
+    for name in ("config", "config.worktree"):
+        path = os.path.join(gitdir, name)
+        if os.path.lexists(path) and not contained(root, path):
+            return f"the repository's {name} file is a link that leaves the scanned root"
+        if _INCLUDE_RE.search(_read_small(path)):
+            return f"the repository's {name} file includes another configuration file"
+    common = os.path.join(gitdir, "commondir")
+    if os.path.lexists(common):
+        target = os.path.join(gitdir, _read_small(common, 4096).strip())
+        if not contained(root, target):
+            return "the repository's commondir points outside the scanned root"
+        problem = _git_pointer_problem(root, os.path.realpath(target), depth + 1)
+        if problem:
+            return problem
+    problem = _alternates_problem(root, os.path.join(gitdir, "objects"), 0)
+    if problem:
+        return problem
+    seen = 0
+    pending = [(gitdir, False), (os.path.join(gitdir, "objects"), False),
+               (os.path.join(gitdir, "objects", "info"), False), (os.path.join(gitdir, "objects", "pack"), False),
+               (os.path.join(gitdir, "info"), False), (os.path.join(gitdir, "refs"), True)]
+    while pending:
+        here, deep = pending.pop()
+        try:
+            with os.scandir(here) as it:
+                entries = list(it)
+        except OSError:
+            continue
+        for e in entries:
+            seen += 1
+            if seen > 100_000:
+                return "the repository holds too many entries to check for links that leave the root"
+            try:
+                is_dir = e.is_dir(follow_symlinks=False)
+            except OSError:
+                is_dir = False
+            if (e.is_symlink() or is_dir) and not contained(root, e.path):
+                return ("an entry of the repository is a link that leaves the scanned root: "
+                        + os.path.relpath(e.path, gitdir).replace(os.sep, "/"))
+            if deep and is_dir:
+                pending.append((e.path, True))
+    return None
+
+def _git_setup(root):
+    """(environment for git, None) when history may be read from `root`, else (None, reason).
+    History is read only from the root's own `.git` directory, and that directory, the work tree
+    and every pointer inside it must resolve inside the root. Git is told its directory and work
+    tree and is forbidden to look in any parent, so a root that holds no repository of its own
+    is never answered by the repository around it."""
+    key = os.path.realpath(root)
+    if key in _GIT_SETUP:
+        return _GIT_SETUP[key]
+    result = _git_setup_uncached(root)
+    _GIT_SETUP[key] = result
+    return result
+
+
+def _git_setup_uncached(root):
+    dotgit = os.path.join(root, ".git")
+    if not os.path.lexists(dotgit):
+        # A repository around the folder is never used: its history is not this project's.
+        return None, "no git directory"
+    if leaves_root(root, dotgit):
+        return None, ".git resolves outside the scanned root"
+    gitdir = os.path.realpath(dotgit)
+    if os.path.isfile(dotgit):
+        text = _read_small(dotgit, 4096).strip()
+        if not text.startswith("gitdir:"):
+            return None, ".git is a file that names no repository directory"
+        gitdir = os.path.realpath(os.path.join(root, text[len("gitdir:"):].strip()))
+        if not contained(root, gitdir):
+            return None, "the .git file names a repository directory outside the scanned root"
+    if not os.path.isdir(gitdir):
+        return None, "no git directory"
+    problem = _git_pointer_problem(root, gitdir)
+    if problem:
+        return None, problem
+    env = {k: v for k, v in os.environ.items() if k not in GIT_LOCATION_ENV}
+    real_root = os.path.realpath(root)
+    env.update(GIT_DIR=gitdir, GIT_WORK_TREE=real_root,
+               GIT_CEILING_DIRECTORIES=os.path.dirname(real_root) or real_root)
+    return env, None
+
+
+def git_unavailable(root):
+    """The reason history cannot be read from `root`, or None when it can."""
+    return _git_setup(root)[1]
+
+
 def git(root, *args):
-    # A .git that is a link to a directory elsewhere would make git read that repository.
-    if os.path.lexists(os.path.join(root, ".git")) and leaves_root(root, os.path.join(root, ".git")):
+    env, reason = _git_setup(root)
+    if env is None:
         return ""
     try:
         out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
-                             text=True, timeout=60)
+                             text=True, timeout=60, env=env)
         return out.stdout.strip() if out.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -920,9 +1123,10 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
 
 
 def history_facts(root):
-    gitdir = os.path.join(root, ".git")
-    if not os.path.isdir(gitdir) or leaves_root(root, gitdir):
-        return {"available": False, "reason": "no git directory — history cannot be measured"}
+    reason = git_unavailable(root)
+    if reason:
+        # the separator is the one the generated examples already carry (written as an escape)
+        return {"available": False, "reason": reason + " \u2014 history cannot be measured"}
     if git(root, "rev-parse", "--is-shallow-repository") == "true":
         return {"available": False, "shallow": True,
                 "reason": "shallow clone: the history present is an artifact of how it was "
@@ -1262,6 +1466,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
     _REACHED.clear()
     _NOTES.clear()
     _OUTSIDE_SKIPS.clear()
+    _GIT_SETUP.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)

@@ -43,24 +43,52 @@ def load():
     return scan
 
 
-def withhold(scan, text, show_directed, what="line", shapes_only=False):
+_ASSIGNED = {}
+
+
+def credential_assignment(scan, text):
+    """True when `text` holds a credential word followed by an assignment and a value (`password=x`,
+    `"api_key": "x"`, `token: x`), or a URL with a user and password. A credential word alone
+    (`token_utils.py`) does not count, so a path or a title can still say which file a flag is
+    about."""
+    rx = _ASSIGNED.get("rx")
+    if rx is None:
+        words = scan.SECRET_WORD_RE.pattern.replace("(?i)", "", 1)  # the scan's own word list
+        url = r"://[^/\s:@]+:[^/\s@]+@"
+        rx = _ASSIGNED["rx"] = re.compile(r"(?:" + words + r")\w*[\"'\]]*\s*[=:]\s*[\"']?[^\s\"']|" + url, re.I)
+    return bool(rx.search(text))
+
+
+def withhold(scan, text, show_directed, what="line", strict=False):
     """The text to print for anything that came from the scanned project (a source line, a path,
     a title, an error string): the text itself, or a notice that it was withheld. `what` names
-    the kind of text in the notice. A source line is tested for credential words as well as
-    credential shapes. A path, a title or an error string is tested for shapes only, as the scan
-    itself does for names (`redact`): a word such as "token" in a file name is no credential, and
-    withholding it would hide which file a flag is about."""
+    the kind of text in the notice. Every such field is withheld when it holds a credential shape
+    or a credential word with an assignment and a value, and (unless `show_directed`) text
+    addressed to the evaluator. `strict` is for a source line quoted from a file, which is also
+    withheld for a credential word alone. The tool's own flag id and severity are not passed
+    through here: the project does not produce them."""
     if not isinstance(text, str):
         return text
-    if shapes_only:
-        secret = any(rx.search(text) for _, rx in scan.SHAPE_RES)
-    else:
+    if strict:
         secret = scan.holds_secret(text)
+    else:
+        secret = any(rx.search(text) for _, rx in scan.SHAPE_RES) or credential_assignment(scan, text)
     if secret:
         return f"<{what} withheld: credential>"
     if not show_directed and any(re.search(p, text) for p in scan.EVALUATOR_DIRECTED):
         return f"<{what} withheld: text addressed to the evaluator>"
     return text
+
+
+def withhold_reference(scan, ref, show_directed):
+    """A reference (path and line) for printing: the path withheld as `<path withheld>` with the
+    line number kept when the path holds a credential or evaluator-directed text."""
+    if not isinstance(ref, str):
+        return ref
+    head, line = locate(ref)
+    if withhold(scan, head, show_directed, "path") != head:
+        return "<path withheld>" + (f":{line}" if line else "")
+    return ref
 
 
 def block_lines(lines):
@@ -141,7 +169,9 @@ def main(argv=None):
         return 2
     root = a.project or card["project"]["path"]
     if not os.path.isdir(root):
-        print(f"project not found at {root}; pass --project", file=sys.stderr)
+        # the path may come from the card, so it passes the same test as any project text
+        shown = withhold(scan, root, a.show_directed_text, "path")
+        print(f"project not found at {shown}; pass --project", file=sys.stderr)
         return 2
 
     items = []
@@ -158,8 +188,6 @@ def main(argv=None):
                 item["excerpt"] = None
                 item["withheld"] = SECRET_NOTICE if f["id"] == SECRET_FLAG else DIRECTED_NOTICE
             else:
-                if item["excerpt"]:
-                    item["excerpt"] = withhold(scan, item["excerpt"], a.show_directed_text)
                 if e.get("kind") == "file":
                     rel, line = locate(e["ref"])
                     if line:
@@ -171,15 +199,15 @@ def main(argv=None):
                                 item["excerpt"] = BLOCK_NOTICE if item["excerpt"] else item["excerpt"]
                             item["context"] = context(lines, line, a.context, blocked)
                             for row in item["context"]:
-                                row["text"] = withhold(scan, row["text"], a.show_directed_text)
-            # Every string that came from the scanned project (a path, a title, an error text)
-            # passes the same test as a source line, so a file name cannot carry either kind of
-            # text past it. The location is withheld rather than shown with the text removed.
-            for key, what in (("flag", "flag id"), ("severity", "severity"), ("title", "title"),
-                              ("ref", "reference"), ("excerpt", "excerpt"), ("error", "error")):
+                                row["text"] = withhold(scan, row["text"], a.show_directed_text, strict=True)
+            # Every string the project produced (a path, a title, an excerpt, an error text)
+            # passes the credential and evaluator-text test, so a file name cannot carry either
+            # kind of text past it. The flag id and severity come from the tool and are exempt.
+            # A withheld path prints as a notice with its line number.
+            for key, what in (("title", "title"), ("excerpt", "excerpt"), ("error", "error")):
                 if key in item:
-                    item[key] = withhold(scan, item[key], a.show_directed_text, what,
-                                         shapes_only=key != "excerpt")
+                    item[key] = withhold(scan, item[key], a.show_directed_text, what)
+            item["ref"] = withhold_reference(scan, item["ref"], a.show_directed_text)
             items.append(item)
 
     if a.json:

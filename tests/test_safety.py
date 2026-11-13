@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from helpers import GIT_ENV, MINIMAL, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, screen
+from helpers import GIT_ENV, MINIMAL, REPO, ReadLog, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, screen
 
 
 class Credentials(unittest.TestCase):
@@ -511,6 +511,172 @@ class LinksOutsideTheRoot(unittest.TestCase):
         self.assertIsNone(card["project"].get("commit"))
         self.assertTrue(any(l.startswith(".git: resolves to a directory outside") for l in card["limits"]),
                         card["limits"])
+
+    # -- reads recorded: every case below logs what the code opens, lists and hands to git, and asserts
+    # that none of it resolves outside the scanned root. A control in each shows the log is live.
+
+    def _git_head(self, repo):
+        return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def _same(self, a, b):
+        return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+    def test_S35_a_folder_with_no_git_directory_is_never_answered_by_the_repository_around_it(self):
+        parent = project(MINIMAL, git=True)
+        root = os.path.join(parent, "sub")
+        os.makedirs(root)
+        with open(os.path.join(root, "README.md"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("# T\n")
+        head = self._git_head(parent)
+        with ReadLog() as log:
+            card = scan.screen(root)
+        self.assertEqual(log.git_calls, [], "git was started for a folder with no repository of its own")
+        self.assertEqual(log.outside(root), [])
+        self.assertIsNone(card["project"]["commit"])
+        self.assertFalse(card["signals"]["history"]["value"]["available"])
+        self.assertTrue(any(l.startswith("Provenance was not measured: no git directory") for l in card["limits"]),
+                        card["limits"])
+        self.assertNotIn(head[:7], json.dumps(card))
+        # control: the same files with a repository of their own are read, and only through it
+        own = project(MINIMAL, git=True)
+        with ReadLog() as log:
+            card = scan.screen(own)
+        self.assertTrue(log.git_calls, "the log saw no git call, so the checks above prove nothing")
+        self.assertEqual(log.outside(own), [])
+        self.assertEqual(card["project"]["commit"], self._git_head(own)[:len(card["project"]["commit"])])
+        for call in log.git_calls:
+            self.assertTrue(self._same(call["git_dir"], os.path.join(own, ".git")), call)
+            self.assertTrue(self._same(call["work_tree"], own), call)
+            self.assertTrue(self._same(call["ceiling"], os.path.dirname(own)), call)
+
+    def test_S36_a_git_file_that_names_a_directory_outside_the_root_is_not_used(self):
+        other = project(MINIMAL, git=True)
+        root = project({"README.md": "# T\n"}, name="pointer")
+        with open(os.path.join(root, ".git"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("gitdir: " + os.path.join(other, ".git").replace("\\", "/") + "\n")
+        with ReadLog() as log:
+            card = scan.screen(root)
+        self.assertEqual(log.git_calls, [])
+        self.assertEqual(log.outside(root), [])
+        self.assertIsNone(card["project"]["commit"])
+        self.assertFalse(card["signals"]["history"]["value"]["available"])
+        self.assertTrue(any("outside the scanned root" in l for l in card["limits"]), card["limits"])
+        self.assertNotIn(self._git_head(other)[:7], json.dumps(card))
+        # control: a git file that names a directory inside the root is read
+        inner = project(MINIMAL, git=True)
+        os.rename(os.path.join(inner, ".git"), os.path.join(inner, "meta"))
+        with open(os.path.join(inner, ".git"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("gitdir: meta\n")
+        with ReadLog() as log:
+            card = scan.screen(inner)
+        self.assertTrue(log.git_calls)
+        self.assertEqual(log.outside(inner), [])
+        self.assertTrue(card["signals"]["history"]["value"]["available"])
+
+    def test_S37_a_repository_that_points_outside_the_root_is_not_read(self):
+        def include(root, outside):
+            with open(os.path.join(root, ".git", "config"), "a", encoding="utf-8", newline="\n") as fh:
+                fh.write("[include]\n\tpath = " + os.path.join(outside, "extra.cfg").replace("\\", "/") + "\n")
+
+        def include_if(root, outside):
+            with open(os.path.join(root, ".git", "config"), "a", encoding="utf-8", newline="\n") as fh:
+                fh.write('[includeIf "gitdir:/"]\n\tpath = ' + os.path.join(outside, "extra.cfg").replace("\\", "/") + "\n")
+
+        def alternates(root, outside):
+            os.makedirs(os.path.join(root, ".git", "objects", "info"), exist_ok=True)
+            with open(os.path.join(root, ".git", "objects", "info", "alternates"), "w", encoding="utf-8",
+                      newline="\n") as fh:
+                fh.write(os.path.join(outside, "objects").replace("\\", "/") + "\n")
+
+        def commondir(root, outside):
+            with open(os.path.join(root, ".git", "commondir"), "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(os.path.join(outside, "common").replace("\\", "/") + "\n")
+
+        def refs_link(root, outside):
+            os.makedirs(os.path.join(outside, "refs-elsewhere"), exist_ok=True)
+            self._dir_link(os.path.join(outside, "refs-elsewhere"), os.path.join(root, ".git", "refs", "remotes"))
+
+        for name, plant in (("include.path", include), ("includeIf path", include_if), ("alternates", alternates),
+                            ("commondir", commondir), ("a link under refs", refs_link)):
+            with self.subTest(name):
+                root = project(MINIMAL, git=True)
+                outside = os.path.join(os.path.dirname(root), "elsewhere-" + name.replace(" ", "-"))
+                os.makedirs(os.path.join(outside, "objects"))
+                os.makedirs(os.path.join(outside, "common"))
+                with open(os.path.join(outside, "extra.cfg"), "w", encoding="utf-8", newline="\n") as fh:
+                    fh.write("[user]\n\tname = outside\n")
+                plant(root, outside)
+                with ReadLog() as log:
+                    card = scan.screen(root)
+                self.assertEqual(log.git_calls, [], "git was started for a repository that points outside the root")
+                self.assertEqual(log.outside(root), [])
+                self.assertIsNone(card["project"]["commit"])
+                self.assertFalse(card["signals"]["history"]["value"]["available"])
+                self.assertTrue(any(l.startswith("Provenance was not measured:") for l in card["limits"]),
+                                card["limits"])
+
+    def test_S38_a_recursive_pattern_in_an_instruction_file_is_matched_against_the_walk_not_expanded(self):
+        root = project({**MINIMAL, "docs/a/b.md": "x\n", "AGENTS.md":
+                        "Read `docs/**/*.md`, `linked/**/*.py` and `../outside-tree/**/*.py`.\n"})
+        outside = os.path.join(os.path.dirname(root), "outside-tree")
+        for i in range(3):
+            self._outside_file(root, f"outside-tree/d{i}/e/x.py", "inside the other tree\n")
+        self._dir_link(outside, os.path.join(root, "linked"))
+        with ReadLog() as log:
+            card = scan.screen(root)
+        self.assertFalse(log.touched(outside), "a pattern made the code list a folder outside the root")
+        self.assertEqual(log.outside(root), [])
+        # control: the pattern that matches inside the root is found, so patterns are still read
+        stale = [e["excerpt"] for e in flag(card, "stale-instructions")["evidence"]]
+        self.assertEqual(stale, ["linked/**/*.py", "../outside-tree/**/*.py"])
+        self.assertTrue(any(l.startswith("../outside-tree/**/*.py: resolves to a path outside") for l in card["limits"]),
+                        card["limits"])
+        self.assertTrue(any(l.startswith("linked: resolves to a directory outside") for l in card["limits"]),
+                        card["limits"])
+
+    def test_S39_a_path_pattern_matches_like_a_glob_inside_the_root_and_refuses_what_climbs_out_of_it(self):
+        rx = scan._glob_regex
+        self.assertIsNone(rx("../x/*.py"))
+        self.assertIsNone(rx("a/../../x/*.py"))
+        self.assertIsNone(rx("/etc/*.conf"))
+        self.assertIsNone(rx("\\\\host\\share\\*.txt"))
+        for pattern, path, want in (("src/**/*.py", "/src/a.py", True), ("src/**/*.py", "/src/x/y/a.py", True),
+                                    ("src/**/*.py", "/src/.hidden/a.py", False), ("src/*.py", "/src/x/a.py", False),
+                                    ("src/*.py", "/src/a.rs", False), ("./docs/*", "/docs/a.md", True),
+                                    ("docs/**", "/docs/a/b", True), ("**/x.md", "/x.md", True),
+                                    ("**/x.md", "/a/b/x.md", True), ("*.md", "/.hidden.md", False),
+                                    (".github/*.yml", "/.github/ci.yml", True), ("a?.md", "/ab.md", True)):
+            self.assertEqual(bool(rx(pattern).fullmatch(path)), want, (pattern, path))
+
+    def test_S40_the_fingerprint_walk_does_not_enter_or_hash_a_folder_that_resolves_outside_the_root(self):
+        import importlib.util
+        from unittest import mock
+        spec = importlib.util.spec_from_file_location(
+            "review_project_under_test", REPO / "skills" / "review-project" / "scripts" / "review_project.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        root = project({**MINIMAL, "src/a.py": "x = 1\n", "inner/real/keep.txt": "kept\n"})
+        outside = os.path.join(os.path.dirname(root), "tree-elsewhere")
+        for i in range(3):
+            self._outside_file(root, f"tree-elsewhere/d{i}/f.txt", f"outside {i}\n")
+        self._dir_link(outside, os.path.join(root, "src", "linked"))
+        self._dir_link(os.path.join(root, "inner", "real"), os.path.join(root, "alias"))
+        real_walk = os.walk
+
+        def following(top, *a, **kw):
+            # follow links, as the walk over a Windows junction does, so descending would show up
+            return real_walk(top, followlinks=True)
+
+        with mock.patch.object(os, "walk", following), ReadLog() as log:
+            files = mod.fingerprint(root)
+        self.assertFalse(log.touched(outside), "the fingerprint walk listed or opened a folder outside the root")
+        self.assertEqual(log.outside(root), [])
+        self.assertEqual(files["src/linked"], "outside")
+        self.assertFalse(any(k.startswith("src/linked/") for k in files), sorted(files))
+        # control: a link that stays inside the root is walked and its files hashed
+        self.assertIn("src/a.py", files)
+        self.assertTrue(any(k.startswith("alias/") for k in files), sorted(files))
 
     def test_S34_a_licence_file_inside_a_corpus_that_links_outside_it_is_not_read(self):
         corpus = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "corpus")

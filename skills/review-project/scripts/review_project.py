@@ -86,14 +86,31 @@ GROUP_OF = {"A": "methodology", "B": "evidence", "C": "safety", "D": "integrity"
 TOOL_CACHES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".hypothesis"}
 
 
+def contained(root, path):
+    """True when the real path of `path` is the real root or inside it. The same test as
+    `quiet_counsel.scan.contained`, kept here so the fingerprint never depends on an import that
+    could fail: a directory or file that resolves outside the project is not part of it."""
+    base, real = os.path.realpath(root), os.path.realpath(path)
+    try:
+        return os.path.commonpath([base, real]) == base
+    except ValueError:  # another drive
+        return False
+
+
 def fingerprint(root, skip=()):
     """Every file's path and content hash, so finalize can tell whether the project changed
     during the review. Symbolic links are recorded by target and never followed; pipes and
-    devices are recorded by kind and never read. `skip` names the review's own files."""
+    devices are recorded by kind and never read. A directory that resolves outside the root (a
+    junction, or a link a walk would follow) is recorded as such and not entered, and a file is
+    hashed only when it resolves inside the root. `skip` names the review's own files."""
     skip = {os.path.abspath(p) for p in skip if p}
     files = {}
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d != ".git" and d not in TOOL_CACHES)
+        for d in list(dirnames):
+            if not contained(root, os.path.join(dirpath, d)):
+                dirnames.remove(d)
+                files[os.path.relpath(os.path.join(dirpath, d), root).replace(os.sep, "/")] = "outside"
         for name in sorted(filenames):
             path = os.path.join(dirpath, name)
             rel = os.path.relpath(path, root).replace(os.sep, "/")
@@ -104,6 +121,9 @@ def fingerprint(root, skip=()):
                 continue
             if not os.path.isfile(path):
                 files[rel] = "special"
+                continue
+            if not contained(root, path):
+                files[rel] = "outside"
                 continue
             h = hashlib.sha256()
             try:

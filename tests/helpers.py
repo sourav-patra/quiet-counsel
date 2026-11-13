@@ -112,6 +112,89 @@ def project(files, git=False, commits=None, name=None):
     return str(root)
 
 
+class ReadLog:
+    """Record every path the code under test touches. While it is active, `open`, `os.scandir`,
+    `os.listdir` and `subprocess.run` (git calls: the folder, `-C`, and the GIT_* variables handed
+    over) log what they are given, then run as usual. `walk` and `glob` list through `os.scandir`,
+    so their listings are in `paths` too. Create the fixtures first; enter it around one call."""
+
+    def __init__(self):
+        self.paths, self.git_calls, self._undo = [], [], []
+
+    def __enter__(self):
+        import builtins
+        import io
+        from unittest import mock
+        real_open, real_io_open, real_scandir = builtins.open, io.open, os.scandir
+        real_listdir, real_run = os.listdir, subprocess.run
+
+        def note(path):
+            if isinstance(path, (str, bytes, os.PathLike)):
+                self.paths.append(os.fsdecode(path))
+
+        def opening(file, *a, **kw):
+            note(file)
+            return real_open(file, *a, **kw)
+
+        def io_opening(file, *a, **kw):
+            note(file)
+            return real_io_open(file, *a, **kw)
+
+        def scanning(path=None):
+            note(path if path is not None else ".")
+            return real_scandir(path) if path is not None else real_scandir()
+
+        def listing(path=None):
+            note(path if path is not None else ".")
+            return real_listdir(path) if path is not None else real_listdir()
+
+        def running(cmd, *a, **kw):
+            if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "git":
+                env = kw.get("env") or {}
+                call = {"args": list(cmd), "cwd": kw.get("cwd"),
+                        "git_dir": env.get("GIT_DIR"), "work_tree": env.get("GIT_WORK_TREE"),
+                        "ceiling": env.get("GIT_CEILING_DIRECTORIES")}
+                if "-C" in cmd:
+                    call["cwd"] = cmd[cmd.index("-C") + 1]
+                self.git_calls.append(call)
+            return real_run(cmd, *a, **kw)
+
+        for target, name, repl in ((builtins, "open", opening), (io, "open", io_opening),
+                                   (os, "scandir", scanning), (os, "listdir", listing),
+                                   (subprocess, "run", running)):
+            patcher = mock.patch.object(target, name, repl)
+            patcher.start()
+            self._undo.append(patcher)
+        return self
+
+    def __exit__(self, *exc):
+        for patcher in reversed(self._undo):
+            patcher.stop()
+        return False
+
+    @staticmethod
+    def _inside(root, path):
+        base = os.path.normcase(os.path.realpath(root))
+        real = os.path.normcase(os.path.realpath(path))
+        try:
+            return os.path.commonpath([base, real]) == base
+        except ValueError:
+            return False
+
+    def outside(self, root):
+        """Every logged path, and every folder or git location a git call was given, that
+        resolves outside `root`."""
+        out = [p for p in self.paths if not self._inside(root, p)]
+        for call in self.git_calls:
+            out += [p for p in (call["cwd"], call["git_dir"], call["work_tree"])
+                    if p and not self._inside(root, p)]
+        return out
+
+    def touched(self, folder):
+        """True when some logged path is, or is under, `folder` once links are resolved."""
+        return any(self._inside(folder, p) for p in self.paths)
+
+
 def screen(files, **kw):
     return scan.screen(project(files, **kw))
 
