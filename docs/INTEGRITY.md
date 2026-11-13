@@ -187,7 +187,11 @@ directory and names each skipped link on stderr (case H-42).
 When `finalize` replaces a reviewer's excerpt by a notice it stores the SHA-256 of the raw excerpt
 beside it (`excerpt_sha256`, an internal field). `verify` then reports a correct citation of a
 withheld line as `withheld, verified by digest` and a changed or wrong line as a mismatch; a notice
-with no digest cannot be checked and is refused (case H-44). `check_evidence.py` accepts a notice only
+with no digest, a wrong digest or the digest of the notice text cannot be checked and is refused,
+even when the cited line holds the notice text (cases H-44 and H-48). `finalize` withholds an excerpt
+only when `verify` could check it later: an excerpt over 400 characters, or one that starts past
+character 5,000 of its line, is refused as too long to withhold and verify (case H-49).
+`check_evidence.py` accepts a notice only
 for the reason the current line is withheld (case H-45). The digest is of the whole excerpt, so an
 excerpt that is short or guessable (a bare common password) can be tested by anyone who holds the
 worksheet; quote the line, not the value.

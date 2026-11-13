@@ -97,20 +97,41 @@ def contained(root, path):
         return False
 
 
+def is_dir_link(path):
+    """True for a directory that is a symbolic link or a Windows junction. `os.path.isjunction`
+    exists from Python 3.12; before that, a directory whose real path is not its own name inside its
+    parent's real path is taken as a link."""
+    if os.path.islink(path):
+        return True
+    junction = getattr(os.path, "isjunction", None)
+    if junction is not None and junction(path):
+        return True
+    parent, name = os.path.split(os.path.abspath(path))
+    return os.path.normcase(os.path.realpath(path)) != os.path.normcase(
+        os.path.join(os.path.realpath(parent), name))
+
+
 def fingerprint(root, skip=()):
     """Every file's path and content hash, so finalize can tell whether the project changed
     during the review. Symbolic links are recorded by target and never followed; pipes and
-    devices are recorded by kind and never read. A directory that resolves outside the root (a
-    junction, or a link a walk would follow) is recorded as such and not entered, and a file is
-    hashed only when it resolves inside the root. `skip` names the review's own files."""
+    devices are recorded by kind and never read. A directory that resolves outside the root is
+    recorded as such and not entered. A directory link or junction that stays inside the root is
+    recorded as `dirlink:` with the root-relative path it resolves to, so pointing `alias` at `b`
+    instead of `a` changes the fingerprint even when both hold the same files. A file is hashed
+    only when it resolves inside the root. `skip` names the review's own files."""
     skip = {os.path.abspath(p) for p in skip if p}
     files = {}
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d != ".git" and d not in TOOL_CACHES)
         for d in list(dirnames):
-            if not contained(root, os.path.join(dirpath, d)):
+            path = os.path.join(dirpath, d)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            if not contained(root, path):
                 dirnames.remove(d)
-                files[os.path.relpath(os.path.join(dirpath, d), root).replace(os.sep, "/")] = "outside"
+                files[rel] = "outside"
+            elif is_dir_link(path):
+                target = os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+                files[rel] = "dirlink:" + target.replace(os.sep, "/")
         for name in sorted(filenames):
             path = os.path.join(dirpath, name)
             rel = os.path.relpath(path, root).replace(os.sep, "/")
@@ -170,8 +191,10 @@ def shown(scan, files):
     out = {}
     for rel in sorted(files):
         value = files[rel]
-        if value.startswith("link:"):
-            value = "link:" + label(scan, value[5:])
+        for prefix in ("link:", "dirlink:"):
+            if value.startswith(prefix):
+                value = prefix + label(scan, value[len(prefix):])
+                break
         out[label(scan, rel)] = value
     return out
 
@@ -270,7 +293,12 @@ def _caps(card):
 
 NOTICE_RE = re.compile(r"^<[a-z]+ withheld: (credential|text addressed to the evaluator)>$")
 DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
-SCAN_LIMIT = 5000  # characters of a source line searched for a withheld excerpt
+# The two limits on a withheld excerpt, defined once for finalize and verify. Verify searches the
+# first LINE_LIMIT characters of the cited line for a part of at most FRAGMENT_LIMIT characters
+# (edges trimmed) that hashes to the stored digest. Finalize replaces an excerpt by a notice only
+# when verify could later check it, so it refuses an excerpt over either limit.
+LINE_LIMIT = 5000
+FRAGMENT_LIMIT = 400
 
 
 def excerpt_sha(text):
@@ -291,9 +319,9 @@ def keep_digests(scan, card):
 
 
 def holds_excerpt(line, digest):
-    """True when some part of `line` (edges trimmed, at most 400 characters, in its first
-    SCAN_LIMIT characters) hashes to `digest`: the raw excerpt is on the line, though neither is shown."""
-    line = line[:SCAN_LIMIT]
+    """True when some part of `line` (edges trimmed, at most FRAGMENT_LIMIT characters, in its first
+    LINE_LIMIT characters) hashes to `digest`: the raw excerpt is on the line, though neither is shown."""
+    line = line[:LINE_LIMIT]
     if sha(line.strip()) == digest:  # the usual case: the whole line was copied
         return True
     starts = [i for i, ch in enumerate(line) if not ch.isspace()]
@@ -302,11 +330,54 @@ def holds_excerpt(line, digest):
         for j in ends:
             if j <= i:
                 continue
-            if j - i > 400:
+            if j - i > FRAGMENT_LIMIT:
                 break
             if sha(line[i:j]) == digest:
                 return True
     return False
+
+
+def cited_line(root, ref):
+    """(line, None) for a `path:line` citation that resolves inside `root`, else (None, the reason
+    it does not), worded to follow the reference in a printed line. Verify and finalize both read
+    a cited line through this."""
+    head, _, tail = str(ref).rpartition(":")
+    if not tail.isdigit():
+        return None, "has no line number"
+    path = inside(root, head)
+    if not path:
+        return None, "is a broken citation: it leaves the project"
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            lines = fh.read().splitlines()
+        if not 1 <= int(tail) <= len(lines):
+            raise IndexError
+        return lines[int(tail) - 1], None
+    except (OSError, IndexError):
+        return None, "does not exist"
+
+
+def excerpt_problems(scan, card, root):
+    """Reasons to refuse an excerpt that finalize would replace by a notice but verify could not
+    check afterwards: one over FRAGMENT_LIMIT characters, or one that sits past LINE_LIMIT characters
+    of its cited line. Only a file citation on a dimension is checked by verify, so only those count.
+    A wrong citation is not refused here: verify reports it as a mismatch."""
+    out = []
+    for d in card.get("dimensions") or []:
+        for n, e in enumerate((d.get("evidence") or []) if isinstance(d, dict) else [], 1):
+            text = e.get("excerpt") if isinstance(e, dict) else None
+            if not (isinstance(text, str) and e.get("kind") == "file" and scan.withhold_text(text) != text):
+                continue
+            raw, where = text.strip(), f"{d.get('id')} evidence {n}"
+            if len(raw) > FRAGMENT_LIMIT:
+                out.append(f"{where}: the excerpt is {len(raw)} characters, too long to withhold and verify "
+                           f"(limit {FRAGMENT_LIMIT}); cite a shorter part of the line")
+                continue
+            line, _ = cited_line(root, e.get("ref"))
+            if line is not None and raw in line and raw not in line[:LINE_LIMIT]:
+                out.append(f"{where}: the excerpt sits past character {LINE_LIMIT} of its line, too long "
+                           "to withhold and verify; cite a part nearer the start of the line")
+    return out
 
 
 def shown_line(scan, text):
@@ -322,6 +393,9 @@ def cmd_finalize(a):
     # a problem can quote project text (a claim, a flag id), so each one passes the same withholding
     reasons = [scan.withhold_text(p, "problem") for p in schema.problems(card)]
     reasons += tree_changes(card, a.project, skip=(a.worksheet, a.out))
+    root = a.project or card.get("project", {}).get("tree_root") or card.get("project", {}).get("path")
+    if root and os.path.isdir(root):
+        reasons += excerpt_problems(scan, card, root)
     if card.get("mode") != "deep":
         reasons.append("this is a screen card; run prepare first")
     for d in card["dimensions"]:
@@ -340,6 +414,7 @@ def cmd_finalize(a):
 
     effective, applied = {}, []
     for d in card["dimensions"]:
+        d.pop("capped_to", None)  # derived: a cap ruled away since the last finalize must not survive it
         if not d.get("applicable"):
             continue
         s = float(d["score"])
@@ -371,8 +446,12 @@ def cmd_finalize(a):
     page = dashboard.build([card], a.title, strict=True)
     with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(page)
-    print(f"verdict written to {a.out}: mean {card['totals']['mean']} over "
-          f"{len(effective)} applicable dimensions" + (f", caps {', '.join(applied)}" if applied else ""))
+    # the cap strings come from the flags of a worksheet read from a file, so what is printed is the
+    # filtered card's, never `applied`
+    shown_caps = card["totals"]["caps_applied"]
+    print(shown_line(scan, f"verdict written to {a.out}: mean {card['totals']['mean']} over "
+                           f"{len(effective)} applicable dimensions"
+                           + (f", caps {', '.join(shown_caps)}" if shown_caps else "")))
     return 0
 
 
@@ -404,37 +483,28 @@ def cmd_verify(a):
                 unverifiable.append(f"{d['id']}: {scan.withhold_text(str(e.get('kind')), 'kind')} "
                                     f"{ref_of(e)} (re-run it to check)")
                 continue
-            head, _, tail = e["ref"].rpartition(":")
-            if not tail.isdigit():
-                bad.append(f"{d['id']}: {ref_of(e)} has no line number")
-                continue
-            path = inside(root, head)
-            if not path:
-                bad.append(f"{d['id']}: {ref_of(e)} is a broken citation: it leaves the project")
-                continue
-            try:
-                with open(path, encoding="utf-8", errors="replace") as fh:
-                    lines = fh.read().splitlines()
-                if not 1 <= int(tail) <= len(lines):
-                    raise IndexError
-                line = lines[int(tail) - 1]
-            except (OSError, IndexError):
-                bad.append(f"{d['id']}: {ref_of(e)} does not exist")
+            line, problem = cited_line(root, e["ref"])
+            if problem:
+                bad.append(f"{d['id']}: {ref_of(e)} {problem}")
                 continue
             want = (e.get("excerpt") or "").strip()
             digest = e.get("excerpt_sha256")
-            if not want or want in line:
+            if not want:
                 ok += 1
-            elif NOTICE_RE.match(want) and isinstance(digest, str) and DIGEST_RE.match(digest):
-                # finalize replaced a sensitive excerpt by a notice and kept the digest of the raw text
-                if holds_excerpt(line, digest):
+            elif NOTICE_RE.match(want):
+                # A notice is recognised before any text match: a cited line can hold the literal notice
+                # (a hostile project can supply one), so only the digest of the raw excerpt vouches for it.
+                # A digest of the notice text itself is no digest of an excerpt: finalize never writes one.
+                if not (isinstance(digest, str) and DIGEST_RE.match(digest)) or digest == excerpt_sha(want):
+                    bad.append(f"{d['id']}: {ref_of(e)} cites a withheld excerpt with no digest of its own, "
+                               "so it cannot be checked; copy the line again and finalize")
+                elif holds_excerpt(line, digest):
                     ok += 1
                     by_digest.append(f"{d['id']}: {ref_of(e)}")
                 else:
                     bad.append(f"{d['id']}: {ref_of(e)} no longer reads the withheld excerpt it cited")
-            elif NOTICE_RE.match(want):
-                bad.append(f"{d['id']}: {ref_of(e)} cites a withheld excerpt with no digest, "
-                           "so it cannot be checked; copy the line again and finalize")
+            elif want in line:
+                ok += 1
             else:
                 # the excerpt is project text the reviewer copied: printed only if it passes the test
                 bad.append(f"{d['id']}: {ref_of(e)} no longer reads "

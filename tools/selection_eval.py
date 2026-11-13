@@ -83,6 +83,13 @@ def build_prompt(skills_dir):
     return "\n".join(lines) + "\n"
 
 
+def emit(text, stream=None):
+    """Print one message through the output filter. A model's answer is input: every message this
+    command prints, whatever built it, passes `scan.withhold_text` as a whole (a string answer also passes
+    it alone first, so one withheld answer does not hide the request number and the prompt)."""
+    print(scan.withhold_text(text, "line"), file=stream or sys.stdout)
+
+
 def score(paths):
     data, worst = rows(), 0
     for path in paths:
@@ -90,22 +97,29 @@ def score(paths):
             text = fh.read()
         m = re.search(r"\{.*\}", text, re.S)
         if not m:
-            print(f"{path}: no JSON object found", file=sys.stderr)
+            emit(f"{path}: no JSON object found", sys.stderr)
             return 2
         answer = json.loads(m.group(0))
         by_set, misses = {}, []
         for i, r in enumerate(data, 1):
             got = answer.get(str(i), "<missing>")
-            hit = got == r["expect"]
+            # An answer is a skill name or null. Any other type is reported by its request number and
+            # never echoed, so a nested value from a model cannot reach the output.
+            valid = got is None or isinstance(got, str)
+            hit = valid and got == r["expect"]
             s = by_set.setdefault(r.get("set", "tuning"), [0, 0])
             s[0] += hit
             s[1] += 1
             if not hit:
-                shown = scan.withhold_text(got, "answer") if isinstance(got, str) else got
+                shown = scan.withhold_text(got, "answer") if valid else                     "an invalid answer (a skill name or null is expected)"
                 misses.append(f"  {i}. expected {r['expect']}, got {shown}: {r['prompt']}")
         summary = ", ".join(f"{k} {v[0]}/{v[1]}" for k, v in sorted(by_set.items()))
-        print(f"{path}: {summary}")
-        print("\n".join(misses) if misses else "  no misses")
+        emit(f"{path}: {summary}")
+        if misses:
+            for line in misses:
+                emit(line)
+        else:
+            emit("  no misses")
         worst = max(worst, 1 if misses else 0)
     return worst
 

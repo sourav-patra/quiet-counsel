@@ -620,6 +620,39 @@ class LinksOutsideTheRoot(unittest.TestCase):
         self.assertIn("src/a.py", files)
         self.assertTrue(any(k.startswith("alias/") for k in files), sorted(files))
 
+    def test_S41_pointing_a_directory_link_inside_the_root_at_another_folder_changes_the_fingerprint(self):
+        import importlib.util
+        from test_agentic import script
+        spec = importlib.util.spec_from_file_location(
+            "review_project_s41", REPO / "skills" / "review-project" / "scripts" / "review_project.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        # two folders with the same files, so only the link's target tells them apart
+        root = project({**MINIMAL, "a/file.txt": "same\n", "b/file.txt": "same\n"})
+        alias = os.path.join(root, "alias")
+        self._dir_link(os.path.join(root, "a"), alias)
+        ws = os.path.join(tempfile.mkdtemp(), "ws.json")
+        r = script("review-project", "review_project.py", "prepare", root, "--out", ws)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        before = mod.fingerprint(root)
+        self.assertEqual(before["alias"], "dirlink:a")
+        self.assertEqual([k for k, v in before.items() if v.startswith("dirlink:")], ["alias"])  # a plain folder is not one
+        r = script("review-project", "review_project.py", "finalize", ws, "--out", os.path.join(tempfile.mkdtemp(), "v.html"))
+        self.assertNotIn("changed after prepare", r.stdout)  # control: nothing has moved yet
+        # retarget the link; neither folder changes
+        try:
+            os.unlink(alias)
+        except OSError:
+            os.rmdir(alias)  # a junction
+        self._dir_link(os.path.join(root, "b"), alias)
+        after = mod.fingerprint(root)
+        self.assertEqual(after["alias"], "dirlink:b")
+        self.assertNotEqual(mod.digest(before), mod.digest(after))
+        r = script("review-project", "review_project.py", "finalize", ws, "--out", os.path.join(tempfile.mkdtemp(), "v.html"))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("changed after prepare", r.stdout)
+        self.assertIn("alias", r.stdout)
+
     def test_S34_a_licence_file_inside_a_corpus_that_links_outside_it_is_not_read(self):
         corpus = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "corpus")
         shared = "def shared():\n" + "    return 'a line that makes the file long enough'\n" * 20

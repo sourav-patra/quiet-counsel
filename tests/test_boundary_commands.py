@@ -1,4 +1,4 @@
-"""Suite H, cases H-40 to H-46: the output boundary at every command, and the readers beside it.
+"""Suite H, cases H-40 to H-50: the output boundary at every command, and the readers beside it.
 
 Round 5 left commands that print what they LOAD (a scorecard or worksheet read from a file), two tools
 that printed project text, a skills reader that followed links out of its root, card file names that
@@ -380,6 +380,188 @@ class LoadedWorksheetAndFlags(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         absent(self, r.stdout + r.stderr, "finalize refusal")
         self.assertIn("refused:", r.stdout)
+
+
+def _review_module():
+    spec = importlib.util.spec_from_file_location(
+        "review_project_r7", REPO / "skills" / "review-project" / "scripts" / "review_project.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _scored(files, evidence=None):
+    """Prepare a worksheet for a project, score every applicable dimension 7 with one ordinary citation
+    (or `evidence` on the first), and return (root, worksheet path, card)."""
+    root = project({**MINIMAL, **files})
+    ws = os.path.join(tmp(), "ws.json")
+    r = script("review-project", "review_project.py", "prepare", root, "--out", ws)
+    assert r.returncode == 0, r.stdout + r.stderr
+    with open(ws, encoding="utf-8") as fh:
+        card = json.load(fh)
+    for f in card["flags"]:
+        if f.get("caps") == "do-not-score":
+            f["severity"] = "info"
+    first = True
+    for d in card["dimensions"]:
+        if d["applicable"]:
+            d["score"] = 7
+            d["rationale"] = "read the cited lines"
+            d["evidence"] = evidence if (first and evidence) else [
+                {"kind": "file", "ref": "README.md:1", "excerpt": "# Tool"}]
+            first = False
+    _write(ws, card)
+    return root, ws, card
+
+
+def _finalize(ws):
+    return script("review-project", "review_project.py", "finalize", ws, "--out", os.path.join(tmp(), "v.html"))
+
+
+class LoadedCapsAndAnswers(unittest.TestCase):
+    """H-47: the cap strings finalize prints and the answers selection_eval scores are input."""
+
+    def test_H47_finalize_prints_the_filtered_cap_strings_not_the_raw_ones(self):
+        root, ws, card = _scored({})
+        card["flags"].append({"id": "cap-flag", "severity": "warning", "title": "t", "caps": f"token={VALUE}",
+                              "evidence": [{"kind": "note", "ref": "r", "excerpt": "e"}]})
+        _write(ws, card)
+        r = _finalize(ws)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        absent(self, r.stdout + r.stderr, "finalize output")
+        self.assertIn("withheld", r.stdout)
+        self.assertIn("verdict written", r.stdout)
+
+    def test_H47_selection_eval_reports_a_non_string_answer_by_its_key_and_never_echoes_it(self):
+        answers = {"1": {"token": VALUE}, "2": [KEY], "3": 12345, "4": True, "5": {"a": PHRASE}}
+        r = _tool("selection_eval.py", "score", _write(os.path.join(tmp(), "a.json"), answers))
+        self.assertEqual(r.returncode, 1)
+        absent(self, r.stdout + r.stderr, "score output")
+        self.assertNotIn("12345", r.stdout)
+        for n in range(1, 6):
+            self.assertRegex(r.stdout, rf"(?m)^  {n}\. expected .*invalid answer")
+        # null is an answer: row 13 expects it, so an answer of null is a hit and is not reported
+        ok = _tool("selection_eval.py", "score", _write(os.path.join(tmp(), "b.json"), {"13": None}))
+        self.assertFalse([l for l in ok.stdout.splitlines() if l.startswith("  13.")], ok.stdout)
+
+
+class NoticeNeedsItsDigest(unittest.TestCase):
+    """H-48: verify recognises a withholding notice before any text match."""
+
+    NOTICE = "<excerpt withheld: credential>"
+
+    def test_H48_a_line_holding_the_literal_notice_does_not_vouch_for_a_notice_without_a_matching_digest(self):
+        mod = _review_module()
+        secret = "token = " + '"' + VALUE + '"'
+        hostile = f'NOTE = "{self.NOTICE}"  # {secret}'
+        root = project({**MINIMAL, "src/hostile.py": hostile + "\n"})
+        wrong = mod.excerpt_sha("something the line never held")
+        evidence = [
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": self.NOTICE},                                    # no digest
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": self.NOTICE, "excerpt_sha256": wrong},           # wrong digest
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": self.NOTICE, "excerpt_sha256": "0" * 64},        # wrong digest
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": self.NOTICE,
+             "excerpt_sha256": mod.excerpt_sha(self.NOTICE)},                                                       # digest of the notice
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": "NOTE ="},                                       # control: plain text
+            {"kind": "file", "ref": "src/hostile.py:1", "excerpt": self.NOTICE,
+             "excerpt_sha256": mod.excerpt_sha(secret)},                                                            # control: right digest
+        ]
+        ws = _write(os.path.join(tmp(), "ws.json"), {"project": {"path": root}, "mode": "deep", "dimensions": [
+            {"id": "A1", "applicable": True, "evidence": evidence}]})
+        r = script("review-project", "review_project.py", "verify", ws, "--project", root)
+        absent(self, r.stdout + r.stderr, "verify output")
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual(r.stdout.count("MISMATCH"), 4, r.stdout)
+        self.assertIn("2 citation(s) match", r.stdout)
+        self.assertEqual(r.stdout.count("verified by digest"), 1, r.stdout)
+        self.assertIn("no digest", r.stdout)
+
+
+class OneExcerptLimit(unittest.TestCase):
+    """H-49: finalize and verify share one line limit and one fragment limit."""
+
+    def _secret(self, n):
+        return ("password=" + "q" * n)[:n]
+
+    def test_H49_a_withheld_fragment_over_the_limit_is_refused_by_finalize_and_one_at_the_limit_verifies(self):
+        mod = _review_module()
+        self.assertEqual(mod.FRAGMENT_LIMIT, 400)
+        over, edge = self._secret(mod.FRAGMENT_LIMIT + 1), self._secret(mod.FRAGMENT_LIMIT)
+        line = "x = 1  # " + over + " trailing text"
+        root, ws, card = _scored({"src/long.py": line + "\n"},
+                                 [{"kind": "file", "ref": "src/long.py:1", "excerpt": over}])
+        r = _finalize(ws)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("too long to withhold and verify", r.stdout)
+        self.assertNotIn("q" * 30, r.stdout + r.stderr)
+        # the same line, cited at the limit: accepted, withheld and verified by digest
+        with open(ws, encoding="utf-8") as fh:
+            card = json.load(fh)
+        card["dimensions"][[d["applicable"] for d in card["dimensions"]].index(True)]["evidence"] = [
+            {"kind": "file", "ref": "src/long.py:1", "excerpt": edge}]
+        _write(ws, card)
+        r = _finalize(ws)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        v = script("review-project", "review_project.py", "verify", ws, "--project", root)
+        self.assertEqual(v.returncode, 0, v.stdout)
+        self.assertIn("withheld, verified by digest", v.stdout)
+        self.assertNotIn("q" * 30, v.stdout + v.stderr)
+        # verify itself holds the same limits
+        self.assertTrue(mod.holds_excerpt(line, mod.excerpt_sha(edge)))
+        self.assertFalse(mod.holds_excerpt(line, mod.excerpt_sha(over)))
+
+    def test_H49_a_withheld_fragment_past_the_line_limit_is_refused_by_finalize(self):
+        mod = _review_module()
+        frag = self._secret(40)
+        line = "y" * (mod.LINE_LIMIT + 100) + " " + frag
+        root, ws, card = _scored({"src/wide.py": line + "\n", "src/near.py": "z = 0  # " + frag + "\n"},
+                                 [{"kind": "file", "ref": "src/wide.py:1", "excerpt": frag}])
+        r = _finalize(ws)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("too long to withhold and verify", r.stdout)
+        self.assertFalse(mod.holds_excerpt(line, mod.excerpt_sha(frag)))
+        # the same fragment near the start of its line is accepted
+        with open(ws, encoding="utf-8") as fh:
+            card = json.load(fh)
+        card["dimensions"][[d["applicable"] for d in card["dimensions"]].index(True)]["evidence"] = [
+            {"kind": "file", "ref": "src/near.py:1", "excerpt": frag}]
+        _write(ws, card)
+        self.assertEqual(_finalize(ws).returncode, 0)
+
+
+class DerivedCapsAreRecomputed(unittest.TestCase):
+    """H-50: finalize clears what it derived last time before it derives it again."""
+
+    def test_H50_ruling_a_capped_flag_informational_removes_the_cap_from_totals_and_the_page(self):
+        root, ws, card = _scored({})
+        card["flags"].append({"id": "cap-flag", "severity": "warning", "title": "t", "caps": "C1<=3",
+                              "evidence": [{"kind": "note", "ref": "r", "excerpt": "e"}]})
+        _write(ws, card)
+        out = os.path.join(tmp(), "v.html")
+        r = script("review-project", "review_project.py", "finalize", ws, "--out", out)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        with open(ws, encoding="utf-8") as fh:
+            first = json.load(fh)
+        capped = [d for d in first["dimensions"] if d.get("capped_to") is not None]
+        self.assertEqual([d["id"] for d in capped], ["C1"])
+        self.assertEqual(first["totals"]["caps_applied"], ["C1<=3"])
+        with open(out, encoding="utf-8") as fh:
+            self.assertIn("capped to 3", fh.read())
+        # a person rules the flag informational; finalize again
+        for f in first["flags"]:
+            if f["id"] == "cap-flag":
+                f["severity"] = "info"
+        _write(ws, first)
+        r = script("review-project", "review_project.py", "finalize", ws, "--out", out)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        with open(ws, encoding="utf-8") as fh:
+            second = json.load(fh)
+        self.assertFalse(any("capped_to" in d for d in second["dimensions"]))
+        self.assertEqual(second["totals"]["caps_applied"], [])
+        self.assertEqual(second["totals"]["mean"], 7)
+        self.assertGreater(second["totals"]["mean"], first["totals"]["mean"])
+        with open(out, encoding="utf-8") as fh:
+            self.assertNotIn("capped to", fh.read())
 
 
 if __name__ == "__main__":
