@@ -19,14 +19,15 @@
         "name": { "type": "string" },
         "path": { "type": "string" },
         "source": { "type": "string", "description": "Remote URL if known" },
-        "commit": { "type": "string", "description": "The exact revision measured. A score with no commit is a score about nothing." },
+        "commit": { "type": "string", "description": "The exact revision measured. A score with no commit is a score about nothing. Not written in 0.1.2, which starts no git program; optional." },
         "measured_at": { "type": "string", "format": "date-time" },
         "archetype": { "enum": ["catalogue", "harness", "orchestrator", "tool", "application", "unknown"] },
         "archetype_evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
         "archetype_override": { "type": "string", "description": "Set only when a human overrode the classifier; states the grounds." },
         "tree_sha256": { "type": "string", "description": "Deep mode: a hash over every file's path and content when the worksheet was prepared. Finalize refuses if the tree no longer matches." },
         "tree_root": { "type": "string", "description": "Deep mode: the absolute project path at prepare, so finalize can find it from another directory. Worksheets are local files and are not published." },
-        "tree_files": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Deep mode: each file's content hash at prepare, to name what changed." }
+        "tree_files": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Deep mode: each file's content hash at prepare, under a display label (a withheld name carries a short hash). For printing only; finalize compares tree_ids." },
+        "tree_ids": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }, "description": "Deep mode: the full SHA-256 of each file's raw path mapped to [the full SHA-256 of its raw content digest or link target, its display label]. Finalize compares these, so a rename or an edit is found even when two labels print alike." }
       }
     },
     "signals": {
@@ -113,7 +114,8 @@
       "properties": {
         "kind": { "enum": ["command", "file", "commit", "url", "note"] },
         "ref": { "type": "string", "description": "The command run, or path:line, or a commit, or a URL" },
-        "excerpt": { "type": "string", "description": "Verbatim output or file content. Truncated excerpts end with an ellipsis." }
+        "excerpt": { "type": "string", "description": "Verbatim output or file content. Truncated excerpts end with an ellipsis." },
+        "excerpt_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Internal. Set by finalize when it replaces a sensitive excerpt by a notice: the SHA-256 of the raw excerpt, which verify compares with the cited line." }
       }
     },
     "signal": {

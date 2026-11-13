@@ -27,11 +27,9 @@ def build():
         os.chdir(cwd)
         shutil.rmtree(work, ignore_errors=True)
     page = dashboard.build([card], "Sample review: one synthetic project")
-    # AGENTS.md: no complete attack phrase is committed, so the committed copy withholds the
-    # sample's planted instruction. The live sample still raises its flag (E-01).
-    withheld = "[planted text withheld from this committed copy; src/quiet_counsel/sample.py assembles it]"
-    text = json.dumps(card, indent=2, ensure_ascii=False) + "\n"
-    return text.replace(sample._directed(), withheld), page.replace(sample._directed(), withheld)
+    # The card is withheld at its one output boundary (scan.withhold_all), so the sample's planted
+    # instruction is already a notice here and no complete attack phrase is committed (AGENTS.md).
+    return json.dumps(card, indent=2, ensure_ascii=False) + "\n", page
 
 
 if __name__ == "__main__":

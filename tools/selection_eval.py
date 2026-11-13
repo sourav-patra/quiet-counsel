@@ -15,7 +15,6 @@ the hits per set (tuning and held-out) and every miss. Exit 0 always for `prompt
 """
 
 import argparse
-import glob
 import json
 import os
 import re
@@ -23,13 +22,43 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(REPO, "src"))
+
+from quiet_counsel import scan  # noqa: E402
+
 EVALS = os.path.join(REPO, "evals", "triggers.jsonl")
 
 
+def _skipped(what, name):
+    print(f"skipped, resolves outside the skills directory: {what} {scan.withhold_text(name, 'name')}",
+          file=sys.stderr)
+
+
 def descriptions(skills_dir):
+    """(name, description) for each skill directly under `skills_dir`. A directory or a SKILL.md that
+    is a link resolving outside `skills_dir` is never entered or opened; it is named on stderr."""
     out = []
-    for path in sorted(glob.glob(os.path.join(skills_dir, "*", "SKILL.md"))):
-        with open(path, encoding="utf-8") as fh:
+    for entry in sorted(os.listdir(skills_dir)):
+        if entry.startswith("."):
+            continue
+        folder = os.path.join(skills_dir, entry)
+        if not os.path.isdir(folder):
+            continue
+        if not scan.contained(skills_dir, folder):
+            _skipped("directory", entry)
+            continue
+        path = os.path.join(folder, "SKILL.md")
+        if not os.path.lexists(path):
+            continue
+        if not scan.contained(skills_dir, path):
+            _skipped("file", f"{entry}/SKILL.md")
+            continue
+        if not os.path.isfile(path):
+            continue
+        fh = scan.open_text(path, skills_dir)  # regular files only; invalid bytes read as U+FFFD
+        if fh is None:
+            continue
+        with fh:
             head = fh.read().split("---")[1]
         name = re.search(r"(?m)^name:\s*(.+)$", head).group(1).strip()
         block = re.search(r"(?m)^description:\s*>?\s*\n((?:  .+\n?)+)", head)
@@ -46,12 +75,22 @@ def rows():
 
 def build_prompt(skills_dir):
     lines = ["Skills available:"]
-    lines += [f"- {name}: {text}" for name, text in descriptions(skills_dir)]
+    # A skill name and description come from whatever directory --skills names, and the prompt is read by
+    # a model, so each passes the one output filter before it is written.
+    lines += [f"- {scan.withhold_text(name, 'skill name')}: {scan.withhold_text(text, 'description')}"
+              for name, text in descriptions(skills_dir)]
     lines += ["", "For each user request below, say which ONE skill you would load to handle it, or "
               "null if none of these skills fits the request. Reply with only a JSON object mapping "
               "the request number (as a string) to a skill name or null. No other text.", ""]
     lines += [f"{i}. {r['prompt']}" for i, r in enumerate(rows(), 1)]
     return "\n".join(lines) + "\n"
+
+
+def emit(text, stream=None):
+    """Print one message through the output filter. A model's answer is input: every message this
+    command prints, whatever built it, passes `scan.withhold_text` as a whole (a string answer also passes
+    it alone first, so one withheld answer does not hide the request number and the prompt)."""
+    print(scan.withhold_text(text, "line"), file=stream or sys.stdout)
 
 
 def score(paths):
@@ -61,21 +100,29 @@ def score(paths):
             text = fh.read()
         m = re.search(r"\{.*\}", text, re.S)
         if not m:
-            print(f"{path}: no JSON object found", file=sys.stderr)
+            emit(f"{path}: no JSON object found", sys.stderr)
             return 2
         answer = json.loads(m.group(0))
         by_set, misses = {}, []
         for i, r in enumerate(data, 1):
             got = answer.get(str(i), "<missing>")
-            hit = got == r["expect"]
+            # An answer is a skill name or null. Any other type is reported by its request number and
+            # never echoed, so a nested value from a model cannot reach the output.
+            valid = got is None or isinstance(got, str)
+            hit = valid and got == r["expect"]
             s = by_set.setdefault(r.get("set", "tuning"), [0, 0])
             s[0] += hit
             s[1] += 1
             if not hit:
-                misses.append(f"  {i}. expected {r['expect']}, got {got}: {r['prompt']}")
+                shown = scan.withhold_text(got, "answer") if valid else                     "an invalid answer (a skill name or null is expected)"
+                misses.append(f"  {i}. expected {r['expect']}, got {shown}: {r['prompt']}")
         summary = ", ".join(f"{k} {v[0]}/{v[1]}" for k, v in sorted(by_set.items()))
-        print(f"{path}: {summary}")
-        print("\n".join(misses) if misses else "  no misses")
+        emit(f"{path}: {summary}")
+        if misses:
+            for line in misses:
+                emit(line)
+        else:
+            emit("  no misses")
         worst = max(worst, 1 if misses else 0)
     return worst
 
@@ -89,6 +136,10 @@ def main(argv=None):
     s = sub.add_parser("score", help="score one or more JSON answers")
     s.add_argument("answers", nargs="+", help="files holding a model's JSON answer")
     a = ap.parse_args(argv)
+    # A skill description can hold any character; a non-UTF-8 locale would otherwise stop the run.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     if a.cmd == "prompt":
         sys.stdout.write(build_prompt(a.skills))
         return 0

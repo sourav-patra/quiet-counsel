@@ -8,14 +8,15 @@ This module measures, flags and bands. It never scores: every dimension it emits
 `unverified` until a person or an evaluator working from docs/RUBRIC.md scores it.
 """
 
+import codecs
 import datetime as _dt
 import fnmatch
-import glob
 import hashlib
+import io
 import json
 import os
 import re
-import subprocess
+import stat
 
 from . import __version__ as VERSION
 
@@ -184,23 +185,25 @@ PATH_SPAN_RE = re.compile(r"`([A-Za-z0-9_.][\w./*-]*)`")
 
 
 def _ignored_tops(root):
-    try:
-        with open(os.path.join(root, ".gitignore"), encoding="utf-8") as fh:
-            return {ln.strip().strip("/") for ln in fh if ln.strip() and not ln.startswith(("#", "!"))}
-    except OSError:
+    path = os.path.join(root, ".gitignore")
+    if leaves_root(root, path):
         return set()
+    # read_text opens regular files only, reads bad bytes as replacement characters and names
+    # both cases on the card's limits; a FIFO or a file with invalid UTF-8 cannot stop the scan.
+    text = read_text(path, 2_000_000, root)
+    return {ln.strip().strip("/") for ln in text.split("\n") if ln.strip() and not ln.startswith(("#", "!"))}
 
 
 def stale_rulebook_paths(root):
     """[(file, line_no, path)] for every repository path a root instruction file names in inline
     code that does not exist. Stale instructions mislead the agent that loads them every
     session; the research names this context debt."""
-    out, names, ignored = [], None, _ignored_tops(root)
+    out, names, ignored, tree = [], None, _ignored_tops(root), None
     for name in RULEBOOKS:
         p = os.path.join(root, name)
-        if not os.path.isfile(p):
+        if not is_regular(p, root):
             continue
-        raw = read_text(p, 200_000)
+        raw = read_text(p, 200_000, root)
         original = raw.splitlines()
         # A fence becomes spaces, every line break in it stays where it was (splitlines() breaks on
         # more than \n), so line numbers of `text` and `original` agree.
@@ -225,19 +228,36 @@ def stale_rulebook_paths(root):
                         names = {os.path.basename(r)
                                  for _, r in walk(root, None, max_files=200000, include_hidden=True)}
                     # walk() skips .github, so a workflow named bare is looked up where it lives
-                    in_workflows = os.path.exists(os.path.join(root, ".github", "workflows", ref))
-                    if ref not in names and not in_workflows and                             not os.path.exists(os.path.join(root, ref)):
+                    in_workflows = exists_inside(root, os.path.join(root, ".github", "workflows", ref))
+                    if ref not in names and not in_workflows and \
+                            not exists_inside(root, os.path.join(root, ref)):
                         out.append((name, i, WITHHELD if hidden else ref))
                     continue
                 # owner/repo names such as `someone/tool` are references, not paths: a slash
                 # counts only when the first segment is in the tree or the span is explicitly a
                 # path; build outputs the project ignores are expected to be missing
-                rooted = os.path.exists(os.path.join(root, first)) or ref.endswith("/") or \
+                rooted = exists_inside(root, os.path.join(root, first)) or ref.endswith("/") or \
                     ref.startswith("./") or re.search(r"\.(md|py|sh|js|ts|json|toml|ya?ml|txt)$", ref)
                 if not rooted or first in ignored:
                     continue
                 target = os.path.join(root, ref.rstrip("/"))
-                exists = glob.glob(target, recursive=True) if "*" in ref else os.path.exists(target)
+                if "*" in ref:
+                    # Matched against the paths the containment-aware walk yields; the file system
+                    # is never asked to expand a pattern a project wrote.
+                    rx = _glob_regex(ref)
+                    if rx is None:  # starts with .. or is absolute: outside the root by its text
+                        skip_outside(ref)
+                        exists = False
+                    elif set(_literal_prefix(ref)) & SKIP_DIRS:
+                        # the walk skips build output and dependency folders, so the folder
+                        # holding the pattern is checked for, not enumerated
+                        exists = exists_inside(root, os.path.join(root, *_literal_prefix(ref)))
+                    else:
+                        if tree is None:
+                            tree = _tree_paths(root)
+                        exists = any(rx.fullmatch(p) for p in tree)
+                else:
+                    exists = exists_inside(root, target)
                 if not exists:
                     out.append((name, i, WITHHELD if hidden else ref))
     if len(out) > 40:
@@ -289,38 +309,103 @@ def holds_secret(line):
     return bool(SECRET_WORD_RE.search(line)) or any(rx.search(line) for _, rx in SHAPE_RES)
 
 
-def redact(text):
-    """Credential shapes out of a string that is not a source line: a path, a key, a name. The
-    private-key header is not a secret; the key body that follows it is not a shape."""
-    for label, rx in SHAPE_RES:
-        if label != "private-key-block":
-            text = rx.sub("<redacted>", text)
-    return text
-
-
 def clip(line, n=200):
     """A source line for a scorecard: withheld whole if it holds a secret, otherwise cut."""
     return WITHHELD if holds_secret(line) else line.strip()[:n]
 
 
-def redact_all(value):
-    """redact() applied to every string in a scorecard, keys included, so no credential shape in a
-    name or a key survives. Two keys that redact to the same text stay two entries (#2, #3, ...)."""
+_ASSIGNED = {}
+
+
+def credential_assignment(text):
+    """True when `text` holds a credential word followed by an assignment and a value (`password=x`,
+    `"api_key": "x"`, `token: x`), or a URL with a user and password. A credential word alone
+    (`token_utils.py`) does not count, so a path or a title can still say which file it is about."""
+    rx = _ASSIGNED.get("rx")
+    if rx is None:
+        words = SECRET_WORD_RE.pattern.replace("(?i)", "", 1)
+        url = r"://[^/\s:@]+:[^/\s@]+@"
+        rx = _ASSIGNED["rx"] = re.compile(
+            r"(?:" + words + r")\w*[\"'\]]*\s*[=:]\s*[\"']?[^\s\"']|" + url, re.I)
+    return bool(rx.search(text))
+
+
+def withhold_text(text, what="text", show_directed=False, strict=False):
+    """The text to print for anything that came from a scanned project (a path, a link target, a
+    source line, an error string): the text itself, or a notice that it was withheld. It is withheld
+    when it holds a credential shape or a credential word with an assignment and a value, and
+    (unless `show_directed`) text addressed to the evaluator. `strict` also withholds a credential
+    word alone, for a source line quoted from a file. Not for strings the tool itself produced."""
+    if not isinstance(text, str):
+        return text
+    secret = holds_secret(text) if strict else (
+        any(rx.search(text) for _, rx in SHAPE_RES) or credential_assignment(text))
+    if secret:
+        return f"<{what} withheld: credential>"
+    if not show_directed and any(re.search(p, text) for p in EVALUATOR_DIRECTED):
+        return f"<{what} withheld: text addressed to the evaluator>"
+    return text
+
+
+def withhold_all(value, what="text"):
+    """withhold_text() applied to every string in a structure, dict keys included. Two keys that
+    withhold to the same text stay two entries (#2, #3, ...)."""
     if isinstance(value, str):
-        return redact(value)
-    if isinstance(value, list):
-        return [redact_all(v) for v in value]
+        return withhold_text(value, what)
+    if isinstance(value, (list, tuple)):  # a tuple is written as a JSON array, so it is walked too
+        return [withhold_all(v, what) for v in value]
     if isinstance(value, dict):
         out = {}
         for k, v in value.items():
-            base = nk = redact(k) if isinstance(k, str) else k
+            base = nk = withhold_text(k, what) if isinstance(k, str) else k
             n = 1
             while nk in out:
                 n += 1
                 nk = f"{base}#{n}"
-            out[nk] = redact_all(v)
+            out[nk] = withhold_all(v, what)
         return out
     return value
+
+
+_RESERVED = {"con", "prn", "aux", "nul", *(f"com{n}" for n in range(1, 10)), *(f"lpt{n}" for n in range(1, 10))}
+
+
+def _plain_name(name):
+    """True for a project name that is a legal file name on every system: word characters, dots,
+    hyphens and spaces, not `.` or `..`, not ending in a dot or a space, not a reserved device name."""
+    return (bool(re.fullmatch(r"[\w.\- ]+", name)) and name not in (".", "..")
+            and not name.endswith((".", " ")) and name.split(".")[0].strip().casefold() not in _RESERVED)
+
+
+def card_file_name(name, index):
+    """The file a scorecard is written to. A project name that was withheld is a notice, which is
+    not a legal file name (it holds `<`, `>` and `:`), so a name that is not plain becomes
+    `project-N`. For a whole cohort use `card_file_names`, which also keeps two names apart."""
+    return f"{name}.json" if _plain_name(name) else f"project-{index}.json"
+
+
+def card_file_names(names):
+    """One file name per project name, all different, chosen over the whole list before anything is
+    written. A plain name keeps its own name and a name that is not plain (a withheld one) becomes
+    `project-N`; any name that is already taken, compared without regard to letter case, a trailing dot
+    or a trailing space (a file system folds them), gets `-2`, `-3` and so on. Names that are plain are
+    placed first, so a project that is really called `project-1` keeps it and the withheld one moves."""
+    taken, out = set(), [None] * len(names)
+
+    def fold(stem):
+        return (stem + ".json").casefold().rstrip(". ")
+
+    order = ([i for i, n in enumerate(names) if _plain_name(n)]
+             + [i for i, n in enumerate(names) if not _plain_name(n)])
+    for i in order:
+        stem = names[i] if _plain_name(names[i]) else f"project-{i + 1}"
+        base, k = stem, 1
+        while fold(stem) in taken:
+            k += 1
+            stem = f"{base}-{k}"
+        taken.add(fold(stem))
+        out[i] = stem + ".json"
+    return out
 
 
 def ev(kind, ref, excerpt=None, label=""):
@@ -364,7 +449,118 @@ def _is_ignore_file(root, name):
         return False
 
 
-def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
+_OUTSIDE_SKIPS = []  # (name, kind) of paths skipped because they resolve outside the root
+_OUTSIDE_SHOWN = 10  # how many of them the card names; the rest are counted
+
+
+def contained(root, path):
+    """True when the real path of `path` is the real root or inside it. Every read of a path in
+    a scanned project goes through this test, because a link in the project can point anywhere."""
+    base, real = os.path.realpath(root), os.path.realpath(path)
+    try:
+        return os.path.commonpath([base, real]) == base
+    except ValueError:  # another drive
+        return False
+
+
+def leaves_root(root, path, tag=""):
+    """True, with the path recorded for the card's limits, when `path` resolves outside `root`.
+    A caller that gets True does not read, list or open the path."""
+    if contained(root, path):
+        return False
+    try:
+        name = os.path.relpath(path, root).replace(os.sep, "/")
+    except ValueError:  # another drive
+        name = os.path.basename(path)
+    kind = "directory" if os.path.isdir(path) else "file" if os.path.isfile(path) else "path"
+    entry = (tag + name, kind)
+    if entry not in _OUTSIDE_SKIPS:
+        _OUTSIDE_SKIPS.append(entry)
+    return True
+
+
+def skip_outside(name, kind="path"):
+    """Record on the card that `name` names a place outside the root and was not read."""
+    entry = (name, kind)
+    if entry not in _OUTSIDE_SKIPS:
+        _OUTSIDE_SKIPS.append(entry)
+
+
+_UNREAD = []  # (name, reason) of files a reader skipped or could only partly decode
+_UNREAD_SHOWN = 10
+_BAD_BYTES = [False]
+_SCAN_ROOT = [None]  # the root screen() is reading, to name a file relative to it
+
+
+def note_unread(path, root, reason):
+    """Record on the card that a named file was not read, or read with replacement characters."""
+    base = root if root is not None else _SCAN_ROOT[0]
+    try:
+        name = os.path.relpath(path, base).replace(os.sep, "/") if base else os.path.basename(path)
+    except ValueError:  # another drive
+        name = os.path.basename(path)
+    if name.startswith("../") or name == "..":
+        name = os.path.basename(path)
+    entry = (name, reason)
+    if entry not in _UNREAD:
+        _UNREAD.append(entry)
+
+
+def _glob_parts(pattern):
+    return [p for p in pattern.replace("\\", "/").split("/") if p not in ("", ".")]
+
+
+def _literal_prefix(pattern):
+    """The segments of a path pattern before the first one that holds a wildcard."""
+    out = []
+    for part in _glob_parts(pattern):
+        if "*" in part or "?" in part:
+            break
+        out.append(part)
+    return out
+
+
+def _glob_regex(pattern):
+    """A regular expression for a path pattern written in a project (`*` within a segment, `**`
+    for any number of directories, a leading dot matched only by a pattern that names it), to be
+    matched with fullmatch against "/" plus a path relative to the root. None for a pattern that
+    starts at, or climbs out of, a place other than the root: an absolute path or a `..` segment."""
+    parts = _glob_parts(pattern)
+    if (not parts or ".." in parts or os.path.isabs(pattern) or pattern.startswith(("/", "\\"))
+            or os.path.splitdrive(pattern)[0]):
+        return None
+    rx = ""
+    for part in parts:
+        if part == "**":
+            rx += r"(?:/(?!\.)[^/]+)*"
+            continue
+        seg = "".join("[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in part)
+        rx += "/" + ("(?!\\.)" if part[0] in "*?" else "") + seg
+    return re.compile(rx, re.S)
+
+
+def _tree_paths(root):
+    """Every file under `root` that the containment-aware walk yields, and every folder above
+    one, as "/" plus the path relative to the root."""
+    out = set()
+    for _, rel in walk(root, None, max_files=200000, include_hidden=True):
+        parts = rel.split("/")
+        for i in range(1, len(parts) + 1):
+            out.add("/" + "/".join(parts[:i]))
+    return out
+
+
+def exists_inside(root, path):
+    """os.path.exists, but a path that resolves outside `root` does not count as present."""
+    return os.path.exists(path) and not leaves_root(root, path)
+
+
+def size_inside(root, path):
+    """The size of a file under `root`, 0 for one that resolves outside it."""
+    return 0 if leaves_root(root, path) else os.path.getsize(path)
+
+
+def walk(root, exts=None, max_files=40000, include_hidden=False, github=False, *, tag=""):
     """Yield (abs_path, rel_path) for files under root, skipping build and VCS directories.
 
     Hidden directories are skipped by default. This matters more than it looks: a catalogue
@@ -373,6 +569,8 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
     the screen reports the difference rather than silently picking one. `.github` holds workflows
     and issue templates that a reader and a CI run both read, so `github=True` keeps it in a walk
     that otherwise skips hidden directories. Only `.git` itself is a version-control directory.
+    A directory or a file that resolves outside `root` is neither entered nor read; `tag` prefixes
+    its name on the card when `root` is not the project (the corpus).
     """
     n = 0
     for dirpath, dirnames, filenames in os.walk(root):
@@ -381,6 +579,9 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
         dirnames[:] = [d for d in sorted(dirnames)
                        if d not in SKIP_DIRS
                        and (include_hidden or not d.startswith(".") or (github and d == ".github"))]
+        # A junction (or a link the walk would follow) to a directory outside the root is pruned
+        # here, before the walk descends, so nothing in it is listed, counted or read.
+        dirnames[:] = [d for d in dirnames if not leaves_root(root, os.path.join(dirpath, d), tag)]
         for name in sorted(filenames):
             # The project's ignore file is read by the signal alone: in no detector's hit, copy or
             # file budget, so a repository cannot use it to push a real finding past a limit.
@@ -393,6 +594,11 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
             # hang the screen or never end.
             if not os.path.isfile(p):
                 continue
+            # A link whose target lies outside the scanned root would read, and could quote on the
+            # card, a file that is not part of the project. It is skipped and named on the card.
+            # (the directory above is inside the root, so only a link can move the file out)
+            if os.path.islink(p) and leaves_root(root, p, tag):
+                continue
             # Forward slashes on every OS, so a scorecard built on Windows is identical to one
             # built on Linux and every path pattern below means the same thing everywhere.
             if n >= max_files:
@@ -402,42 +608,92 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False):
             n += 1
 
 
-def read_counted(path, limit=2_000_000):
+def _bad_bytes(exc):
+    """Decoding error handler: the same replacement the `replace` handler makes, and the file is
+    remembered as holding bytes that are not valid UTF-8."""
+    if isinstance(exc, UnicodeDecodeError):
+        _BAD_BYTES[0] = True
+        return "\ufffd", exc.end
+    raise exc
+
+
+codecs.register_error("quiet-counsel-replace", _bad_bytes)
+
+
+def is_regular(path, root=None):
+    """True for a regular file. A path that exists and is not one (a pipe, a device, a folder) is
+    named on the card's limits; a missing path is not."""
+    try:
+        if stat.S_ISREG(os.stat(path).st_mode):
+            return True
+    except OSError:
+        return False
+    note_unread(path, root, "is not a regular file, so it was not read.")
+    return False
+
+
+def open_regular(path, root=None):
+    """A binary file object for a regular file, else None. The path is checked with `stat` before
+    it is opened, opened without blocking where the platform has `O_NONBLOCK`, and the open
+    descriptor is checked again with `fstat`, so a pipe, socket or device (or a file swapped for
+    one between the checks) is never read: opening a pipe with no writer would block for good.
+    A path that exists and is not a regular file is named on the card's limits. A missing path or
+    one that cannot be opened gives None and is not recorded."""
+    try:
+        if not stat.S_ISREG(os.stat(path).st_mode):
+            note_unread(path, root, "is not a regular file, so it was not read.")
+            return None
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
+    except OSError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            os.close(fd)
+            note_unread(path, root, "is not a regular file, so it was not read.")
+            return None
+        return os.fdopen(fd, "rb")
+    except OSError:
+        return None
+
+
+def open_text(path, root=None):
+    """`open_regular` as UTF-8 text. Bytes that are not valid UTF-8 read as U+FFFD."""
+    fh = open_regular(path, root)
+    if fh is None:
+        return None
+    return io.TextIOWrapper(fh, encoding="utf-8", errors="quiet-counsel-replace")
+
+
+def read_counted(path, limit=2_000_000, root=None):
     """(text, characters consumed). The text is up to `limit` characters with a final line the
     limit cut in two dropped, so detection and evidence see whole lines only. The count is what
-    was read before that trimming, for a caller that keeps a budget."""
+    was read before that trimming, for a caller that keeps a budget. With `root`, a path that
+    resolves outside it is not opened and reads as empty. Only a regular file is opened; one that
+    is not, and one holding bytes that are not valid UTF-8, is named on the card's limits."""
+    if root is not None and leaves_root(root, path):
+        return "", 0
+    _BAD_BYTES[0] = False
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        fh = open_text(path, root)
+        if fh is None:
+            return "", 0
+        with fh:
             text = fh.read(limit)
             used = len(text)
             if used == limit and fh.read(1) not in ("", "\n") and not text.endswith("\n"):
                 text = text[:text.rfind("\n") + 1]
+            if _BAD_BYTES[0]:
+                note_unread(path, root, "holds bytes that are not valid UTF-8; they were read as "
+                                        "replacement characters.")
             return text, used
     except OSError:
         return "", 0
 
 
-def read_text(path, limit=2_000_000):
-    """The file's text up to `limit` characters, whole lines only."""
-    return read_counted(path, limit)[0]
-
-
-# The scanned project's own .git/config can name programs git would start (a signature checker, a
-# pager, a hook, a file-system monitor); -c outranks every config file, so none of them runs.
-GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
-            "-c", "core.hooksPath=" + os.devnull, "-c", "log.showSignature=false",
-            "-c", "diff.external=", "-c", "gpg.program=" + os.devnull,
-            "-c", "gpg.openpgp.program=" + os.devnull, "-c", "gpg.x509.program=" + os.devnull,
-            "-c", "gpg.ssh.program=" + os.devnull)
-
-
-def git(root, *args):
-    try:
-        out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
-                             text=True, timeout=60)
-        return out.stdout.strip() if out.returncode == 0 else ""
-    except (OSError, subprocess.SubprocessError):
-        return ""
+def read_text(path, limit=2_000_000, root=None):
+    """The file's text up to `limit` characters, whole lines only; empty for a path that resolves
+    outside `root` when one is given."""
+    return read_counted(path, limit, root)[0]
 
 
 def frontmatter(text):
@@ -592,7 +848,7 @@ def classify(root):
         evidence.append(ev("file", f"{len(checkers)} checker scripts", checkers[0]))
 
     gov = [n for n in ("RELEASES.md", "GOVERNANCE.md", "MAINTAINERS.md", "SECURITY.md",
-                       "CHANGELOG.md", "RECORDS.md") if os.path.exists(os.path.join(root, n))]
+                       "CHANGELOG.md", "RECORDS.md") if exists_inside(root, os.path.join(root, n))]
     if gov:
         scores["harness" if skills else "application"] += 1.5 if skills else 0.5
         evidence.append(ev("file", "governance documents", ", ".join(gov)))
@@ -607,8 +863,8 @@ def classify(root):
 
     for manifest in ("package.json", "pyproject.toml", "Cargo.toml", "go.mod"):
         p = os.path.join(root, manifest)
-        if os.path.exists(p):
-            text = read_text(p, 4000)
+        if exists_inside(root, p):
+            text = read_text(p, 4000, root)
             if manifest == "package.json" and ('"bin"' in text or '"main"' in text):
                 scores["tool"] += 2
             else:
@@ -620,8 +876,8 @@ def classify(root):
     if len(app_markers) >= 3:
         scores["application"] += 2.5
         evidence.append(ev("file", "application sources", ", ".join(app_markers[:3])))
-    if os.path.exists(os.path.join(root, "Dockerfile")) or \
-            os.path.exists(os.path.join(root, "docker-compose.yml")):
+    if exists_inside(root, os.path.join(root, "Dockerfile")) or \
+            exists_inside(root, os.path.join(root, "docker-compose.yml")):
         scores["application"] += 0.5
         scores["tool"] += 0.5
 
@@ -674,7 +930,7 @@ def defensive(root, rel, lineno, line, window=3):
     """True when a hit sits inside text that is fighting the thing, not doing it."""
     if DEFENSIVE_CONTEXT.search(line):
         return True
-    lines = read_text(os.path.join(root, rel), 500_000).splitlines()
+    lines = read_text(os.path.join(root, rel), 500_000, root).splitlines()
     lo, hi = max(0, lineno - window), min(len(lines), lineno + window - 1)
     return bool(DEFENSIVE_CONTEXT.search(" ".join(lines[lo:hi])))
 
@@ -706,7 +962,7 @@ def evaluator_directed_hits(root, limit=DIRECTED_LIMIT, judged_quoted=None):
             root, [("evaluator-directed", p) for p in EVALUATOR_DIRECTED],
             TEXT_EXT | {".json", ".yaml", ".yml"}):
         if cached[0] != rel:
-            cached = (rel, read_text(os.path.join(root, rel), 500_000).splitlines())
+            cached = (rel, read_text(os.path.join(root, rel), 500_000, root).splitlines())
         text = cached[1]
         lo, hi = max(0, lineno - 3), min(len(text), lineno + 2)
         context = " ".join(text[lo:hi])
@@ -742,15 +998,15 @@ def _source_licence(corpus, rel):
     """The licence of the corpus project a file came from: the file's own declaration if it has
     one, else the nearest licence file above it inside the corpus."""
     path = os.path.join(corpus, rel)
-    own = declared_licences(read_text(path, 200_000))
+    own = declared_licences(read_text(path, 200_000, corpus))
     if own:
         return own[0][1], "the file's own declaration", _project_of(rel), own[0][4]
     parts = rel.split("/")[:-1]
     while True:
         here = os.path.join(corpus, *parts) if parts else corpus
-        found = _licence_file_in(here)
+        found = _licence_file_in(here, corpus)
         if found:
-            label = identify_licence(read_text(os.path.join(here, found), 20000))
+            label = identify_licence(read_text(os.path.join(here, found), 20000, corpus))
             where = "/".join(parts + [found])
             return label, f"corpus {where}", _project_of(rel), False
         if not parts:
@@ -762,14 +1018,19 @@ def _project_of(rel):
     return rel.split("/")[0] if "/" in rel else "."
 
 
-def _licence_file_in(directory):
+def _licence_file_in(directory, root):
+    """The licence file in `directory`, a folder of `root`. A folder or a file that resolves
+    outside `root` is not listed or used."""
+    if leaves_root(root, directory):
+        return None
     try:
         names = sorted(os.listdir(directory))
     except OSError:
         return None
     for name in names:
         if re.match(r"(?i)^(licen[cs]e|copying)(\.|$)", name) and \
-                os.path.isfile(os.path.join(directory, name)):
+                os.path.isfile(os.path.join(directory, name)) and \
+                not leaves_root(root, os.path.join(directory, name)):
             return name
     return None
 
@@ -782,7 +1043,7 @@ def attribution_for(root, rel, source_project):
     """Where a copied file's credit lives, or None. The file's own source or licence line, a
     licence file beside it or above it below the root, or a root NOTICE, third-party, credits or
     attribution file naming the source project. A README mention is too loose to count."""
-    text = read_text(os.path.join(root, rel), 200_000)
+    text = read_text(os.path.join(root, rel), 200_000, root)
     head = text.splitlines()[:15]
     for i, line in enumerate(head, 1):
         if PROVENANCE_RE.search(line) or LICENCE_LINE_RE.match(line) or \
@@ -790,14 +1051,14 @@ def attribution_for(root, rel, source_project):
             return f"{rel}:{i}"
     parts = rel.split("/")[:-1]
     while parts:
-        found = _licence_file_in(os.path.join(root, *parts))
+        found = _licence_file_in(os.path.join(root, *parts), root)
         if found:
             return "/".join(parts + [found])
         parts.pop()
     name = os.path.basename(source_project.rstrip("/")) if source_project != "." else None
     for fname in sorted(os.listdir(root)):
         if ATTRIBUTION_FILE_RE.match(fname) and name and os.path.isfile(os.path.join(root, fname)):
-            if name.lower() in read_text(os.path.join(root, fname), 200_000).lower():
+            if name.lower() in read_text(os.path.join(root, fname), 200_000, root).lower():
                 return fname
     return None
 
@@ -807,11 +1068,14 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
     byte for byte or once provenance and licence lines are set aside. Each match carries the
     source project's licence and where the copy credits it, if anywhere."""
     index, normalised = {}, {}
-    for path, rel in walk(corpus, None, max_files=200000):
+    for path, rel in walk(corpus, None, max_files=200000, tag="corpus: "):
         try:
             if os.path.getsize(path) < min_bytes:
                 continue
-            with open(path, "rb") as fh:
+            fh = open_regular(path, corpus)
+            if fh is None:
+                continue
+            with fh:
                 data = fh.read()
         except OSError:
             continue
@@ -826,7 +1090,10 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
             size = os.path.getsize(path)
             if size < min_bytes:
                 continue
-            with open(path, "rb") as fh:
+            fh = open_regular(path, root)
+            if fh is None:
+                continue
+            with fh:
                 data = fh.read()
         except OSError:
             continue
@@ -851,39 +1118,16 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
     return dups, checked, len(index)
 
 
+HISTORY_DISABLED = "disabled in 0.1.2"
+
+
 def history_facts(root):
-    if not os.path.isdir(os.path.join(root, ".git")):
-        return {"available": False, "reason": "no git directory — history cannot be measured"}
-    if git(root, "rev-parse", "--is-shallow-repository") == "true":
-        return {"available": False, "shallow": True,
-                "reason": "shallow clone: the history present is an artifact of how it was "
-                          "fetched, not of how it was written. Re-clone with full history to "
-                          "measure provenance."}
-    count = git(root, "rev-list", "--count", "HEAD")
-    authors = git(root, "log", "--format=%ae")
-    first = git(root, "log", "--reverse", "--format=%H %aI", "--max-parents=0")
-    first_sha = first.split()[0] if first else ""
-    first_date = first.split()[1] if len(first.split()) > 1 else ""
-    last_date = git(root, "log", "-1", "--format=%aI")
-    first_files = git(root, "show", "--name-only", "--format=", first_sha) if first_sha else ""
-    committer_vs_author = git(
-        root, "log", "--format=%aI|%cI", "-50")
-    drift = 0
-    for line in committer_vs_author.splitlines():
-        if "|" in line:
-            a, c = line.split("|", 1)
-            if a[:10] != c[:10]:
-                drift += 1
-    return {
-        "available": True,
-        "commits": int(count) if count.isdigit() else None,
-        "authors": len({a for a in authors.splitlines() if a}),
-        "first_commit": first_sha[:12],
-        "first_commit_date": first_date,
-        "last_commit_date": last_date,
-        "first_commit_files": len([f for f in first_files.splitlines() if f]),
-        "author_committer_date_drift": drift,
-    }
+    """History is not measured in 0.1.2. Reading it meant running the git program on the scanned
+    project's own repository, and a repository can name files to read and commands to run
+    (configuration includes, mail maps, a promisor remote with its own ssh command) faster than a
+    wrapper can refuse them. No git program is started by this tool. A later release brings
+    history back with a design that cannot be steered by the repository it reads."""
+    return {"available": False, "reason": HISTORY_DISABLED}
 
 
 def spdx_labels(line):
@@ -901,8 +1145,10 @@ def licence_facts(root):
     declared, declared_file = None, None
     for name in sorted(os.listdir(root)):
         if re.match(r"(?i)^(licen[cs]e|copying)(\.|$)", name):
+            if leaves_root(root, os.path.join(root, name)):
+                continue  # a licence file that is a link to a file elsewhere is not the project's
             declared_file = name
-            declared = identify_licence(read_text(os.path.join(root, name), 20000))
+            declared = identify_licence(read_text(os.path.join(root, name), 20000, root))
             break
     nested = []
     for path, rel in walk(root, {".md", ".txt", ""}, github=True):
@@ -1059,7 +1305,7 @@ def extract_claims(root):
     claims = []
     for name in sorted(os.listdir(root)):
         if re.match(r"(?i)^readme(\.|$)", name):
-            text = read_text(os.path.join(root, name), 200000)
+            text = read_text(os.path.join(root, name), 200000, root)
             # "Works with 15 agents" is a compatibility claim about hosts, not an inventory
             # claim about definitions. Reading it as inventory produced a false contradiction
             # against a clean repository, so context decides which kind of claim it is.
@@ -1107,10 +1353,13 @@ def ignore_patterns(root):
     A symlink is refused: its target's lines would print on the card.
     """
     path = os.path.join(root, IGNORE_FILE)
-    if os.path.islink(path) or not os.path.isfile(path):
+    if os.path.islink(path):
+        leaves_root(root, path)  # named on the card when it leaves the root
+        return []
+    if not is_regular(path, root):
         return []
     out = []
-    for line in read_text(path, 20000).splitlines():
+    for line in read_text(path, 20000, root).splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
             out.append(line)
@@ -1187,9 +1436,12 @@ def _now():
 def screen(root, corpus=None, event=None, honour_ignore=False):
     _REACHED.clear()
     _NOTES.clear()
+    _OUTSIDE_SKIPS.clear()
+    _UNREAD.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)
+    _SCAN_ROOT[0] = root
     archetype, arch_scores, arch_ev, found = classify(root)
     signals, flags, limits = {}, [], []
 
@@ -1228,7 +1480,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
             _seen.add(key)
             first_of_identity.append(rel)
     for rel in first_of_identity:
-        fm = frontmatter(read_text(os.path.join(root, rel), 20000))
+        fm = frontmatter(read_text(os.path.join(root, rel), 20000, root))
         d = fm.get("description", "")
         desc_chars += len(d)
         if "when" not in d.lower():
@@ -1249,7 +1501,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
     rulebook = {}
     for name in RULEBOOKS:
         p = os.path.join(root, name)
-        if os.path.exists(p):
+        if exists_inside(root, p):
             rulebook[name] = os.path.getsize(p)
     signals["always_loaded_rulebook_bytes"] = sig(rulebook, "wc -c on root instruction files")
 
@@ -1261,11 +1513,13 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                         if re.search(r"(^|/)evals?/", rel)})
     signals["eval_dirs"] = sig(eval_dirs, "directories named eval/ or evals/")
     wf_dir = os.path.join(root, ".github", "workflows")
-    workflows = sorted(os.listdir(wf_dir)) if os.path.isdir(wf_dir) else []
+    workflows = [w for w in sorted(os.listdir(wf_dir))
+                 if not leaves_root(root, os.path.join(wf_dir, w))] \
+        if os.path.isdir(wf_dir) and not leaves_root(root, wf_dir) else []
     signals["ci_workflow_files"] = sig(len(workflows), "ls .github/workflows")
     uses, pinned = 0, 0
     for w in workflows:
-        for line in read_text(os.path.join(wf_dir, w), 200000).splitlines():
+        for line in read_text(os.path.join(wf_dir, w), 200000, root).splitlines():
             m = re.search(r"uses:\s*([^\s]+)", line)
             if m:
                 uses += 1
@@ -1273,7 +1527,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                     pinned += 1
     signals["ci_actions_pinned_by_digest"] = sig(f"{pinned}/{uses}" if uses else "0/0",
                                                  "uses: lines pinned to a 40-char digest")
-    signals["jenkinsfile"] = sig(os.path.exists(os.path.join(root, "Jenkinsfile")), "test -f Jenkinsfile")
+    signals["jenkinsfile"] = sig(exists_inside(root, os.path.join(root, "Jenkinsfile")), "test -f Jenkinsfile")
 
     # --- safety signals
     secret_hits = grep(root, SECRET_PATTERNS, TEXT_EXT | {".pem", ".key", ""}, max_hits=40,
@@ -1352,7 +1606,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
 
     lockfiles = [n for n in ("package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock",
                              "requirements.txt", "Cargo.lock", "go.sum")
-                 if os.path.exists(os.path.join(root, n))]
+                 if exists_inside(root, os.path.join(root, n))]
     signals["lockfiles"] = sig(lockfiles, "test -f on known lockfiles")
 
     untrusted = grep(root, [("untrusted-guidance",
@@ -1484,26 +1738,11 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
         flags.append(flag)
 
     hist = history_facts(root)
-    signals["history"] = sig(hist, "git rev-list / log")
-    if not hist.get("available"):
-        limits.append("Provenance was not measured: " + hist.get("reason", "no history"))
-    if hist.get("available") and hist.get("first_commit_files", 0) > 200:
-        flags.append({
-            "id": "imported-first-commit", "severity": "warning",
-            "title": f"First commit contains {hist['first_commit_files']} files",
-            "detail": "Consistent with importing an existing project. Not wrong by itself.",
-            "evidence": [ev("commit", hist["first_commit"],
-                            f"{hist['first_commit_files']} files, {hist['first_commit_date']}")],
-        })
-    if event and hist.get("available"):
-        start, end = event
-        if hist.get("first_commit_date") and hist["first_commit_date"] < start:
-            flags.append({
-                "id": "work-predates-event", "severity": "warning",
-                "title": "History begins before the stated event window",
-                "evidence": [ev("commit", hist["first_commit"],
-                                f"first commit {hist['first_commit_date']}, window opens {start}")],
-            })
+    signals["history"] = sig(hist, "not measured: no git program is run")
+    limits.append("History and provenance were not measured: " + hist["reason"] + ". The tool starts no "
+                  "git program in this release; history returns in a later release with a contained design.")
+    if event:
+        limits.append("The event window was not checked against history: history is " + hist["reason"] + ".")
 
     if corpus:
         dups, checked, indexed = corpus_duplicates(root, corpus)
@@ -1665,7 +1904,7 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
 
     # --- product signals
     signals["readme_bytes"] = sig(
-        next((os.path.getsize(os.path.join(root, n)) for n in sorted(os.listdir(root))
+        next((size_inside(root, os.path.join(root, n)) for n in sorted(os.listdir(root))
               if re.match(r"(?i)^readme(\.|$)", n)), 0), "wc -c README")
     abs_paths = grep(root, [("absolute-path", r"(?<![\w.])/(Users|home)/[a-zA-Z0-9._-]+/")],
                      TEXT_EXT, max_hits=10,
@@ -1704,6 +1943,16 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                       f"stopped at its budget of {budget}; later files were not read for this check, "
                       "so its result is incomplete."))
     limits.extend(_NOTES)
+    for rel, kind in _OUTSIDE_SKIPS[:_OUTSIDE_SHOWN]:
+        what = {"file": "a file", "directory": "a directory", "path": "a path"}[kind]
+        limits.append(f"{rel}: resolves to {what} outside the scanned root, so it was not "
+                      f"{'entered' if kind == 'directory' else 'read'}.")
+    if len(_OUTSIDE_SKIPS) > _OUTSIDE_SHOWN:
+        limits.append(f"{len(_OUTSIDE_SKIPS) - _OUTSIDE_SHOWN} more paths that resolve outside the scanned root were not read.")
+    for name, why in _UNREAD[:_UNREAD_SHOWN]:
+        limits.append(f"{name}: {why}")
+    if len(_UNREAD) > _UNREAD_SHOWN:
+        limits.append(f"{len(_UNREAD) - _UNREAD_SHOWN} more files were not read, or read with replacement characters.")
     if stopped:
         flags.append({
             "id": "scan-limit-reached", "severity": "warning",
@@ -1748,13 +1997,15 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                   "and a quoted licence can look like a breach. Every flag names its evidence, a file and "
                   "line or a command or commit, so a reader can check.")
 
-    return redact_all({
+    # The one output boundary: every string on the card, keys included, passes withhold_all, so a
+    # credential or text aimed at the evaluator in a path, a name, an excerpt or a piece of
+    # classification evidence is replaced by a notice. Everything above works on the raw values.
+    return withhold_all({
         "schema": "scorecard/1", "mode": "screen",
         "project": {
             # The path as the caller gave it, never the absolute one: a scorecard is published
             # and shared, and an absolute path would carry one machine's layout with it.
             "name": os.path.basename(root), "path": given,
-            "commit": git(root, "rev-parse", "--short", "HEAD") or None,
             "measured_at": started.isoformat(timespec="seconds"),
             "archetype": archetype,
             "archetype_evidence": arch_ev,

@@ -5,9 +5,86 @@ Exit codes: 0 done, 2 the card or the project could not be read. Nothing here de
 """
 
 import argparse
+import errno
 import json
 import os
+import re
 import sys
+from pathlib import Path
+
+
+SECRET_FLAG = "secret-in-tree"
+DIRECTED_FLAG = "evaluator-directed-text"
+SECRET_NOTICE = "withheld: credential text is never printed; read the file at this location yourself"
+DIRECTED_NOTICE = ("withheld: this text is addressed to the evaluator; read the file at this location "
+                   "yourself, or pass --show-directed-text to print it")
+# A block that carries a secret as lines of ordinary-looking text (a PEM-style key body is
+# base64, which no credential-shape rule matches line by line).
+BLOCK_BEGIN = re.compile(r"-{5}BEGIN [A-Z0-9 ]+-{5}")
+BLOCK_END = re.compile(r"-{5}END [A-Z0-9 ]+-{5}")
+BLOCK_NOTICE = "<line withheld: credential>"
+
+
+def load():
+    """The detector's own credential and evaluator-text rules, so triage withholds what the scan
+    flags. Fails closed: without them nothing could be withheld."""
+    try:
+        import quiet_counsel  # noqa: F401
+    except ImportError:
+        for up in Path(__file__).resolve().parents:
+            if (up / "src" / "quiet_counsel").is_dir():
+                sys.path.insert(0, str(up / "src"))
+                break
+    try:
+        from quiet_counsel import scan
+    except ImportError:
+        print("quiet-counsel is not importable. From a clone of its repository, run: "
+              "pip install .", file=sys.stderr)
+        raise SystemExit(2)
+    return scan
+
+
+def credential_assignment(scan, text):
+    """See `quiet_counsel.scan.credential_assignment`, the one rule every output path shares."""
+    return scan.credential_assignment(text)
+
+
+def withhold(scan, text, show_directed, what="line"):
+    """The text to print for anything that came from the scanned project (a source line, a path,
+    a title, an error string): the text itself, or a notice that it was withheld. `what` names
+    the kind of text in the notice. Every such field, a context row included, is withheld when it
+    holds a credential shape or a credential word with an assignment and a value, and (unless
+    `show_directed`) text addressed to the evaluator; a word such as `token` alone is not enough.
+    The flag id and severity of a card read from a file pass through it too, in `main`. The rule itself is `quiet_counsel.scan.withhold_text`."""
+    return scan.withhold_text(text, what, show_directed)
+
+
+def withhold_reference(scan, ref, show_directed):
+    """A reference (path and line) for printing: the path withheld as `<path withheld>` with the
+    line number kept when the path holds a credential or evaluator-directed text."""
+    if not isinstance(ref, str):
+        return ref
+    head, line = locate(ref)
+    if withhold(scan, head, show_directed, "path") != head:
+        return "<path withheld>" + (f":{line}" if line else "")
+    return ref
+
+
+def block_lines(lines):
+    """The 1-based numbers of every line inside a BEGIN to END block, both marker lines included.
+    The whole file is scanned, so a block whose opening marker lies outside the lines a caller
+    shows is still found. A block that never closes runs to the end of the file."""
+    inside, out = False, set()
+    for i, text in enumerate(lines, 1):
+        opened = None if inside else BLOCK_BEGIN.search(text)
+        if opened:
+            inside = True
+            out.add(i)
+            inside = not BLOCK_END.search(text, opened.end())  # opened and closed on one line
+        elif inside:
+            out.add(i)
+            inside = not BLOCK_END.search(text)
+    return out
 
 
 def locate(ref):
@@ -26,17 +103,29 @@ def inside(root, rel):
         return None
 
 
-def context(root, rel, line, n):
+def read_lines(root, rel):
+    """(lines, error) for a file named by a reference."""
     path = inside(root, rel)
     if not path:
         return None, "broken citation: the reference leaves the project"
     try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            lines = fh.read().splitlines()
+        fh = load().open_text(path, root)
+        if fh is None:
+            if not os.path.exists(path):  # the usual missing-file text, without a bare open() of a scanned path
+                return None, str(FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path))
+            return None, "not a regular file, so it was not read"
+        with fh:
+            return fh.read().splitlines(), None
     except OSError as exc:
         return None, str(exc)
+
+
+def context(lines, line, n, blocked):
+    """The rows around `line`. A line inside a sensitive block is replaced by a notice here, so
+    no caller can print it by forgetting to check."""
     lo, hi = max(1, line - n), min(len(lines), line + n)
-    return [{"line": i, "text": lines[i - 1], "hit": i == line} for i in range(lo, hi + 1)], None
+    return [{"line": i, "text": BLOCK_NOTICE if i in blocked else lines[i - 1], "hit": i == line}
+            for i in range(lo, hi + 1)]
 
 
 def main(argv=None):
@@ -46,7 +135,15 @@ def main(argv=None):
     ap.add_argument("--context", type=int, default=3, help="lines either side (default 3)")
     ap.add_argument("--all", action="store_true", help="include information-level flags")
     ap.add_argument("--json", action="store_true", help="print the result as JSON")
+    ap.add_argument("--show-directed-text", action="store_true",
+                    help="print text addressed to the evaluator (credential text is never printed)")
     a = ap.parse_args(argv)
+    # Source lines hold any character. A console or pipe on a non-UTF-8 locale (Windows by
+    # default) would stop the run with UnicodeEncodeError, so the streams are set to UTF-8 here.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+    scan = load()
 
     try:
         with open(a.card, encoding="utf-8") as fh:
@@ -56,7 +153,9 @@ def main(argv=None):
         return 2
     root = a.project or card["project"]["path"]
     if not os.path.isdir(root):
-        print(f"project not found at {root}; pass --project", file=sys.stderr)
+        # the path may come from the card, so it passes the same test as any project text
+        shown = withhold(scan, root, a.show_directed_text, "path")
+        print(f"project not found at {shown}; pass --project", file=sys.stderr)
         return 2
 
     items = []
@@ -66,10 +165,38 @@ def main(argv=None):
         for e in f.get("evidence", []):
             item = {"flag": f["id"], "severity": f["severity"], "title": f["title"],
                     "ref": e.get("ref"), "excerpt": e.get("excerpt")}
-            if e.get("kind") == "file":
-                rel, line = locate(e["ref"])
-                if line:
-                    item["context"], item["error"] = context(root, rel, line, a.context)
+            # Location only for a credential; location and a fixed notice for text aimed at the
+            # evaluator unless the person running this asked to see it. Neither the excerpt nor
+            # the neighbouring lines are read in those cases.
+            if f["id"] == SECRET_FLAG or (f["id"] == DIRECTED_FLAG and not a.show_directed_text):
+                item["excerpt"] = None
+                item["withheld"] = SECRET_NOTICE if f["id"] == SECRET_FLAG else DIRECTED_NOTICE
+            else:
+                if e.get("kind") == "file":
+                    rel, line = locate(e["ref"])
+                    if line:
+                        item["context"] = None
+                        lines, item["error"] = read_lines(root, rel)
+                        if lines is not None:
+                            blocked = block_lines(lines)
+                            if line in blocked:
+                                item["excerpt"] = BLOCK_NOTICE if item["excerpt"] else item["excerpt"]
+                            item["context"] = context(lines, line, a.context, blocked)
+                            for row in item["context"]:
+                                row["text"] = withhold(scan, row["text"], a.show_directed_text)
+            # Every string the project produced (a path, a title, an excerpt, an error text)
+            # passes the credential and evaluator-text test, so a file name cannot carry either
+            # kind of text past it. The flag id and severity are tested below, once the logic is done.
+            # A withheld path prints as a notice with its line number.
+            for key, what in (("title", "title"), ("excerpt", "excerpt"), ("error", "error")):
+                if key in item:
+                    item[key] = withhold(scan, item[key], a.show_directed_text, what)
+            item["ref"] = withhold_reference(scan, item["ref"], a.show_directed_text)
+            # The card is read from a file, so its flag id and severity are input too: a card from an
+            # older version or one a person edited can hold anything there. Both are tested after the
+            # logic above has used the raw id, and always with the evaluator-text rule on.
+            item["flag"] = withhold(scan, item["flag"], False, "flag id")
+            item["severity"] = withhold(scan, item["severity"], False, "severity")
             items.append(item)
 
     if a.json:
@@ -80,6 +207,8 @@ def main(argv=None):
     for it in items:
         print(f"[{it['severity']}] {it['flag']}: {it['title']}")
         print(f"  at {it['ref']}")
+        if it.get("withheld"):
+            print(f"  ({it['withheld']})")
         for row in it.get("context") or []:
             mark = ">" if row["hit"] else " "
             print(f"  {mark} {row['line']:>5} | {row['text']}")

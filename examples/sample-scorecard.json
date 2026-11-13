@@ -4,7 +4,6 @@
   "project": {
     "name": "sample-project",
     "path": "sample-project",
-    "commit": null,
     "measured_at": "2026-09-24T00:00:00+00:00",
     "archetype": "catalogue",
     "archetype_evidence": [
@@ -127,9 +126,9 @@
     "history": {
       "value": {
         "available": false,
-        "reason": "no git directory — history cannot be measured"
+        "reason": "disabled in 0.1.2"
       },
-      "command": "git rev-list / log"
+      "command": "not measured: no git program is run"
     },
     "third_party_declarations": {
       "value": 0,
@@ -207,12 +206,12 @@
         {
           "kind": "file",
           "ref": "skills/data-export/SKILL.md:10",
-          "excerpt": "[planted text withheld from this committed copy; src/quiet_counsel/sample.py assembles it]"
+          "excerpt": "<text withheld: text addressed to the evaluator>"
         },
         {
           "kind": "file",
           "ref": "skills/data-export/SKILL.md:10",
-          "excerpt": "[planted text withheld from this committed copy; src/quiet_counsel/sample.py assembles it]"
+          "excerpt": "<text withheld: text addressed to the evaluator>"
         }
       ]
     },
@@ -448,7 +447,7 @@
     ]
   },
   "limits": [
-    "Provenance was not measured: no git directory — history cannot be measured",
+    "History and provenance were not measured: disabled in 0.1.2. The tool starts no git program in this release; history returns in a later release with a contained design.",
     "No corpus given, so duplication against known public projects was not measured (--corpus DIR).",
     "Screen mode is mechanical. No score here is a judgement, and every dimension is marked unverified until a deep pass.",
     "Regex sweeps find shapes, not meanings: a fixture can look like a credential and a quoted licence can look like a breach. Every flag names its evidence, a file and line or a command or commit, so a reader can check."

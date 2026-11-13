@@ -1,6 +1,6 @@
 # Install
 
-Quiet Counsel needs Python 3.11 or newer and git. It has no other dependency. Every command below was run in a fresh environment on Windows 11 with Python 3.13 before it was written here.
+Quiet Counsel needs Python 3.11 or newer. It has no other dependency, and the tool starts no git program; you need git only to install from a git address. Every command below was run in a fresh environment on Windows 11 with Python 3.13 before it was written here.
 
 ## Install a release
 

@@ -16,7 +16,7 @@ out the first group already. The second group still gets through, and needs a pe
 | third-party text | a closed project marking its own skills proprietary; a `source:` field in a YAML registry | restrictive terms count only with a named source or under an open root licence; source lines count only in a file's header, never in data files |
 | writes to host configuration | a doc comment or guide naming `AGENTS.md` or a settings file; a script that only reads `CLAUDE.md` | only code lines that write count, never comments, docs or test paths; a confirmation, dry run or opt-in flag in the same file lowers it to a warning |
 | stale instructions | an owner/repo name such as `someone/tool`, a placeholder, a URL, a command inside a code block | a slash counts as a path only when its first segment is in the tree; a bare file name counts only when no file of that name exists anywhere; placeholders, URLs and fenced code are skipped |
-| provenance | a shallow clone looking like a squashed import | history is not measured on a shallow clone |
+| provenance | a shallow clone looking like a squashed import | history is not measured in 0.1.2, so no such flag is raised |
 | inventory claims | "works with 15 agents", a compatibility claim | read as compatibility, never as a count |
 
 ## Still gets through, and needs a person

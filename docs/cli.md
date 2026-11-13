@@ -77,4 +77,3 @@ Write the synthetic sample project with planted problems.
 | argument | meaning |
 |---|---|
 | `dest` | the directory to create |
-| `--git` | also make it a git repository |

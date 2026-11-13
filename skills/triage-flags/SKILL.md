@@ -6,7 +6,7 @@ description: >
   skill when a screen has raised flags, before reporting any flag to a person, when someone
   asks why a project landed in its band, or when a project's owner disputes a flag. Checking a
   review's citations belongs to review-project; this skill neither scores nor changes anything.
-license: Apache-2.0
+license: MIT
 compatibility: >
   Needs Python 3.11 or newer and read access to the project the scorecard describes. No
   network access and no model calls.
@@ -27,6 +27,11 @@ python3 scripts/triage_flags.py <scorecard.json> --project <path>
 For every flag it prints the severity, the file, the line and the lines around it. `--context`
 sets how many lines, `--all` includes information-level flags, and `--json` gives the same as
 data. `--project` is needed when the card was written from a different working directory.
+
+For a credential flag it prints the location only, and any neighbouring line that holds a
+credential reads as withheld. For a flag raised on text aimed at the evaluator it prints the
+location and a notice; `--show-directed-text` prints that text when a person has asked to see it.
+Read the file at the printed location yourself when you need the line.
 
 ## Decide each one
 

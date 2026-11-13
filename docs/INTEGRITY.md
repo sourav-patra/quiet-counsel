@@ -38,7 +38,7 @@ prompt, and says in the report that it was found.
 
 ## Originality and provenance
 
-Five mechanical signals, none conclusive alone. The report gives the signals and leaves the
+Five mechanical signals, none conclusive alone. In 0.1.2 three of them (first-commit mass, history shape and timestamp consistency) are not measured, because the tool starts no git program; the card says so in its limits with the reason `disabled in 0.1.2`, and history returns in a later release. The report gives the signals and leaves the
 conclusion to a person.
 
 | Signal | What it measures | What it does not mean |
@@ -49,7 +49,7 @@ conclusion to a person.
 | Timestamp consistency | Commit times against the event window, author and committer dates disagreeing | Rebases legitimately rewrite dates |
 | Vendored-to-first-party ratio | Third-party lines against the project's own | A thin wrapper around a good library is a valid project, if it says so |
 
-A shallow clone reports nothing at all. History fetched with `--depth 1` describes how you
+When history returns, a shallow clone will report nothing at all. History fetched with `--depth 1` describes how you
 fetched it, not how the work was written, and reading provenance from it produced a false flag
 on four public repositories during testing.
 
@@ -164,12 +164,37 @@ bytes (`scan.py:413`), and the licence-text scan (`scan.py:837`) and the provena
 (`scan.py:943`) skip one over 500,000 bytes. A credential, hook or instruction in a file that size
 is not seen by that scan and raises no flag from it.
 
-A credential-shaped name. The scorecard replaces a credential shape in a file or directory name, a
-frontmatter key or a README claim phrase with `<redacted>`, since none of these is a quoted source
-line. A file called like a key appears in references as `<redacted>.sh:1`, which no longer
-resolves, so `check_evidence.py` reports that citation as broken. A project directory named like a
-key gets a redacted `project.path`, and the review scripts then cannot find it unless `--project`
-is given. There is no mapping back and no refusal to export (case S-18).
+A credential-shaped or aimed name. Every string on a scorecard, a worksheet, a verdict and the
+output of `classify` and `integrity` passes one filter (`scan.withhold_all`): a credential shape, a
+credential word with an assignment and a value, or text aimed at the evaluator is replaced by a
+notice such as `<text withheld: credential>`. This covers file and directory names, frontmatter
+keys, README claim phrases, excerpts and a reviewer's rationale. A file called like a key appears in
+references as a notice, which no longer resolves, and its line number is lost with it, so
+`check_evidence.py` cannot check that citation. A project directory named like a key gets a withheld
+`project.path`, and the review scripts then cannot find it unless `--project` is given; the card is
+written to `project-N.json` in place of a name that is not a legal file name, and two projects never
+share a file: every name is chosen over the whole cohort, a clash gets `-2`, `-3` and so on, and a file
+that already exists stops the run and is never replaced (case H-43). There is no mapping back and no
+refusal to export (cases S-18 and H-36).
+
+The same filter runs at the command, not only where a card is made. `dashboard` and `verdict` filter
+the cards they load, because a card read from a file may predate the filter or have been edited by a
+person; `check` prints a JSON path and a rule for each problem and never a value from the card; the
+`check_evidence.py` and `selection_eval.py` tools filter what they print (cases H-40 and H-41).
+`selection_eval.py --skills` reads only directories and `SKILL.md` files that resolve inside that
+directory and names each skipped link on stderr (case H-42).
+
+When `finalize` replaces a reviewer's excerpt by a notice it stores the SHA-256 of the raw excerpt
+beside it (`excerpt_sha256`, an internal field). `verify` then reports a correct citation of a
+withheld line as `withheld, verified by digest` and a changed or wrong line as a mismatch; a notice
+with no digest, a wrong digest or the digest of the notice text cannot be checked and is refused,
+even when the cited line holds the notice text (cases H-44 and H-48). `finalize` withholds an excerpt
+only when `verify` could check it later: an excerpt over 400 characters, or one that starts past
+character 5,000 of its line, is refused as too long to withhold and verify (case H-49).
+`check_evidence.py` accepts a notice only
+for the reason the current line is withheld (case H-45). The digest is of the whole excerpt, so an
+excerpt that is short or guessable (a bare common password) can be tested by anyone who holds the
+worksheet; quote the line, not the value.
 
 Whether a human or a model wrote the code. The tool deliberately does not guess. There is no
 reliable detector, the question is usually the wrong one at an AI hackathon, and a false

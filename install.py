@@ -4,7 +4,8 @@
   python3 install.py --dest <skills-dir> [--agents-dest <agents-dir>] [--dry-run] [--force]
   python3 install.py --list
 
-Each skill is copied whole, with its scripts and references, to <skills-dir>/<skill-name>/.
+Each skill is copied whole, with its scripts and references and a copy of this repository's
+LICENSE, to <skills-dir>/<skill-name>/.
 Each role is copied to <agents-dir>/<role>.md. Nothing is ever deleted. An existing skill or
 role is left alone unless --force is given, and then only the files this repository ships are
 overwritten.
@@ -53,6 +54,9 @@ def plan(dest, agents_dest):
                 conflicts.append(target)
             for src, rel in files_of(s):
                 steps.append((src, os.path.join(target, rel)))
+            # Each skill declares the repository's licence, and a skill installed alone has no
+            # other copy of its terms next to it.
+            steps.append((os.path.join(HERE, "LICENSE"), os.path.join(target, "LICENSE")))
     if agents_dest:
         for r in roles():
             target = os.path.join(agents_dest, r)

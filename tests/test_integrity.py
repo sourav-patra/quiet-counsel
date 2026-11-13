@@ -3,12 +3,10 @@ Every flag here names a file and a line; none is raised from an impression."""
 
 import os
 import shutil
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
-from helpers import GIT_ENV, MINIMAL, flag, flag_ids, project, scan, screen
+from helpers import MINIMAL, flag, flag_ids, project, scan, screen
 
 GPL_FILE = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n"
 SPDX_GPL = "# SPDX-License-" + "Identifier: GPL-3.0\n"
@@ -85,26 +83,20 @@ class Duplication(unittest.TestCase):
 
 
 class Provenance(unittest.TestCase):
-    def test_I10_a_shallow_clone_reports_no_provenance_at_all(self):
-        src = project({**MINIMAL, **{f"f{i}.txt": f"{i}\n" for i in range(250)}}, git=True)
-        dest = os.path.join(tempfile.mkdtemp(), "clone")
-        subprocess.run(["git", "clone", "-q", "--depth", "1", f"file://{src}", dest], check=True,
-                       capture_output=True, env={**os.environ, **GIT_ENV})
-        card = scan.screen(dest)
-        self.assertTrue(card["signals"]["history"]["value"].get("shallow"))
-        self.assertNotIn("imported-first-commit", flag_ids(card))
-        self.assertTrue(any("shallow clone" in l for l in card["limits"]))
-
-    def test_I11_a_first_commit_holding_the_finished_project_is_a_warning(self):
+    def test_I10_a_repository_with_history_reports_it_as_not_measured_in_0_1_2(self):
         card = screen({**MINIMAL, **{f"src/m{i}.py": f"v = {i}\n" for i in range(210)}}, git=True)
-        f = flag(card, "imported-first-commit")
-        self.assertEqual(f["severity"], "warning")
-        self.assertIn("212 files", f["evidence"][0]["excerpt"])
+        self.assertEqual(card["signals"]["history"]["value"], {"available": False, "reason": "disabled in 0.1.2"})
+        self.assertNotIn("imported-first-commit", flag_ids(card))
+        self.assertNotIn("commit", card["project"])
+        self.assertTrue(any("History and provenance were not measured: disabled in 0.1.2" in l
+                            for l in card["limits"]))
 
-    def test_I12_history_that_begins_before_the_event_is_a_warning(self):
+    def test_I12_an_event_window_is_not_checked_without_history_and_the_card_says_so(self):
         root = project(MINIMAL, commits={"first_date": "2026-08-01T10:00:00Z"})
         card = scan.screen(root, event=("2026-09-20", "2026-09-22"))
-        self.assertIn("work-predates-event", flag_ids(card))
+        self.assertNotIn("work-predates-event", flag_ids(card))
+        self.assertTrue(any("event window was not checked" in l for l in card["limits"]), card["limits"])
+        self.assertFalse(any("event window" in l for l in scan.screen(root)["limits"]))
 
 
 class Exclusions(unittest.TestCase):
