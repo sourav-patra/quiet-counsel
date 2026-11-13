@@ -114,7 +114,8 @@
       "properties": {
         "kind": { "enum": ["command", "file", "commit", "url", "note"] },
         "ref": { "type": "string", "description": "The command run, or path:line, or a commit, or a URL" },
-        "excerpt": { "type": "string", "description": "Verbatim output or file content. Truncated excerpts end with an ellipsis." }
+        "excerpt": { "type": "string", "description": "Verbatim output or file content. Truncated excerpts end with an ellipsis." },
+        "excerpt_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Internal. Set by finalize when it replaces a sensitive excerpt by a notice: the SHA-256 of the raw excerpt, which verify compares with the cited line." }
       }
     },
     "signal": {

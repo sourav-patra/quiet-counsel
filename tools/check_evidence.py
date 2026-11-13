@@ -13,7 +13,8 @@ The comparison: the excerpt, whitespace collapsed, must appear in the cited line
 decorations the tool itself adds for that flag are set aside (a shape or licence label, a code point
 list, a gate note). "<line withheld>" matches only a line the scanner withholds, and quoted text
 never matches one. A notice such as "<text withheld: text addressed to the evaluator>" matches only a
-line that `scan.withhold_text` withholds. An excerpt with nothing left to compare does not match.
+line that `scan.withhold_text` withholds for that same reason. An excerpt with nothing left to compare
+does not match. Every line the tool prints passes `scan.withhold_text`.
 """
 
 import os
@@ -90,8 +91,10 @@ def check_ref(root, path, line, excerpt=None, flag_id=None):
     if excerpt is None:
         return "match"
     text = lines[int(line) - 1]
-    if NOTICE_RE.match(_norm(excerpt)):  # a notice matches only a line the output filter withholds
-        return "withheld" if scan.withhold_text(text) != text else "differs"
+    if NOTICE_RE.match(_norm(excerpt)):
+        # a notice matches only a line the output filter withholds, and only for the reason it gives:
+        # a credential notice does not vouch for a line aimed at the evaluator, nor the reverse
+        return "withheld" if scan.withhold_text(text) == _norm(excerpt) else "differs"
     if not _contains(text, excerpt, flag_id):
         return "differs"
     return "withheld" if scan.holds_secret(text) else "match"
@@ -188,7 +191,9 @@ def main(argv):
         print(__doc__.strip())
         return 0 if "--help" in argv or "-h" in argv else 2
     text, m = report(args[0], "--list" in argv)
-    print(text)
+    # The report names the project path and quotes citations from the project, so each line passes the
+    # one output filter before it is printed.
+    print(chr(10).join(scan.withhold_text(line, "line") for line in text.split(chr(10))))
     return 1 if m["broken"] else 0
 
 

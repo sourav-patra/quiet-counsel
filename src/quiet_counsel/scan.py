@@ -365,11 +365,45 @@ def withhold_all(value, what="text"):
     return value
 
 
+_RESERVED = {"con", "prn", "aux", "nul", *(f"com{n}" for n in range(1, 10)), *(f"lpt{n}" for n in range(1, 10))}
+
+
+def _plain_name(name):
+    """True for a project name that is a legal file name on every system: word characters, dots,
+    hyphens and spaces, not `.` or `..`, not ending in a dot or a space, not a reserved device name."""
+    return (bool(re.fullmatch(r"[\w.\- ]+", name)) and name not in (".", "..")
+            and not name.endswith((".", " ")) and name.split(".")[0].strip().casefold() not in _RESERVED)
+
+
 def card_file_name(name, index):
     """The file a scorecard is written to. A project name that was withheld is a notice, which is
     not a legal file name (it holds `<`, `>` and `:`), so a name that is not plain becomes
-    `project-N` and two withheld names do not write to one file."""
-    return f"{name}.json" if re.fullmatch(r"[\w.\- ]+", name) and name not in (".", "..") else f"project-{index}.json"
+    `project-N`. For a whole cohort use `card_file_names`, which also keeps two names apart."""
+    return f"{name}.json" if _plain_name(name) else f"project-{index}.json"
+
+
+def card_file_names(names):
+    """One file name per project name, all different, chosen over the whole list before anything is
+    written. A plain name keeps its own name and a name that is not plain (a withheld one) becomes
+    `project-N`; any name that is already taken, compared without regard to letter case, a trailing dot
+    or a trailing space (a file system folds them), gets `-2`, `-3` and so on. Names that are plain are
+    placed first, so a project that is really called `project-1` keeps it and the withheld one moves."""
+    taken, out = set(), [None] * len(names)
+
+    def fold(stem):
+        return (stem + ".json").casefold().rstrip(". ")
+
+    order = ([i for i, n in enumerate(names) if _plain_name(n)]
+             + [i for i, n in enumerate(names) if not _plain_name(n)])
+    for i in order:
+        stem = names[i] if _plain_name(names[i]) else f"project-{i + 1}"
+        base, k = stem, 1
+        while fold(stem) in taken:
+            k += 1
+            stem = f"{base}-{k}"
+        taken.add(fold(stem))
+        out[i] = stem + ".json"
+    return out
 
 
 def ev(kind, ref, excerpt=None, label=""):

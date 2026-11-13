@@ -15,7 +15,6 @@ the hits per set (tuning and held-out) and every miss. Exit 0 always for `prompt
 """
 
 import argparse
-import glob
 import json
 import os
 import re
@@ -23,12 +22,39 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(REPO, "src"))
+
+from quiet_counsel import scan  # noqa: E402
+
 EVALS = os.path.join(REPO, "evals", "triggers.jsonl")
 
 
+def _skipped(what, name):
+    print(f"skipped, resolves outside the skills directory: {what} {scan.withhold_text(name, 'name')}",
+          file=sys.stderr)
+
+
 def descriptions(skills_dir):
+    """(name, description) for each skill directly under `skills_dir`. A directory or a SKILL.md that
+    is a link resolving outside `skills_dir` is never entered or opened; it is named on stderr."""
     out = []
-    for path in sorted(glob.glob(os.path.join(skills_dir, "*", "SKILL.md"))):
+    for entry in sorted(os.listdir(skills_dir)):
+        if entry.startswith("."):
+            continue
+        folder = os.path.join(skills_dir, entry)
+        if not os.path.isdir(folder):
+            continue
+        if not scan.contained(skills_dir, folder):
+            _skipped("directory", entry)
+            continue
+        path = os.path.join(folder, "SKILL.md")
+        if not os.path.lexists(path):
+            continue
+        if not scan.contained(skills_dir, path):
+            _skipped("file", f"{entry}/SKILL.md")
+            continue
+        if not os.path.isfile(path):
+            continue
         with open(path, encoding="utf-8") as fh:
             head = fh.read().split("---")[1]
         name = re.search(r"(?m)^name:\s*(.+)$", head).group(1).strip()
@@ -46,7 +72,10 @@ def rows():
 
 def build_prompt(skills_dir):
     lines = ["Skills available:"]
-    lines += [f"- {name}: {text}" for name, text in descriptions(skills_dir)]
+    # A skill name and description come from whatever directory --skills names, and the prompt is read by
+    # a model, so each passes the one output filter before it is written.
+    lines += [f"- {scan.withhold_text(name, 'skill name')}: {scan.withhold_text(text, 'description')}"
+              for name, text in descriptions(skills_dir)]
     lines += ["", "For each user request below, say which ONE skill you would load to handle it, or "
               "null if none of these skills fits the request. Reply with only a JSON object mapping "
               "the request number (as a string) to a skill name or null. No other text.", ""]
@@ -72,7 +101,8 @@ def score(paths):
             s[0] += hit
             s[1] += 1
             if not hit:
-                misses.append(f"  {i}. expected {r['expect']}, got {got}: {r['prompt']}")
+                shown = scan.withhold_text(got, "answer") if isinstance(got, str) else got
+                misses.append(f"  {i}. expected {r['expect']}, got {shown}: {r['prompt']}")
         summary = ", ".join(f"{k} {v[0]}/{v[1]}" for k, v in sorted(by_set.items()))
         print(f"{path}: {summary}")
         print("\n".join(misses) if misses else "  no misses")

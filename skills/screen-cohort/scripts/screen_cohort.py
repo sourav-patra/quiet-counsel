@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Screen one or many agent projects and build the cohort dashboard in one step.
 
-Exit codes: 0 done, 2 nothing to screen. Findings never change the exit code: a screen reports,
-it does not fail.
+Exit codes: 0 done, 2 nothing to screen, or a card file already exists (one is never replaced).
+Findings never change the exit code: a screen reports, it does not fail.
 """
 
 import argparse
@@ -48,14 +48,19 @@ def main(argv=None):
     if not dirs:
         return 2
     os.makedirs(a.out, exist_ok=True)
-    cards, written = [], []
-    for n, p in enumerate(dirs, 1):
-        card = scan.screen(p, a.corpus, honour_ignore=False)
-        dest = os.path.join(a.out, scan.card_file_name(card["project"]["name"], n))
-        with open(dest, "w", encoding="utf-8", newline="\n") as fh:
-            json.dump(card, fh, indent=2, ensure_ascii=False)
-            fh.write("\n")
-        cards.append(card)
+    written = []
+    # Every file name is chosen over the whole cohort before any file is written, and each file is
+    # created exclusively, so a card never replaces another card or a file an earlier run left.
+    cards = [scan.screen(p, a.corpus, honour_ignore=False) for p in dirs]
+    for card, name in zip(cards, scan.card_file_names([c["project"]["name"] for c in cards])):
+        dest = os.path.join(a.out, name)
+        try:
+            with open(dest, "x", encoding="utf-8", newline="\n") as fh:
+                json.dump(card, fh, indent=2, ensure_ascii=False)
+                fh.write("\n")
+        except FileExistsError:
+            print(f"refusing to replace an existing file: {dest}", file=sys.stderr)
+            return 2
         written.append(dest)
     page = a.dashboard or os.path.join(a.out, "cohort.html")
     with open(page, "w", encoding="utf-8", newline="\n") as fh:

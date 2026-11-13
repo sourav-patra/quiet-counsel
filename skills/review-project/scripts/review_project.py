@@ -268,6 +268,47 @@ def _caps(card):
     return {f["caps"] for f in card["flags"] if f.get("caps") and f["severity"] != "info"}
 
 
+NOTICE_RE = re.compile(r"^<[a-z]+ withheld: (credential|text addressed to the evaluator)>$")
+DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+SCAN_LIMIT = 5000  # characters of a source line searched for a withheld excerpt
+
+
+def excerpt_sha(text):
+    """The SHA-256 of an excerpt as `verify` compares it: the text with its edges trimmed."""
+    return sha(text.strip())
+
+
+def keep_digests(scan, card):
+    """Beside every excerpt that the output filter will replace by a notice, store `excerpt_sha256`
+    of the raw excerpt (an internal field: the renderer never prints it). An excerpt that is already a
+    notice keeps the digest it has."""
+    for group in (card.get("flags") or [], card.get("dimensions") or []):
+        for item in group if isinstance(group, list) else []:
+            for e in (item.get("evidence") or []) if isinstance(item, dict) else []:
+                text = e.get("excerpt") if isinstance(e, dict) else None
+                if isinstance(text, str) and scan.withhold_text(text) != text:
+                    e["excerpt_sha256"] = excerpt_sha(text)
+
+
+def holds_excerpt(line, digest):
+    """True when some part of `line` (edges trimmed, at most 400 characters, in its first
+    SCAN_LIMIT characters) hashes to `digest`: the raw excerpt is on the line, though neither is shown."""
+    line = line[:SCAN_LIMIT]
+    if sha(line.strip()) == digest:  # the usual case: the whole line was copied
+        return True
+    starts = [i for i, ch in enumerate(line) if not ch.isspace()]
+    ends = [j for j in range(1, len(line) + 1) if not line[j - 1].isspace()]
+    for i in starts:
+        for j in ends:
+            if j <= i:
+                continue
+            if j - i > 400:
+                break
+            if sha(line[i:j]) == digest:
+                return True
+    return False
+
+
 def cmd_finalize(a):
     dashboard, scan, schema = load()
     with open(a.worksheet, encoding="utf-8") as fh:
@@ -313,7 +354,10 @@ def cmd_finalize(a):
         "caps_applied": applied,
     }
     # The reviewer copies project text into rationale and evidence. The worksheet and the card the
-    # renderer gets both pass the one output filter; the renderer itself filters nothing.
+    # renderer gets both pass the one output filter; the renderer itself filters nothing. An excerpt
+    # the filter is about to replace by a notice first gets the SHA-256 of its raw text beside it, so
+    # `verify` can still tell a correct citation of a withheld line from a wrong one.
+    keep_digests(scan, card)
     card = scan.withhold_all(card)
     with open(a.worksheet, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(card, fh, indent=2, ensure_ascii=False)
@@ -342,7 +386,7 @@ def cmd_verify(a):
     with open(a.worksheet, encoding="utf-8") as fh:
         card = json.load(fh)
     root = a.project or card["project"]["path"]
-    bad, unverifiable, ok = [], [], 0
+    bad, unverifiable, ok, by_digest = [], [], 0, []
 
     def ref_of(e):
         """A reference as printed: a path that holds a credential or aimed text becomes a notice."""
@@ -372,13 +416,26 @@ def cmd_verify(a):
                 bad.append(f"{d['id']}: {ref_of(e)} does not exist")
                 continue
             want = (e.get("excerpt") or "").strip()
-            if want and want not in line:
+            digest = e.get("excerpt_sha256")
+            if not want or want in line:
+                ok += 1
+            elif NOTICE_RE.match(want) and isinstance(digest, str) and DIGEST_RE.match(digest):
+                # finalize replaced a sensitive excerpt by a notice and kept the digest of the raw text
+                if holds_excerpt(line, digest):
+                    ok += 1
+                    by_digest.append(f"{d['id']}: {ref_of(e)}")
+                else:
+                    bad.append(f"{d['id']}: {ref_of(e)} no longer reads the withheld excerpt it cited")
+            elif NOTICE_RE.match(want):
+                bad.append(f"{d['id']}: {ref_of(e)} cites a withheld excerpt with no digest, "
+                           "so it cannot be checked; copy the line again and finalize")
+            else:
                 # the excerpt is project text the reviewer copied: printed only if it passes the test
                 bad.append(f"{d['id']}: {ref_of(e)} no longer reads "
                            f"{scan.withhold_text(want, 'excerpt')!r}")
-            else:
-                ok += 1
     print(f"{ok} citation(s) match")
+    for w in by_digest:
+        print(f"  withheld, verified by digest: {w}")
     for u in unverifiable:
         print(f"  not checked: {u}")
     for b in bad:

@@ -172,8 +172,25 @@ keys, README claim phrases, excerpts and a reviewer's rationale. A file called l
 references as a notice, which no longer resolves, and its line number is lost with it, so
 `check_evidence.py` cannot check that citation. A project directory named like a key gets a withheld
 `project.path`, and the review scripts then cannot find it unless `--project` is given; the card is
-written to `project-N.json` in place of a name that is not a legal file name. There is no mapping
-back and no refusal to export (cases S-18 and H-36).
+written to `project-N.json` in place of a name that is not a legal file name, and two projects never
+share a file: every name is chosen over the whole cohort, a clash gets `-2`, `-3` and so on, and a file
+that already exists stops the run and is never replaced (case H-43). There is no mapping back and no
+refusal to export (cases S-18 and H-36).
+
+The same filter runs at the command, not only where a card is made. `dashboard` and `verdict` filter
+the cards they load, because a card read from a file may predate the filter or have been edited by a
+person; `check` prints a JSON path and a rule for each problem and never a value from the card; the
+`check_evidence.py` and `selection_eval.py` tools filter what they print (cases H-40 and H-41).
+`selection_eval.py --skills` reads only directories and `SKILL.md` files that resolve inside that
+directory and names each skipped link on stderr (case H-42).
+
+When `finalize` replaces a reviewer's excerpt by a notice it stores the SHA-256 of the raw excerpt
+beside it (`excerpt_sha256`, an internal field). `verify` then reports a correct citation of a
+withheld line as `withheld, verified by digest` and a changed or wrong line as a mismatch; a notice
+with no digest cannot be checked and is refused (case H-44). `check_evidence.py` accepts a notice only
+for the reason the current line is withheld (case H-45). The digest is of the whole excerpt, so an
+excerpt that is short or guessable (a bare common password) can be tested by anyone who holds the
+worksheet; quote the line, not the value.
 
 Whether a human or a model wrote the code. The tool deliberately does not guess. There is no
 reliable detector, the question is usually the wrong one at an AI hackathon, and a false

@@ -109,11 +109,19 @@ def main(argv=None):
             print(json.dumps(cards if len(cards) > 1 else cards[0], indent=2, default=str))
             return 0
         os.makedirs(a.out, exist_ok=True)
-        for n, card in enumerate(cards, 1):
-            dest = os.path.join(a.out, scan.card_file_name(card["project"]["name"], n))
-            with open(dest, "w", encoding="utf-8", newline="\n") as fh:
-                json.dump(card, fh, indent=2, default=str, ensure_ascii=False)
-                fh.write("\n")
+        # Every file name is chosen before any file is written, over the whole cohort, and each file is
+        # created exclusively: a name already taken (by another card, or by a file an earlier run left)
+        # stops the run and is never replaced.
+        names = scan.card_file_names([c["project"]["name"] for c in cards])
+        for card, name in zip(cards, names):
+            dest = os.path.join(a.out, name)
+            try:
+                with open(dest, "x", encoding="utf-8", newline="\n") as fh:
+                    json.dump(card, fh, indent=2, default=str, ensure_ascii=False)
+                    fh.write("\n")
+            except FileExistsError:
+                print(f"refusing to replace an existing file: {dest}", file=sys.stderr)
+                return 2
         print(f"{len(cards)} scorecard(s) written to {a.out}")
         order = {"blocked": 0, "review": 1, "shortlist": 2, "screened": 3}
         for card in sorted(cards, key=lambda c: order[c["totals"]["band"]]):
@@ -151,11 +159,16 @@ def main(argv=None):
         return 0
 
     if a.cmd == "dashboard":
-        cards = _load(a.cards)
+        # The cards are read from files, so they are input and not the tool's own output: a card from an
+        # older version, or one a person edited, can hold a credential or text aimed at the evaluator in
+        # a rationale, an evidence path, a tag or a commit. Every string passes the one output filter
+        # before the renderer sees it; the renderer itself filters nothing.
+        cards = [scan.withhold_all(c) for c in _load(a.cards)]
         try:
             page = dashboard.build(cards, a.title, strict=a.strict)
         except dashboard.Unevidenced as exc:
-            print(f"refusing to build: scored with no evidence: {exc}", file=sys.stderr)
+            print(f"refusing to build: scored with no evidence: {scan.withhold_text(str(exc), 'name')}",
+                  file=sys.stderr)
             return 1
         with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(page)
@@ -170,7 +183,9 @@ def main(argv=None):
                 bad += 1
                 print(f"{path}: {len(found)} problem(s)")
                 for p in found:
-                    print(f"  {p}")
+                    # each problem is a JSON path and a rule; the one key a path can carry (a signal
+                    # name) comes from the card, so the line passes the output filter
+                    print(f"  {scan.withhold_text(p, 'problem')}")
             else:
                 print(f"{path}: ok")
         return 1 if bad else 0
@@ -178,9 +193,11 @@ def main(argv=None):
     if a.cmd == "verdict":
         with open(a.scorecard, "rb") as fh:
             raw = fh.read()
-        result = verdict.make(json.loads(raw), raw, a.gate_status)
+        # The verdict quotes flag ids, evidence paths, a tag and a commit from a card that was read from a
+        # file. The digest is of the file as it stands; every string that is printed passes the filter.
+        result = verdict.make(scan.withhold_all(json.loads(raw)), raw, a.gate_status)
         with open(a.out, "wb") as fh:
-            fh.write(verdict.render(result))
+            fh.write(verdict.render(scan.withhold_all(result)))
         return 0
 
     if a.cmd == "sample":
