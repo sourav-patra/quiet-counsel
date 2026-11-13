@@ -43,41 +43,20 @@ def load():
     return scan
 
 
-_ASSIGNED = {}
-
-
 def credential_assignment(scan, text):
-    """True when `text` holds a credential word followed by an assignment and a value (`password=x`,
-    `"api_key": "x"`, `token: x`), or a URL with a user and password. A credential word alone
-    (`token_utils.py`) does not count, so a path or a title can still say which file a flag is
-    about."""
-    rx = _ASSIGNED.get("rx")
-    if rx is None:
-        words = scan.SECRET_WORD_RE.pattern.replace("(?i)", "", 1)  # the scan's own word list
-        url = r"://[^/\s:@]+:[^/\s@]+@"
-        rx = _ASSIGNED["rx"] = re.compile(r"(?:" + words + r")\w*[\"'\]]*\s*[=:]\s*[\"']?[^\s\"']|" + url, re.I)
-    return bool(rx.search(text))
+    """See `quiet_counsel.scan.credential_assignment`, the one rule every output path shares."""
+    return scan.credential_assignment(text)
 
 
-def withhold(scan, text, show_directed, what="line", strict=False):
+def withhold(scan, text, show_directed, what="line"):
     """The text to print for anything that came from the scanned project (a source line, a path,
     a title, an error string): the text itself, or a notice that it was withheld. `what` names
-    the kind of text in the notice. Every such field is withheld when it holds a credential shape
-    or a credential word with an assignment and a value, and (unless `show_directed`) text
-    addressed to the evaluator. `strict` is for a source line quoted from a file, which is also
-    withheld for a credential word alone. The tool's own flag id and severity are not passed
-    through here: the project does not produce them."""
-    if not isinstance(text, str):
-        return text
-    if strict:
-        secret = scan.holds_secret(text)
-    else:
-        secret = any(rx.search(text) for _, rx in scan.SHAPE_RES) or credential_assignment(scan, text)
-    if secret:
-        return f"<{what} withheld: credential>"
-    if not show_directed and any(re.search(p, text) for p in scan.EVALUATOR_DIRECTED):
-        return f"<{what} withheld: text addressed to the evaluator>"
-    return text
+    the kind of text in the notice. Every such field, a context row included, is withheld when it
+    holds a credential shape or a credential word with an assignment and a value, and (unless
+    `show_directed`) text addressed to the evaluator; a word such as `token` alone is not enough.
+    The tool's own flag id and severity are not passed through here: the project does not
+    produce them. The rule itself is `quiet_counsel.scan.withhold_text`."""
+    return scan.withhold_text(text, what, show_directed)
 
 
 def withhold_reference(scan, ref, show_directed):
@@ -199,7 +178,7 @@ def main(argv=None):
                                 item["excerpt"] = BLOCK_NOTICE if item["excerpt"] else item["excerpt"]
                             item["context"] = context(lines, line, a.context, blocked)
                             for row in item["context"]:
-                                row["text"] = withhold(scan, row["text"], a.show_directed_text, strict=True)
+                                row["text"] = withhold(scan, row["text"], a.show_directed_text)
             # Every string the project produced (a path, a title, an excerpt, an error text)
             # passes the credential and evaluator-text test, so a file name cannot carry either
             # kind of text past it. The flag id and severity come from the tool and are exempt.

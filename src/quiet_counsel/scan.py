@@ -342,6 +342,59 @@ def redact_all(value):
     return value
 
 
+_ASSIGNED = {}
+
+
+def credential_assignment(text):
+    """True when `text` holds a credential word followed by an assignment and a value (`password=x`,
+    `"api_key": "x"`, `token: x`), or a URL with a user and password. A credential word alone
+    (`token_utils.py`) does not count, so a path or a title can still say which file it is about."""
+    rx = _ASSIGNED.get("rx")
+    if rx is None:
+        words = SECRET_WORD_RE.pattern.replace("(?i)", "", 1)
+        url = r"://[^/\s:@]+:[^/\s@]+@"
+        rx = _ASSIGNED["rx"] = re.compile(
+            r"(?:" + words + r")\w*[\"'\]]*\s*[=:]\s*[\"']?[^\s\"']|" + url, re.I)
+    return bool(rx.search(text))
+
+
+def withhold_text(text, what="text", show_directed=False, strict=False):
+    """The text to print for anything that came from a scanned project (a path, a link target, a
+    source line, an error string): the text itself, or a notice that it was withheld. It is withheld
+    when it holds a credential shape or a credential word with an assignment and a value, and
+    (unless `show_directed`) text addressed to the evaluator. `strict` also withholds a credential
+    word alone, for a source line quoted from a file. Not for strings the tool itself produced."""
+    if not isinstance(text, str):
+        return text
+    secret = holds_secret(text) if strict else (
+        any(rx.search(text) for _, rx in SHAPE_RES) or credential_assignment(text))
+    if secret:
+        return f"<{what} withheld: credential>"
+    if not show_directed and any(re.search(p, text) for p in EVALUATOR_DIRECTED):
+        return f"<{what} withheld: text addressed to the evaluator>"
+    return text
+
+
+def withhold_all(value, what="text"):
+    """withhold_text() applied to every string in a structure, dict keys included. Two keys that
+    withhold to the same text stay two entries (#2, #3, ...)."""
+    if isinstance(value, str):
+        return withhold_text(value, what)
+    if isinstance(value, list):
+        return [withhold_all(v, what) for v in value]
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            base = nk = withhold_text(k, what) if isinstance(k, str) else k
+            n = 1
+            while nk in out:
+                n += 1
+                nk = f"{base}#{n}"
+            out[nk] = withhold_all(v, what)
+        return out
+    return value
+
+
 def ev(kind, ref, excerpt=None, label=""):
     out = {"kind": kind, "ref": ref}
     if excerpt is not None:

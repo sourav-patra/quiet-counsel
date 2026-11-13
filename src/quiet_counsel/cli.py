@@ -79,6 +79,10 @@ def main(argv=None):
             print(f"not a directory: {a.path}", file=sys.stderr)
             return 2
         arch, scores, evidence, found = scan.classify(os.path.abspath(a.path))
+        # The evidence names files and quotes lines of the project, so every string passes the same
+        # withholding as the rest of the output: credential text and text aimed at the evaluator
+        # are replaced by a notice. The archetype and scores are the tool's own.
+        evidence = scan.withhold_all(evidence)
         if a.json:
             print(json.dumps({"archetype": arch, "scores": scores, "evidence": evidence},
                              indent=2))

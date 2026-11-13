@@ -143,6 +143,29 @@ def digest(files):
     return h.hexdigest()
 
 
+def label(scan, text):
+    """A file name or link target as it is written or printed. Text that holds a credential or is
+    addressed to the evaluator becomes a notice followed by a short hash of the real text, so two
+    different withheld names stay different entries and a rename of one is still a change. The
+    fingerprint itself keeps the real names; only what leaves this script goes through here."""
+    out = scan.withhold_text(text, "name")
+    if out != text:
+        out += "~" + hashlib.sha256(text.encode("utf-8", "backslashreplace")).hexdigest()[:8]
+    return out
+
+
+def shown(scan, files):
+    """The fingerprint as it is stored in the worksheet and compared by finalize: every name and
+    link target passes `label`. A hash is a content digest and passes unchanged."""
+    out = {}
+    for rel in sorted(files):
+        value = files[rel]
+        if value.startswith("link:"):
+            value = "link:" + label(scan, value[5:])
+        out[label(scan, rel)] = value
+    return out
+
+
 def cmd_prepare(a):
     _, scan, _ = load()
     if not os.path.isdir(a.project):
@@ -152,7 +175,7 @@ def cmd_prepare(a):
     card["mode"] = "deep"
     files = fingerprint(a.project, skip=(a.out,))
     card["project"]["tree_sha256"] = digest(files)
-    card["project"]["tree_files"] = {rel: files[rel] for rel in sorted(files)}
+    card["project"]["tree_files"] = shown(scan, files)
     card["project"]["tree_root"] = os.path.abspath(a.project)
     for d in card["dimensions"]:
         d["confidence"] = "judged"
@@ -176,22 +199,27 @@ def tree_changes(card, project=None, skip=()):
     """Reasons to refuse if the project is not the tree the worksheet was prepared from. A
     reviewer is meant to read the project and never change it; this is where that is checked.
     The review's own worksheet and verdict are left out on both sides of the comparison."""
+    _, scan, _ = load()
     proj = card.get("project", {})
     old = proj.get("tree_files")
     if old is None:
         return ["the worksheet has no tree fingerprint; prepare it again with this version"]
     root = project or proj.get("tree_root") or proj["path"]
     if not os.path.isdir(root):
-        return [f"cannot find the project at {root} to confirm it is unchanged; pass --project"]
-    skipped = {os.path.relpath(os.path.abspath(p), os.path.abspath(root)).replace(os.sep, "/")
+        return [f"cannot find the project at {scan.withhold_text(root, 'path')} to confirm it is "
+                "unchanged; pass --project"]
+    skipped = {label(scan, os.path.relpath(os.path.abspath(p), os.path.abspath(root)).replace(os.sep, "/"))
                for p in skip if p}
     old = {r: v for r, v in old.items() if r not in skipped}
-    new = fingerprint(root, skip=skip)
+    new = shown(scan, fingerprint(root, skip=skip))
     changed = sorted(r for r in set(old) | set(new) if old.get(r) != new.get(r))
     if not changed:
         return []
-    shown = ", ".join(changed[:5]) + (f" and {len(changed) - 5} more" if len(changed) > 5 else "")
-    return [f"the project changed after prepare ({len(changed)} file(s): {shown}); a review "
+    # names come from the worksheet and from the tree: both already passed `label`, and a worksheet
+    # written by an older version or edited by hand passes it here
+    names = ", ".join(label(scan, r) for r in changed[:5]) + (
+        f" and {len(changed) - 5} more" if len(changed) > 5 else "")
+    return [f"the project changed after prepare ({len(changed)} file(s): {names}); a review "
             "reads the project and never edits it, so prepare again from a clean tree"]
 
 
@@ -212,10 +240,11 @@ def _caps(card):
 
 
 def cmd_finalize(a):
-    dashboard, _, schema = load()
+    dashboard, scan, schema = load()
     with open(a.worksheet, encoding="utf-8") as fh:
         card = json.load(fh)
-    reasons = list(schema.problems(card))
+    # a problem can quote project text (a claim, a flag id), so each one passes the same withholding
+    reasons = [scan.withhold_text(p, "problem") for p in schema.problems(card)]
     reasons += tree_changes(card, a.project, skip=(a.worksheet, a.out))
     if card.get("mode") != "deep":
         reasons.append("this is a screen card; run prepare first")
@@ -277,22 +306,29 @@ def inside(root, rel):
 
 
 def cmd_verify(a):
+    _, scan, _ = load()
     with open(a.worksheet, encoding="utf-8") as fh:
         card = json.load(fh)
     root = a.project or card["project"]["path"]
     bad, unverifiable, ok = [], [], 0
+
+    def ref_of(e):
+        """A reference as printed: a path that holds a credential or aimed text becomes a notice."""
+        return scan.withhold_text(str(e.get("ref")), "reference")
+
     for d in card["dimensions"]:
         for e in d.get("evidence") or []:
             if e.get("kind") != "file":
-                unverifiable.append(f"{d['id']}: {e.get('kind')} {e.get('ref')} (re-run it to check)")
+                unverifiable.append(f"{d['id']}: {scan.withhold_text(str(e.get('kind')), 'kind')} "
+                                    f"{ref_of(e)} (re-run it to check)")
                 continue
             head, _, tail = e["ref"].rpartition(":")
             if not tail.isdigit():
-                bad.append(f"{d['id']}: {e['ref']} has no line number")
+                bad.append(f"{d['id']}: {ref_of(e)} has no line number")
                 continue
             path = inside(root, head)
             if not path:
-                bad.append(f"{d['id']}: {e['ref']} is a broken citation: it leaves the project")
+                bad.append(f"{d['id']}: {ref_of(e)} is a broken citation: it leaves the project")
                 continue
             try:
                 with open(path, encoding="utf-8", errors="replace") as fh:
@@ -301,11 +337,13 @@ def cmd_verify(a):
                     raise IndexError
                 line = lines[int(tail) - 1]
             except (OSError, IndexError):
-                bad.append(f"{d['id']}: {e['ref']} does not exist")
+                bad.append(f"{d['id']}: {ref_of(e)} does not exist")
                 continue
             want = (e.get("excerpt") or "").strip()
             if want and want not in line:
-                bad.append(f"{d['id']}: {e['ref']} no longer reads {want!r}")
+                # the excerpt is project text the reviewer copied: printed only if it passes the test
+                bad.append(f"{d['id']}: {ref_of(e)} no longer reads "
+                           f"{scan.withhold_text(want, 'excerpt')!r}")
             else:
                 ok += 1
     print(f"{ok} citation(s) match")
