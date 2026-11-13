@@ -108,7 +108,12 @@ def read_lines(root, rel):
     if not path:
         return None, "broken citation: the reference leaves the project"
     try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
+        fh = load().open_text(path, root)
+        if fh is None:
+            if not os.path.exists(path):
+                open(path, "rb").close()  # raises the usual error for a missing file; never a pipe
+            return None, "not a regular file, so it was not read"
+        with fh:
             return fh.read().splitlines(), None
     except OSError as exc:
         return None, str(exc)

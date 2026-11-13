@@ -666,3 +666,90 @@ class LinksOutsideTheRoot(unittest.TestCase):
         self.assertNotIn(self.MARK, json.dumps(card))
         self.assertTrue(any(l.startswith("corpus: up/LICENSE: resolves to a file outside") for l in card["limits"]),
                         card["limits"])
+
+
+class DirectReaders(unittest.TestCase):
+    """Readers that open a named file of the scanned project (the ignore file, the folder-open
+    tasks, the instruction files) must survive bytes that are not text and files that are not
+    files. A hostile project is one input of a cohort run; it must not end the run."""
+
+    def _screen(self, root, *args):
+        env = {**os.environ, "PYTHONPATH": str(REPO / "src")}
+        return subprocess.run([sys.executable, "-m", "quiet_counsel", *args, root],
+                              capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              env=env, timeout=20)
+
+    def test_S42_invalid_utf8_in_the_ignore_file_and_another_named_file_does_not_end_the_screen(self):
+        root = project({**MINIMAL})
+        for rel, head in ((".gitignore", b"build/\n"), ("AGENTS.md", b"# Rules\n\nSee `README.md`.\n")):
+            with open(os.path.join(root, rel), "wb") as fh:
+                fh.write(head + b"\xff\xfe broken \x80\n")
+        r = self._screen(root, "screen")
+        self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        limits = json.loads(r.stdout)["limits"]
+        for rel in (".gitignore", "AGENTS.md"):
+            self.assertTrue(any(l.startswith(f"{rel}: holds bytes that are not valid UTF-8") for l in limits),
+                            limits)
+
+    def test_S42_a_valid_file_adds_no_limit_for_encoding(self):
+        card = screen({**MINIMAL, ".gitignore": "build/\n", "AGENTS.md": "# Rules\n\nSee `README.md`.\n"})
+        self.assertFalse(any("not valid UTF-8" in l for l in card["limits"]), card["limits"])
+
+    def _fifo(self, root, rel):
+        path = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.mkfifo(path)
+
+    def test_S43_a_named_pipe_in_place_of_a_file_the_scan_reads_by_name_is_skipped_and_recorded(self):
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("this system has no named pipes (os.mkfifo)")
+        root = project({**MINIMAL})
+        self._fifo(root, ".vscode/tasks.json")
+        self._fifo(root, ".gitignore")
+        for command in ("screen", "classify"):
+            r = self._screen(root, command)  # a blocked open raises TimeoutExpired after 20 seconds
+            self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        card = json.loads(self._screen(root, "screen").stdout)
+        for rel in (".vscode/tasks.json", ".gitignore"):
+            self.assertIn(f"{rel}: is not a regular file, so it was not read.", card["limits"])
+        ws = os.path.join(tempfile.mkdtemp(), "ws.json")
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        r = subprocess.run([sys.executable, str(REPO / "skills" / "review-project" / "scripts" / "review_project.py"),
+                            "prepare", root, "--out", ws], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_S44_a_file_swapped_for_a_pipe_after_the_first_check_is_caught_by_the_second(self):
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("this system has no named pipes (os.mkfifo)")
+        from unittest import mock
+        root = project({**MINIMAL, "real.txt": "text\n"})
+        self._fifo(root, "pipe")
+        regular = os.stat(os.path.join(root, "real.txt"))
+        with mock.patch("os.stat", return_value=regular):  # stat is told it is a regular file
+            self.assertIsNone(scan.open_regular(os.path.join(root, "pipe"), root))  # fstat is not
+        self.assertEqual(scan.read_text(os.path.join(root, "pipe"), 100, root), "")
+        self.assertIn(("pipe", "is not a regular file, so it was not read."), scan._UNREAD)
+
+    def test_S45_the_review_and_triage_readers_skip_a_named_pipe_too(self):
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("this system has no named pipes (os.mkfifo)")
+        root = project({**MINIMAL})
+        self._fifo(root, "pipe.txt")
+        code = (
+            "import importlib.util, sys\n"
+            "def load(name, path):\n"
+            "    s = importlib.util.spec_from_file_location(name, path)\n"
+            "    m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m\n"
+            f"root = {root!r}\n"
+            f"rp = load('rp', {str(REPO / 'skills' / 'review-project' / 'scripts' / 'review_project.py')!r})\n"
+            f"tf = load('tf', {str(REPO / 'skills' / 'triage-flags' / 'scripts' / 'triage_flags.py')!r})\n"
+            "print(rp.cited_line(root, 'pipe.txt:1')[1])\n"
+            "print(tf.read_lines(root, 'pipe.txt')[1])\n"
+            "print(rp.fingerprint(root)['pipe.txt'])\n")
+        env = {**os.environ, "PYTHONPATH": str(REPO / "src")}
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", env=env, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        self.assertEqual(r.stdout.split("\n")[:3], ["is not a regular file, so it was not read",
+                                                    "not a regular file, so it was not read", "special"])

@@ -8,12 +8,15 @@ This module measures, flags and bands. It never scores: every dimension it emits
 `unverified` until a person or an evaluator working from docs/RUBRIC.md scores it.
 """
 
+import codecs
 import datetime as _dt
 import fnmatch
 import hashlib
+import io
 import json
 import os
 import re
+import stat
 
 from . import __version__ as VERSION
 
@@ -185,11 +188,10 @@ def _ignored_tops(root):
     path = os.path.join(root, ".gitignore")
     if leaves_root(root, path):
         return set()
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return {ln.strip().strip("/") for ln in fh if ln.strip() and not ln.startswith(("#", "!"))}
-    except OSError:
-        return set()
+    # read_text opens regular files only, reads bad bytes as replacement characters and names
+    # both cases on the card's limits; a FIFO or a file with invalid UTF-8 cannot stop the scan.
+    text = read_text(path, 2_000_000, root)
+    return {ln.strip().strip("/") for ln in text.split("\n") if ln.strip() and not ln.startswith(("#", "!"))}
 
 
 def stale_rulebook_paths(root):
@@ -199,7 +201,7 @@ def stale_rulebook_paths(root):
     out, names, ignored, tree = [], None, _ignored_tops(root), None
     for name in RULEBOOKS:
         p = os.path.join(root, name)
-        if not os.path.isfile(p):
+        if not is_regular(p, root):
             continue
         raw = read_text(p, 200_000, root)
         original = raw.splitlines()
@@ -484,6 +486,26 @@ def skip_outside(name, kind="path"):
         _OUTSIDE_SKIPS.append(entry)
 
 
+_UNREAD = []  # (name, reason) of files a reader skipped or could only partly decode
+_UNREAD_SHOWN = 10
+_BAD_BYTES = [False]
+_SCAN_ROOT = [None]  # the root screen() is reading, to name a file relative to it
+
+
+def note_unread(path, root, reason):
+    """Record on the card that a named file was not read, or read with replacement characters."""
+    base = root if root is not None else _SCAN_ROOT[0]
+    try:
+        name = os.path.relpath(path, base).replace(os.sep, "/") if base else os.path.basename(path)
+    except ValueError:  # another drive
+        name = os.path.basename(path)
+    if name.startswith("../") or name == "..":
+        name = os.path.basename(path)
+    entry = (name, reason)
+    if entry not in _UNREAD:
+        _UNREAD.append(entry)
+
+
 def _glob_parts(pattern):
     return [p for p in pattern.replace("\\", "/").split("/") if p not in ("", ".")]
 
@@ -586,19 +608,83 @@ def walk(root, exts=None, max_files=40000, include_hidden=False, github=False, *
             n += 1
 
 
+def _bad_bytes(exc):
+    """Decoding error handler: the same replacement the `replace` handler makes, and the file is
+    remembered as holding bytes that are not valid UTF-8."""
+    if isinstance(exc, UnicodeDecodeError):
+        _BAD_BYTES[0] = True
+        return "\ufffd", exc.end
+    raise exc
+
+
+codecs.register_error("quiet-counsel-replace", _bad_bytes)
+
+
+def is_regular(path, root=None):
+    """True for a regular file. A path that exists and is not one (a pipe, a device, a folder) is
+    named on the card's limits; a missing path is not."""
+    try:
+        if stat.S_ISREG(os.stat(path).st_mode):
+            return True
+    except OSError:
+        return False
+    note_unread(path, root, "is not a regular file, so it was not read.")
+    return False
+
+
+def open_regular(path, root=None):
+    """A binary file object for a regular file, else None. The path is checked with `stat` before
+    it is opened, opened without blocking where the platform has `O_NONBLOCK`, and the open
+    descriptor is checked again with `fstat`, so a pipe, socket or device (or a file swapped for
+    one between the checks) is never read: opening a pipe with no writer would block for good.
+    A path that exists and is not a regular file is named on the card's limits. A missing path or
+    one that cannot be opened gives None and is not recorded."""
+    try:
+        if not stat.S_ISREG(os.stat(path).st_mode):
+            note_unread(path, root, "is not a regular file, so it was not read.")
+            return None
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
+    except OSError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            os.close(fd)
+            note_unread(path, root, "is not a regular file, so it was not read.")
+            return None
+        return os.fdopen(fd, "rb")
+    except OSError:
+        return None
+
+
+def open_text(path, root=None):
+    """`open_regular` as UTF-8 text. Bytes that are not valid UTF-8 read as U+FFFD."""
+    fh = open_regular(path, root)
+    if fh is None:
+        return None
+    return io.TextIOWrapper(fh, encoding="utf-8", errors="quiet-counsel-replace")
+
+
 def read_counted(path, limit=2_000_000, root=None):
     """(text, characters consumed). The text is up to `limit` characters with a final line the
     limit cut in two dropped, so detection and evidence see whole lines only. The count is what
     was read before that trimming, for a caller that keeps a budget. With `root`, a path that
-    resolves outside it is not opened and reads as empty."""
+    resolves outside it is not opened and reads as empty. Only a regular file is opened; one that
+    is not, and one holding bytes that are not valid UTF-8, is named on the card's limits."""
     if root is not None and leaves_root(root, path):
         return "", 0
+    _BAD_BYTES[0] = False
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        fh = open_text(path, root)
+        if fh is None:
+            return "", 0
+        with fh:
             text = fh.read(limit)
             used = len(text)
             if used == limit and fh.read(1) not in ("", "\n") and not text.endswith("\n"):
                 text = text[:text.rfind("\n") + 1]
+            if _BAD_BYTES[0]:
+                note_unread(path, root, "holds bytes that are not valid UTF-8; they were read as "
+                                        "replacement characters.")
             return text, used
     except OSError:
         return "", 0
@@ -986,7 +1072,10 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
         try:
             if os.path.getsize(path) < min_bytes:
                 continue
-            with open(path, "rb") as fh:
+            fh = open_regular(path, corpus)
+            if fh is None:
+                continue
+            with fh:
                 data = fh.read()
         except OSError:
             continue
@@ -1001,7 +1090,10 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
             size = os.path.getsize(path)
             if size < min_bytes:
                 continue
-            with open(path, "rb") as fh:
+            fh = open_regular(path, root)
+            if fh is None:
+                continue
+            with fh:
                 data = fh.read()
         except OSError:
             continue
@@ -1264,7 +1356,7 @@ def ignore_patterns(root):
     if os.path.islink(path):
         leaves_root(root, path)  # named on the card when it leaves the root
         return []
-    if not os.path.isfile(path):
+    if not is_regular(path, root):
         return []
     out = []
     for line in read_text(path, 20000, root).splitlines():
@@ -1345,9 +1437,11 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
     _REACHED.clear()
     _NOTES.clear()
     _OUTSIDE_SKIPS.clear()
+    _UNREAD.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)
+    _SCAN_ROOT[0] = root
     archetype, arch_scores, arch_ev, found = classify(root)
     signals, flags, limits = {}, [], []
 
@@ -1855,6 +1949,10 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                       f"{'entered' if kind == 'directory' else 'read'}.")
     if len(_OUTSIDE_SKIPS) > _OUTSIDE_SHOWN:
         limits.append(f"{len(_OUTSIDE_SKIPS) - _OUTSIDE_SHOWN} more paths that resolve outside the scanned root were not read.")
+    for name, why in _UNREAD[:_UNREAD_SHOWN]:
+        limits.append(f"{name}: {why}")
+    if len(_UNREAD) > _UNREAD_SHOWN:
+        limits.append(f"{len(_UNREAD) - _UNREAD_SHOWN} more files were not read, or read with replacement characters.")
     if stopped:
         flags.append({
             "id": "scan-limit-reached", "severity": "warning",

@@ -83,7 +83,7 @@ def check_ref(root, path, line, excerpt=None, flag_id=None):
     """'broken' when the file or line does not exist, 'match' or 'differs' otherwise. With no
     excerpt to compare, an existing line is 'match'."""
     full = inside(root, path)
-    if not full or not os.path.isfile(full):
+    if not full or not scan.is_regular(full):
         return "broken"
     lines = scan.read_text(full, 5_000_000).splitlines()
     if not 1 <= int(line) <= len(lines):

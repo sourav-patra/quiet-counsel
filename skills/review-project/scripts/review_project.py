@@ -148,7 +148,11 @@ def fingerprint(root, skip=()):
                 continue
             h = hashlib.sha256()
             try:
-                with open(path, "rb") as fh:
+                fh = load()[1].open_regular(path, root)
+                if fh is None:
+                    files[rel] = "special"  # swapped for a pipe or device after the check above
+                    continue
+                with fh:
                     for chunk in iter(lambda: fh.read(1 << 20), b""):
                         h.update(chunk)
                 files[rel] = h.hexdigest()
@@ -348,7 +352,11 @@ def cited_line(root, ref):
     if not path:
         return None, "is a broken citation: it leaves the project"
     try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
+        fh = load()[1].open_text(path, root)
+        if fh is None:
+            return None, ("does not exist" if not os.path.exists(path)
+                          else "is not a regular file, so it was not read")
+        with fh:
             lines = fh.read().splitlines()
         if not 1 <= int(tail) <= len(lines):
             raise IndexError

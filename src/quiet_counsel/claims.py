@@ -109,7 +109,7 @@ def _requirement(root):
 def _toml_project(root, what):
     """The [project] table of pyproject.toml, or {} when the file is absent or its types are wrong."""
     p = os.path.join(root, "pyproject.toml")
-    if not (tomllib and os.path.isfile(p)):
+    if not (tomllib and _s.is_regular(p, root)):
         return {}
     try:
         proj = tomllib.loads(_s.read_text(p, 200000, root)).get("project", {})
@@ -123,7 +123,7 @@ def _toml_project(root, what):
 
 def _package_json(root, what):
     p = os.path.join(root, "package.json")
-    if not os.path.isfile(p):
+    if not _s.is_regular(p, root):
         return {}
     try:
         data = json.loads(_s.read_text(p, 200000, root))
@@ -216,7 +216,10 @@ def _scan_sources(root, names):
 
 def _shebang(path):
     try:
-        with open(path, "rb") as fh:
+        fh = _s.open_regular(path)
+        if fh is None:
+            return False
+        with fh:
             return fh.read(2) == b"#!"
     except OSError:
         return False
@@ -292,7 +295,7 @@ def flag_mismatches(root, prose):
 
 def _gitignored(root, rel):
     p = os.path.join(root, ".gitignore")
-    for pat in _s.read_text(p, 20000, root).splitlines() if os.path.isfile(p) else []:
+    for pat in _s.read_text(p, 20000, root).splitlines() if _s.is_regular(p, root) else []:
         pat = pat.strip().strip("/")
         if pat and not pat.startswith(("#", "!")) and (
                 fnmatch.fnmatch(rel.strip("/"), pat) or rel.strip("/").startswith(pat + "/")
