@@ -8,7 +8,7 @@ description: >
   never scores.
 license: MIT
 compatibility: >
-  Needs git and Python 3.11 or newer, with the quiet-counsel package installed or a clone
+  Needs Python 3.11 or newer, with the quiet-counsel package installed or a clone
   of its repository on the path. No network access and no model calls.
 allowed-tools: Bash Read Grep Glob
 ---
