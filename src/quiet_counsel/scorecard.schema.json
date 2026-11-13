@@ -26,7 +26,8 @@
         "archetype_override": { "type": "string", "description": "Set only when a human overrode the classifier; states the grounds." },
         "tree_sha256": { "type": "string", "description": "Deep mode: a hash over every file's path and content when the worksheet was prepared. Finalize refuses if the tree no longer matches." },
         "tree_root": { "type": "string", "description": "Deep mode: the absolute project path at prepare, so finalize can find it from another directory. Worksheets are local files and are not published." },
-        "tree_files": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Deep mode: each file's content hash at prepare, to name what changed." }
+        "tree_files": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Deep mode: each file's content hash at prepare, under a display label (a withheld name carries a short hash). For printing only; finalize compares tree_ids." },
+        "tree_ids": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }, "description": "Deep mode: the full SHA-256 of each file's raw path mapped to [the full SHA-256 of its raw content digest or link target, its display label]. Finalize compares these, so a rename or an edit is found even when two labels print alike." }
       }
     },
     "signals": {

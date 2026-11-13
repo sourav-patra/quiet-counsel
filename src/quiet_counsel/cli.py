@@ -109,8 +109,8 @@ def main(argv=None):
             print(json.dumps(cards if len(cards) > 1 else cards[0], indent=2, default=str))
             return 0
         os.makedirs(a.out, exist_ok=True)
-        for card in cards:
-            dest = os.path.join(a.out, f"{card['project']['name']}.json")
+        for n, card in enumerate(cards, 1):
+            dest = os.path.join(a.out, scan.card_file_name(card["project"]["name"], n))
             with open(dest, "w", encoding="utf-8", newline="\n") as fh:
                 json.dump(card, fh, indent=2, default=str, ensure_ascii=False)
                 fh.write("\n")
@@ -142,7 +142,12 @@ def main(argv=None):
             dups, checked, indexed = scan.corpus_duplicates(root, a.corpus, a.min_bytes)
             out["duplication"] = {"matches": dups, "files_compared": checked,
                                   "corpus_files_indexed": indexed}
-        print(json.dumps(out, indent=2, default=str))
+        # Everything above names files and quotes lines of the project, so the whole structure passes the
+        # one output filter before it is printed: a credential or text aimed at the evaluator, in a file
+        # name, a licence field, a claim or a quoted line, is replaced by a notice.
+        # Round-tripped first, so a value json would print through str() (a set, a path) is a string here too.
+        out = json.loads(json.dumps(out, default=str))
+        print(json.dumps(scan.withhold_all(out), indent=2))
         return 0
 
     if a.cmd == "dashboard":

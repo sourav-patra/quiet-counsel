@@ -78,4 +78,7 @@ class Example(unittest.TestCase):
         card = scan.screen(sample.write(str(Path(tempfile.mkdtemp()) / "sample-project")))
         f = next(x for x in card["flags"] if x["id"] == "evaluator-directed-text")
         self.assertEqual((f["severity"], f["caps"]), ("critical", "do-not-score"))
-        self.assertIn(phrase, f["evidence"][0]["excerpt"])
+        # the card holds a notice, not the phrase; the raw hit is still found inside the tool
+        self.assertEqual(f["evidence"][0]["excerpt"], "<text withheld: text addressed to the evaluator>")
+        root = sample.write(str(Path(tempfile.mkdtemp()) / "sample-project"))
+        self.assertTrue(any(phrase in h[3] for h in scan.evaluator_directed_hits(root)))

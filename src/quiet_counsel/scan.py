@@ -307,38 +307,9 @@ def holds_secret(line):
     return bool(SECRET_WORD_RE.search(line)) or any(rx.search(line) for _, rx in SHAPE_RES)
 
 
-def redact(text):
-    """Credential shapes out of a string that is not a source line: a path, a key, a name. The
-    private-key header is not a secret; the key body that follows it is not a shape."""
-    for label, rx in SHAPE_RES:
-        if label != "private-key-block":
-            text = rx.sub("<redacted>", text)
-    return text
-
-
 def clip(line, n=200):
     """A source line for a scorecard: withheld whole if it holds a secret, otherwise cut."""
     return WITHHELD if holds_secret(line) else line.strip()[:n]
-
-
-def redact_all(value):
-    """redact() applied to every string in a scorecard, keys included, so no credential shape in a
-    name or a key survives. Two keys that redact to the same text stay two entries (#2, #3, ...)."""
-    if isinstance(value, str):
-        return redact(value)
-    if isinstance(value, list):
-        return [redact_all(v) for v in value]
-    if isinstance(value, dict):
-        out = {}
-        for k, v in value.items():
-            base = nk = redact(k) if isinstance(k, str) else k
-            n = 1
-            while nk in out:
-                n += 1
-                nk = f"{base}#{n}"
-            out[nk] = redact_all(v)
-        return out
-    return value
 
 
 _ASSIGNED = {}
@@ -379,7 +350,7 @@ def withhold_all(value, what="text"):
     withhold to the same text stay two entries (#2, #3, ...)."""
     if isinstance(value, str):
         return withhold_text(value, what)
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):  # a tuple is written as a JSON array, so it is walked too
         return [withhold_all(v, what) for v in value]
     if isinstance(value, dict):
         out = {}
@@ -392,6 +363,13 @@ def withhold_all(value, what="text"):
             out[nk] = withhold_all(v, what)
         return out
     return value
+
+
+def card_file_name(name, index):
+    """The file a scorecard is written to. A project name that was withheld is a notice, which is
+    not a legal file name (it holds `<`, `>` and `:`), so a name that is not plain becomes
+    `project-N` and two withheld names do not write to one file."""
+    return f"{name}.json" if re.fullmatch(r"[\w.\- ]+", name) and name not in (".", "..") else f"project-{index}.json"
 
 
 def ev(kind, ref, excerpt=None, label=""):
@@ -1887,7 +1865,10 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
                   "and a quoted licence can look like a breach. Every flag names its evidence, a file and "
                   "line or a command or commit, so a reader can check.")
 
-    return redact_all({
+    # The one output boundary: every string on the card, keys included, passes withhold_all, so a
+    # credential or text aimed at the evaluator in a path, a name, an excerpt or a piece of
+    # classification evidence is replaced by a notice. Everything above works on the raw values.
+    return withhold_all({
         "schema": "scorecard/1", "mode": "screen",
         "project": {
             # The path as the caller gave it, never the absolute one: a scorecard is published

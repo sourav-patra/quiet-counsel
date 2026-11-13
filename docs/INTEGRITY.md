@@ -164,12 +164,16 @@ bytes (`scan.py:413`), and the licence-text scan (`scan.py:837`) and the provena
 (`scan.py:943`) skip one over 500,000 bytes. A credential, hook or instruction in a file that size
 is not seen by that scan and raises no flag from it.
 
-A credential-shaped name. The scorecard replaces a credential shape in a file or directory name, a
-frontmatter key or a README claim phrase with `<redacted>`, since none of these is a quoted source
-line. A file called like a key appears in references as `<redacted>.sh:1`, which no longer
-resolves, so `check_evidence.py` reports that citation as broken. A project directory named like a
-key gets a redacted `project.path`, and the review scripts then cannot find it unless `--project`
-is given. There is no mapping back and no refusal to export (case S-18).
+A credential-shaped or aimed name. Every string on a scorecard, a worksheet, a verdict and the
+output of `classify` and `integrity` passes one filter (`scan.withhold_all`): a credential shape, a
+credential word with an assignment and a value, or text aimed at the evaluator is replaced by a
+notice such as `<text withheld: credential>`. This covers file and directory names, frontmatter
+keys, README claim phrases, excerpts and a reviewer's rationale. A file called like a key appears in
+references as a notice, which no longer resolves, and its line number is lost with it, so
+`check_evidence.py` cannot check that citation. A project directory named like a key gets a withheld
+`project.path`, and the review scripts then cannot find it unless `--project` is given; the card is
+written to `project-N.json` in place of a name that is not a legal file name. There is no mapping
+back and no refusal to export (cases S-18 and H-36).
 
 Whether a human or a model wrote the code. The tool deliberately does not guess. There is no
 reliable detector, the question is usually the wrong one at an AI hackathon, and a false

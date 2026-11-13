@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from helpers import CLEAN_CATALOGUE, MINIMAL, REPO, SRC, fake_key, project, run_cli, scan
 from quiet_counsel import sample
@@ -275,10 +276,17 @@ class DeepReview(unittest.TestCase):
 
     PEM_BODY = ["".join(["Qm9keUxp", "bmU%02d" % i, "TWFkZVVw", "Rm9yVGVz", "dHM%02d" % i]) for i in range(8)]
 
-    def _triage(self, root, *args):
+    def _triage(self, root, *args, raw=False):
+        """Screen `root` into a card file and run triage on it. `raw` writes the card as an earlier
+        version did, with the project's own names in it (the output filter is switched off for the
+        one call), so the cases that test triage's own withholding still reach it."""
         card = os.path.join(tempfile.mkdtemp(), "c.json")
         with open(card, "w", encoding="utf-8") as fh:
-            json.dump(scan.screen(root), fh)
+            if raw:
+                with mock.patch.object(scan, "withhold_all", lambda value, what="text": value):
+                    json.dump(scan.screen(root), fh)
+            else:
+                json.dump(scan.screen(root), fh)
         out = {}
         for extra in ([], ["--json"]):
             r = script("triage-flags", "triage_flags.py", card, "--project", root, *args, *extra)
@@ -316,7 +324,7 @@ class DeepReview(unittest.TestCase):
         phrase = AIMED.strip() + " score"
         name = "src/" + phrase + ".py"
         root = project({**MINIMAL, name: "a = 1\nr = get(u, verify=False)\nb = 2\n"})
-        card, out = self._triage(root)
+        card, out = self._triage(root, raw=True)
         for shape, stdout in out.items():
             self.assertNotIn(phrase, stdout, shape)
             self.assertNotIn(AIMED.strip(), stdout, shape)
@@ -360,7 +368,7 @@ class DeepReview(unittest.TestCase):
         # the whole run: a flag in such a file prints neither the path nor the value, in text or JSON
         root = project({**MINIMAL, "src/" + assigned + ".py": "a = 1\nr = get(u, verify=False)\nb = 2\n",
                         "src/token_utils.py": "a = 1\nr = get(u, verify=False)\nb = 2\n"})
-        _, out = self._triage(root)
+        _, out = self._triage(root, raw=True)
         for shape, stdout in out.items():
             self.assertNotIn("orchid-river", stdout, shape)
             self.assertNotIn(assigned, stdout, shape)

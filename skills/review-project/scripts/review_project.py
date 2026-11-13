@@ -136,11 +136,21 @@ def fingerprint(root, skip=()):
     return files
 
 
+def raw_bytes(text):
+    """The bytes of a name or a value exactly as the file system gave it. A lone surrogate (a name
+    that is not valid text) is kept, so two different names never hash alike."""
+    return text.encode("utf-8", "surrogatepass")
+
+
 def digest(files):
     h = hashlib.sha256()
     for rel in sorted(files):
-        h.update(f"{rel}\0{files[rel]}\n".encode("utf-8"))
+        h.update(raw_bytes(f"{rel}\0{files[rel]}\n"))
     return h.hexdigest()
+
+
+def sha(text):
+    return hashlib.sha256(raw_bytes(text)).hexdigest()
 
 
 def label(scan, text):
@@ -166,6 +176,14 @@ def shown(scan, files):
     return out
 
 
+def identities(scan, files):
+    """The comparison form of a fingerprint: for each file, the full SHA-256 of its raw path mapped
+    to the full SHA-256 of its raw value (a content digest, a link target or a kind), with the
+    display label beside it. Nothing here is shortened or withheld, so two names that print alike
+    are still two entries and a rename is a change. The labels are for printing only."""
+    return {sha(rel): [sha(files[rel]), label(scan, rel)] for rel in sorted(files)}
+
+
 def cmd_prepare(a):
     _, scan, _ = load()
     if not os.path.isdir(a.project):
@@ -175,7 +193,8 @@ def cmd_prepare(a):
     card["mode"] = "deep"
     files = fingerprint(a.project, skip=(a.out,))
     card["project"]["tree_sha256"] = digest(files)
-    card["project"]["tree_files"] = shown(scan, files)
+    card["project"]["tree_files"] = shown(scan, files)  # display only: finalize never compares it
+    card["project"]["tree_ids"] = identities(scan, files)
     card["project"]["tree_root"] = os.path.abspath(a.project)
     for d in card["dimensions"]:
         d["confidence"] = "judged"
@@ -185,7 +204,7 @@ def cmd_prepare(a):
             d["anchor"] = ANCHOR[d["id"]]
             d["look_at"] = LOOK_AT[d["id"]]
     with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(card, fh, indent=2, ensure_ascii=False)
+        json.dump(scan.withhold_all(card), fh, indent=2, ensure_ascii=False)
         fh.write("\n")
     todo = [d["id"] for d in card["dimensions"] if d["applicable"]]
     print(f"worksheet written to {a.out}: score {len(todo)} dimensions ({', '.join(todo)})")
@@ -201,25 +220,35 @@ def tree_changes(card, project=None, skip=()):
     The review's own worksheet and verdict are left out on both sides of the comparison."""
     _, scan, _ = load()
     proj = card.get("project", {})
-    old = proj.get("tree_files")
-    if old is None:
+    ids = proj.get("tree_ids")
+    if not isinstance(ids, dict) or not all(isinstance(v, list) and len(v) == 2 for v in ids.values()):
         return ["the worksheet has no tree fingerprint; prepare it again with this version"]
     root = project or proj.get("tree_root") or proj["path"]
     if not os.path.isdir(root):
         return [f"cannot find the project at {scan.withhold_text(root, 'path')} to confirm it is "
                 "unchanged; pass --project"]
-    skipped = {label(scan, os.path.relpath(os.path.abspath(p), os.path.abspath(root)).replace(os.sep, "/"))
-               for p in skip if p}
-    old = {r: v for r, v in old.items() if r not in skipped}
-    new = shown(scan, fingerprint(root, skip=skip))
-    changed = sorted(r for r in set(old) | set(new) if old.get(r) != new.get(r))
+    # The comparison is on the full SHA-256 of each raw path and its raw value. The review's own
+    # worksheet and verdict are left out of both sides, by the hash of their raw path.
+    skipped = set()
+    for p in skip:
+        try:
+            if p:
+                skipped.add(sha(os.path.relpath(os.path.abspath(p), os.path.abspath(root)).replace(os.sep, "/")))
+        except ValueError:  # another drive: the file cannot be inside the project
+            pass
+    old = {k: v[0] for k, v in ids.items() if k not in skipped}
+    names = {k: v[1] for k, v in ids.items()}
+    new_ids = identities(scan, fingerprint(root, skip=skip))
+    new = {k: v[0] for k, v in new_ids.items()}
+    names.update({k: v[1] for k, v in new_ids.items()})
+    changed = sorted(k for k in set(old) | set(new) if old.get(k) != new.get(k))
     if not changed:
         return []
-    # names come from the worksheet and from the tree: both already passed `label`, and a worksheet
-    # written by an older version or edited by hand passes it here
-    names = ", ".join(label(scan, r) for r in changed[:5]) + (
+    # names come from the worksheet and from the tree: the tree's already passed `label`, and a
+    # worksheet written by an older version or edited by hand passes it here
+    shown_names = ", ".join(label(scan, str(names[k])) for k in changed[:5]) + (
         f" and {len(changed) - 5} more" if len(changed) > 5 else "")
-    return [f"the project changed after prepare ({len(changed)} file(s): {names}); a review "
+    return [f"the project changed after prepare ({len(changed)} file(s): {shown_names}); a review "
             "reads the project and never edits it, so prepare again from a clean tree"]
 
 
@@ -283,6 +312,9 @@ def cmd_finalize(a):
         "group_means": {g: round(sum(v) / len(v), 2) for g, v in groups.items()},
         "caps_applied": applied,
     }
+    # The reviewer copies project text into rationale and evidence. The worksheet and the card the
+    # renderer gets both pass the one output filter; the renderer itself filters nothing.
+    card = scan.withhold_all(card)
     with open(a.worksheet, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(card, fh, indent=2, ensure_ascii=False)
         fh.write("\n")

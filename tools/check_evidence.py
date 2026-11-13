@@ -12,7 +12,8 @@ Exit 0 when every cited file and line exists, 1 when a citation points at nothin
 The comparison: the excerpt, whitespace collapsed, must appear in the cited line. Only the
 decorations the tool itself adds for that flag are set aside (a shape or licence label, a code point
 list, a gate note). "<line withheld>" matches only a line the scanner withholds, and quoted text
-never matches one. An excerpt with nothing left to compare does not match.
+never matches one. A notice such as "<text withheld: text addressed to the evaluator>" matches only a
+line that `scan.withhold_text` withholds. An excerpt with nothing left to compare does not match.
 """
 
 import os
@@ -24,6 +25,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "src"))
 
 from quiet_counsel import scan  # noqa: E402
 
+NOTICE_RE = re.compile(r"^<text withheld: (credential|text addressed to the evaluator)>$")
 REF_RE = re.compile(r"^(?P<path>[^\s:][^:\n]*):(?P<line>\d+)$")
 CITE_RE = re.compile(r"([\w./-]+\.\w+):(\d+)\b")
 
@@ -88,6 +90,8 @@ def check_ref(root, path, line, excerpt=None, flag_id=None):
     if excerpt is None:
         return "match"
     text = lines[int(line) - 1]
+    if NOTICE_RE.match(_norm(excerpt)):  # a notice matches only a line the output filter withholds
+        return "withheld" if scan.withhold_text(text) != text else "differs"
     if not _contains(text, excerpt, flag_id):
         return "differs"
     return "withheld" if scan.holds_secret(text) else "match"

@@ -49,9 +49,9 @@ def main(argv=None):
         return 2
     os.makedirs(a.out, exist_ok=True)
     cards, written = [], []
-    for p in dirs:
+    for n, p in enumerate(dirs, 1):
         card = scan.screen(p, a.corpus, honour_ignore=False)
-        dest = os.path.join(a.out, f"{card['project']['name']}.json")
+        dest = os.path.join(a.out, scan.card_file_name(card["project"]["name"], n))
         with open(dest, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(card, fh, indent=2, ensure_ascii=False)
             fh.write("\n")
