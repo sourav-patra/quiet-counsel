@@ -208,7 +208,7 @@ def cmd_prepare(a):
         fh.write("\n")
     todo = [d["id"] for d in card["dimensions"] if d["applicable"]]
     print(f"worksheet written to {a.out}: score {len(todo)} dimensions ({', '.join(todo)})")
-    held = [f["id"] for f in card["flags"] if f.get("caps") == "do-not-score" and f["severity"] != "info"]
+    held = [f["id"] for f in card.get("flags", []) if f.get("caps") == "do-not-score" and f["severity"] != "info"]
     if held:
         print(f"note: {', '.join(held)} must be ruled on by a person before this can be finalized")
     return 0
@@ -265,7 +265,7 @@ def _ceiling(cap, dim):
 
 
 def _caps(card):
-    return {f["caps"] for f in card["flags"] if f.get("caps") and f["severity"] != "info"}
+    return {f["caps"] for f in card.get("flags", []) if f.get("caps") and f["severity"] != "info"}
 
 
 NOTICE_RE = re.compile(r"^<[a-z]+ withheld: (credential|text addressed to the evaluator)>$")
@@ -309,6 +309,12 @@ def holds_excerpt(line, digest):
     return False
 
 
+def shown_line(scan, text):
+    """A line of command output that quotes the worksheet (a dimension id, a reason): the worksheet is
+    read from a file, so the line passes the output filter whatever built it."""
+    return scan.withhold_text(text, "line")
+
+
 def cmd_finalize(a):
     dashboard, scan, schema = load()
     with open(a.worksheet, encoding="utf-8") as fh:
@@ -329,7 +335,7 @@ def cmd_finalize(a):
     if reasons:
         print("refused:")
         for r in reasons:
-            print(f"  {r}")
+            print(f"  {shown_line(scan, r)}")
         return 1
 
     effective, applied = {}, []
@@ -435,11 +441,11 @@ def cmd_verify(a):
                            f"{scan.withhold_text(want, 'excerpt')!r}")
     print(f"{ok} citation(s) match")
     for w in by_digest:
-        print(f"  withheld, verified by digest: {w}")
+        print(f"  withheld, verified by digest: {shown_line(scan, w)}")
     for u in unverifiable:
-        print(f"  not checked: {u}")
+        print(f"  not checked: {shown_line(scan, u)}")
     for b in bad:
-        print(f"  MISMATCH: {b}")
+        print(f"  MISMATCH: {shown_line(scan, b)}")
     return 1 if bad else 0
 
 

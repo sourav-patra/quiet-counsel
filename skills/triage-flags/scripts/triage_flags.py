@@ -54,8 +54,7 @@ def withhold(scan, text, show_directed, what="line"):
     the kind of text in the notice. Every such field, a context row included, is withheld when it
     holds a credential shape or a credential word with an assignment and a value, and (unless
     `show_directed`) text addressed to the evaluator; a word such as `token` alone is not enough.
-    The tool's own flag id and severity are not passed through here: the project does not
-    produce them. The rule itself is `quiet_counsel.scan.withhold_text`."""
+    The flag id and severity of a card read from a file pass through it too, in `main`. The rule itself is `quiet_counsel.scan.withhold_text`."""
     return scan.withhold_text(text, what, show_directed)
 
 
@@ -181,12 +180,17 @@ def main(argv=None):
                                 row["text"] = withhold(scan, row["text"], a.show_directed_text)
             # Every string the project produced (a path, a title, an excerpt, an error text)
             # passes the credential and evaluator-text test, so a file name cannot carry either
-            # kind of text past it. The flag id and severity come from the tool and are exempt.
+            # kind of text past it. The flag id and severity are tested below, once the logic is done.
             # A withheld path prints as a notice with its line number.
             for key, what in (("title", "title"), ("excerpt", "excerpt"), ("error", "error")):
                 if key in item:
                     item[key] = withhold(scan, item[key], a.show_directed_text, what)
             item["ref"] = withhold_reference(scan, item["ref"], a.show_directed_text)
+            # The card is read from a file, so its flag id and severity are input too: a card from an
+            # older version or one a person edited can hold anything there. Both are tested after the
+            # logic above has used the raw id, and always with the evaluator-text rule on.
+            item["flag"] = withhold(scan, item["flag"], False, "flag id")
+            item["severity"] = withhold(scan, item["severity"], False, "severity")
             items.append(item)
 
     if a.json:

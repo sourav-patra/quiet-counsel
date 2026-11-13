@@ -1,4 +1,4 @@
-"""Suite H, cases H-40 to H-45: the output boundary at every command, and the readers beside it.
+"""Suite H, cases H-40 to H-46: the output boundary at every command, and the readers beside it.
 
 Round 5 left commands that print what they LOAD (a scorecard or worksheet read from a file), two tools
 that printed project text, a skills reader that followed links out of its root, card file names that
@@ -347,6 +347,39 @@ class NoticeKindMatchesReason(unittest.TestCase):
         self.assertEqual(ce.check_ref(root, "a.txt", "3", aimed), "differs")
         self.assertEqual(ce.check_ref(root, "a.txt", "4", cred), "withheld")  # both: the filter reports the credential
         self.assertEqual(ce.check_ref(root, "a.txt", "4", aimed), "differs")
+
+
+class LoadedWorksheetAndFlags(unittest.TestCase):
+    """H-46: the review and triage scripts read a card or worksheet from a file, so the ids they print are input."""
+
+    def test_H46_triage_prints_no_flag_id_or_severity_from_a_loaded_card(self):
+        root = project(MINIMAL)
+        card = {"project": {"path": root}, "flags": [
+            {"id": f"x-{KEY}", "severity": f"token={VALUE}", "title": "t", "evidence": [{"kind": "note", "ref": "r", "excerpt": "e"}]},
+            {"id": PHRASE, "severity": "serious", "title": "t", "evidence": [{"kind": "note", "ref": "r", "excerpt": "e"}]}]}
+        path = _write(os.path.join(tmp(), "c.json"), card)
+        for extra in ([], ["--json"], ["--show-directed-text"]):
+            r = script("triage-flags", "triage_flags.py", path, "--project", root, *extra)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            absent(self, r.stdout + r.stderr, f"triage output {extra}")
+            self.assertIn("withheld", r.stdout)
+
+    def test_H46_finalize_and_verify_print_no_dimension_id_from_a_loaded_worksheet(self):
+        root = project(MINIMAL)
+        ws = {"project": {"path": root}, "mode": "deep", "dimensions": [
+            {"id": f"A1-{KEY}", "applicable": True, "evidence": [
+                {"kind": "file", "ref": "README.md:99", "excerpt": "x"},
+                {"kind": "command", "ref": "run it"}, {"kind": "file", "ref": "README.md:1", "excerpt": "nope"}]},
+            {"id": PHRASE, "applicable": True, "score": 5}]}
+        path = _write(os.path.join(tmp(), "ws.json"), ws)
+        r = script("review-project", "review_project.py", "verify", path, "--project", root)
+        self.assertEqual(r.returncode, 1)
+        absent(self, r.stdout + r.stderr, "verify output")
+        self.assertIn("MISMATCH", r.stdout)
+        r = script("review-project", "review_project.py", "finalize", path, "--out", os.path.join(tmp(), "v.html"))
+        self.assertEqual(r.returncode, 1)
+        absent(self, r.stdout + r.stderr, "finalize refusal")
+        self.assertIn("refused:", r.stdout)
 
 
 if __name__ == "__main__":
