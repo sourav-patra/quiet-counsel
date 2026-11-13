@@ -19,7 +19,7 @@
         "name": { "type": "string" },
         "path": { "type": "string" },
         "source": { "type": "string", "description": "Remote URL if known" },
-        "commit": { "type": "string", "description": "The exact revision measured. A score with no commit is a score about nothing." },
+        "commit": { "type": "string", "description": "The exact revision measured. A score with no commit is a score about nothing. Not written in 0.1.2, which starts no git program; optional." },
         "measured_at": { "type": "string", "format": "date-time" },
         "archetype": { "enum": ["catalogue", "harness", "orchestrator", "tool", "application", "unknown"] },
         "archetype_evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },

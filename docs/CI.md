@@ -27,4 +27,4 @@ The two actions are pinned by commit hash, the same hashes this repository's own
 
 What was run: the install, screen and band-check steps, in a fresh virtual environment on Windows with `RUNNER_TEMP` set, on a clean project (exit 0) and on the sample project (exit 1). The workflow itself was not run on GitHub.
 
-Do not run this on a pull request from a fork with extra permissions or secrets. The screen reads files and runs no project script, test or installer, and its git calls override the project's own settings that start programs (case S-26), but a workflow that checks out untrusted code with write access is one of the patterns [NOTICES.md](NOTICES.md) describes.
+Do not run this on a pull request from a fork with extra permissions or secrets. The screen reads files and runs no project script, test or installer, and it starts no git program (case S-26), but a workflow that checks out untrusted code with write access is one of the patterns [NOTICES.md](NOTICES.md) describes.

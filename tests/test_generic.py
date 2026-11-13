@@ -141,8 +141,8 @@ class AnyDirectory(unittest.TestCase):
         card = scan.screen(project(CLEAN_CATALOGUE))
         hist = card["signals"]["history"]["value"]
         self.assertFalse(hist["available"])
-        self.assertIn("reason", hist)
-        self.assertTrue(any("Provenance was not measured" in l for l in card["limits"]))
+        self.assertEqual(hist["reason"], "disabled in 0.1.2")
+        self.assertTrue(any("History and provenance were not measured" in l for l in card["limits"]))
 
     def test_G10_the_fixture_folders_a_test_process_makes_are_gone_when_it_exits(self):
         code = ("import sys; sys.path.insert(0, sys.argv[1]); import helpers; "

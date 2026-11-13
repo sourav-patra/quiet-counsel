@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from helpers import GIT_ENV, MINIMAL, REPO, ReadLog, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, screen
+from helpers import MINIMAL, REPO, ReadLog, dashboard, fake_key, fake_pem, fake_secret_value, fake_shapes, flag, flag_ids, project, run_cli, scan, schema, screen
 
 
 class Credentials(unittest.TestCase):
@@ -310,8 +310,10 @@ class HiddenCharacters(unittest.TestCase):
 
 
 class GitConfiguration(unittest.TestCase):
+    """0.1.2 reads no git history, so a repository's own settings have nothing to steer."""
+
     def _marker_program(self, marker):
-        """A program git can start as gpg.program: one executable path, not a shell string."""
+        """A program git could start as core.sshCommand: one executable path, not a shell string."""
         if sys.platform == "win32":
             path = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "mark.cmd")
             with open(path, "w", newline="\r\n") as fh:
@@ -323,33 +325,80 @@ class GitConfiguration(unittest.TestCase):
             os.chmod(path, 0o755)
         return path
 
-    def test_S26_a_scanned_projects_git_configuration_starts_no_program_while_history_is_read(self):
+    def _hostile_repository(self):
+        """A project whose own .git holds an include of a file outside it, a promisor remote whose
+        ssh command writes a marker, and a mail map outside it. Returns (root, marker)."""
         root = project(MINIMAL, git=True)
-        env = {**os.environ, **GIT_ENV}
+        outside = tempfile.mkdtemp(prefix="scan-test-")
+        marker = os.path.join(outside, "marker.txt")
+        extra = os.path.join(outside, "extra.cfg").replace("\\", "/")
+        maps = os.path.join(outside, "mailmap").replace("\\", "/")
+        with open(os.path.join(outside, "extra.cfg"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("[user]\n\tname = outside\n")
+        with open(os.path.join(outside, "mailmap"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("Outside <outside@example.invalid> <fixture@example.invalid>\n")
+        ssh = self._marker_program(marker).replace("\\", "/")
+        with open(os.path.join(root, ".git", "config"), "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("[include]\n\tpath = " + extra + "\n"
+                     "[core]\n\tsshCommand = " + ssh + "\n"
+                     '[remote "origin"]\n\turl = ssh://host.invalid/x.git\n\tpromisor = true\n'
+                     "\tpartialclonefilter = blob:none\n"
+                     "[extensions]\n\tpartialClone = origin\n"
+                     "[mailmap]\n\tfile = " + maps + "\n")
+        return root, marker
 
-        def run(*a, stdin=None):
-            return subprocess.run(["git", "-C", root, *a], check=True, env=env, input=stdin,
-                                  capture_output=True).stdout.decode().strip()
+    def test_S26_a_folder_holding_a_hostile_git_directory_is_screened_without_running_git(self):
+        from unittest import mock
+        root, marker = self._hostile_repository()
+        real_run, real_popen, real_system = subprocess.run, subprocess.Popen, os.system
 
-        tree = run("rev-parse", "HEAD^{tree}")
-        who = "fixture <fixture@example.invalid> 1789000000 +0000\n"
-        commit = ("tree " + tree + "\nauthor " + who + "committer " + who
-                  + "gpgsig -----BEGIN PGP SIGNATURE-----\n \n AAAA\n -----END PGP SIGNATURE-----\n\nsigned\n")
-        run("update-ref", "HEAD", run("hash-object", "-t", "commit", "-w", "--stdin", stdin=commit.encode()))
-        self.assertEqual(run("rev-list", "--count", "HEAD"), "1")
-        marker = os.path.join(tempfile.mkdtemp(prefix="scan-test-"), "marker.txt")
-        run("config", "log.showSignature", "true")
-        run("config", "gpg.program", self._marker_program(marker))
-        # Control: git itself, with the planted configuration, starts the program.
-        run("log", "-1")
-        if not os.path.exists(marker):
-            self.skipTest("this git does not start gpg.program for log.showSignature")
-        with open(marker) as fh:
-            self.assertGreaterEqual(len(fh.read().splitlines()), 1)
-        os.remove(marker)
-        card = scan.screen(root)
+        def is_git(cmd):
+            first = cmd if isinstance(cmd, str) else (cmd[0] if cmd else "")
+            words = str(first).split()
+            return bool(words) and os.path.basename(words[0]).lower() in ("git", "git.exe")
+
+        def run(cmd, *a, **kw):
+            if is_git(cmd):
+                raise AssertionError(f"git was started: {cmd}")
+            return real_run(cmd, *a, **kw)
+
+        class Popen(real_popen):
+            def __init__(self, cmd, *a, **kw):
+                if is_git(cmd):
+                    raise AssertionError(f"git was started: {cmd}")
+                super().__init__(cmd, *a, **kw)
+
+        def system(cmd):
+            if is_git(cmd):
+                raise AssertionError(f"git was started: {cmd}")
+            return real_system(cmd)
+
+        with ReadLog() as log, mock.patch.object(subprocess, "run", run), \
+                mock.patch.object(subprocess, "Popen", Popen), mock.patch.object(os, "system", system):
+            card = scan.screen(root)
+        self.assertEqual(log.git_calls, [])
+        self.assertEqual(log.outside(root), [], "a path outside the root was read")
         self.assertFalse(os.path.exists(marker), "a program named in the project's git configuration ran")
-        self.assertEqual(card["signals"]["history"]["value"]["commits"], 1)
+        self.assertEqual(card["signals"]["history"]["value"], {"available": False, "reason": "disabled in 0.1.2"})
+        self.assertNotIn("commit", card["project"])
+        self.assertTrue(any(l.startswith("History and provenance were not measured: disabled in 0.1.2")
+                            for l in card["limits"]), card["limits"])
+        self.assertEqual(schema.problems(card), [])
+        # the command line reads no history either: screen and integrity, in another process
+        for args in (("screen", root), ("integrity", root)):
+            r = run_cli(*args)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("disabled in 0.1.2", r.stdout)
+        self.assertFalse(os.path.exists(marker), "a program named in the project's git configuration ran")
+        # a folder inside another repository, with no .git of its own, is not answered by the one around it
+        parent = project(MINIMAL, git=True)
+        sub = os.path.join(parent, "sub")
+        os.makedirs(sub)
+        with open(os.path.join(sub, "README.md"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("# T\n")
+        card = scan.screen(sub)
+        self.assertNotIn("commit", card["project"])
+        self.assertEqual(card["signals"]["history"]["value"]["reason"], "disabled in 0.1.2")
 
 
 class LinksOutsideTheRoot(unittest.TestCase):
@@ -502,119 +551,8 @@ class LinksOutsideTheRoot(unittest.TestCase):
                         card["limits"])
         self.assertFalse(any(l.startswith("a/alias") for l in card["limits"]), card["limits"])
 
-    def test_S33_a_git_directory_that_is_a_link_outside_the_root_is_not_used_for_history(self):
-        other = project(MINIMAL, git=True)
-        root = project({"README.md": "# T\n"}, name="linked")
-        self._dir_link(os.path.join(other, ".git"), os.path.join(root, ".git"))
-        card = scan.screen(root)
-        self.assertFalse(card["signals"]["history"]["value"]["available"])
-        self.assertIsNone(card["project"].get("commit"))
-        self.assertTrue(any(l.startswith(".git: resolves to a directory outside") for l in card["limits"]),
-                        card["limits"])
-
-    # -- reads recorded: every case below logs what the code opens, lists and hands to git, and asserts
-    # that none of it resolves outside the scanned root. A control in each shows the log is live.
-
-    def _git_head(self, repo):
-        return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True, text=True,
-                              check=True).stdout.strip()
-
-    def _same(self, a, b):
-        return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
-
-    def test_S35_a_folder_with_no_git_directory_is_never_answered_by_the_repository_around_it(self):
-        parent = project(MINIMAL, git=True)
-        root = os.path.join(parent, "sub")
-        os.makedirs(root)
-        with open(os.path.join(root, "README.md"), "w", encoding="utf-8", newline="\n") as fh:
-            fh.write("# T\n")
-        head = self._git_head(parent)
-        with ReadLog() as log:
-            card = scan.screen(root)
-        self.assertEqual(log.git_calls, [], "git was started for a folder with no repository of its own")
-        self.assertEqual(log.outside(root), [])
-        self.assertIsNone(card["project"]["commit"])
-        self.assertFalse(card["signals"]["history"]["value"]["available"])
-        self.assertTrue(any(l.startswith("Provenance was not measured: no git directory") for l in card["limits"]),
-                        card["limits"])
-        self.assertNotIn(head[:7], json.dumps(card))
-        # control: the same files with a repository of their own are read, and only through it
-        own = project(MINIMAL, git=True)
-        with ReadLog() as log:
-            card = scan.screen(own)
-        self.assertTrue(log.git_calls, "the log saw no git call, so the checks above prove nothing")
-        self.assertEqual(log.outside(own), [])
-        self.assertEqual(card["project"]["commit"], self._git_head(own)[:len(card["project"]["commit"])])
-        for call in log.git_calls:
-            self.assertTrue(self._same(call["git_dir"], os.path.join(own, ".git")), call)
-            self.assertTrue(self._same(call["work_tree"], own), call)
-            self.assertTrue(self._same(call["ceiling"], os.path.dirname(own)), call)
-
-    def test_S36_a_git_file_that_names_a_directory_outside_the_root_is_not_used(self):
-        other = project(MINIMAL, git=True)
-        root = project({"README.md": "# T\n"}, name="pointer")
-        with open(os.path.join(root, ".git"), "w", encoding="utf-8", newline="\n") as fh:
-            fh.write("gitdir: " + os.path.join(other, ".git").replace("\\", "/") + "\n")
-        with ReadLog() as log:
-            card = scan.screen(root)
-        self.assertEqual(log.git_calls, [])
-        self.assertEqual(log.outside(root), [])
-        self.assertIsNone(card["project"]["commit"])
-        self.assertFalse(card["signals"]["history"]["value"]["available"])
-        self.assertTrue(any("outside the scanned root" in l for l in card["limits"]), card["limits"])
-        self.assertNotIn(self._git_head(other)[:7], json.dumps(card))
-        # control: a git file that names a directory inside the root is read
-        inner = project(MINIMAL, git=True)
-        os.rename(os.path.join(inner, ".git"), os.path.join(inner, "meta"))
-        with open(os.path.join(inner, ".git"), "w", encoding="utf-8", newline="\n") as fh:
-            fh.write("gitdir: meta\n")
-        with ReadLog() as log:
-            card = scan.screen(inner)
-        self.assertTrue(log.git_calls)
-        self.assertEqual(log.outside(inner), [])
-        self.assertTrue(card["signals"]["history"]["value"]["available"])
-
-    def test_S37_a_repository_that_points_outside_the_root_is_not_read(self):
-        def include(root, outside):
-            with open(os.path.join(root, ".git", "config"), "a", encoding="utf-8", newline="\n") as fh:
-                fh.write("[include]\n\tpath = " + os.path.join(outside, "extra.cfg").replace("\\", "/") + "\n")
-
-        def include_if(root, outside):
-            with open(os.path.join(root, ".git", "config"), "a", encoding="utf-8", newline="\n") as fh:
-                fh.write('[includeIf "gitdir:/"]\n\tpath = ' + os.path.join(outside, "extra.cfg").replace("\\", "/") + "\n")
-
-        def alternates(root, outside):
-            os.makedirs(os.path.join(root, ".git", "objects", "info"), exist_ok=True)
-            with open(os.path.join(root, ".git", "objects", "info", "alternates"), "w", encoding="utf-8",
-                      newline="\n") as fh:
-                fh.write(os.path.join(outside, "objects").replace("\\", "/") + "\n")
-
-        def commondir(root, outside):
-            with open(os.path.join(root, ".git", "commondir"), "w", encoding="utf-8", newline="\n") as fh:
-                fh.write(os.path.join(outside, "common").replace("\\", "/") + "\n")
-
-        def refs_link(root, outside):
-            os.makedirs(os.path.join(outside, "refs-elsewhere"), exist_ok=True)
-            self._dir_link(os.path.join(outside, "refs-elsewhere"), os.path.join(root, ".git", "refs", "remotes"))
-
-        for name, plant in (("include.path", include), ("includeIf path", include_if), ("alternates", alternates),
-                            ("commondir", commondir), ("a link under refs", refs_link)):
-            with self.subTest(name):
-                root = project(MINIMAL, git=True)
-                outside = os.path.join(os.path.dirname(root), "elsewhere-" + name.replace(" ", "-"))
-                os.makedirs(os.path.join(outside, "objects"))
-                os.makedirs(os.path.join(outside, "common"))
-                with open(os.path.join(outside, "extra.cfg"), "w", encoding="utf-8", newline="\n") as fh:
-                    fh.write("[user]\n\tname = outside\n")
-                plant(root, outside)
-                with ReadLog() as log:
-                    card = scan.screen(root)
-                self.assertEqual(log.git_calls, [], "git was started for a repository that points outside the root")
-                self.assertEqual(log.outside(root), [])
-                self.assertIsNone(card["project"]["commit"])
-                self.assertFalse(card["signals"]["history"]["value"]["available"])
-                self.assertTrue(any(l.startswith("Provenance was not measured:") for l in card["limits"]),
-                                card["limits"])
+    # -- reads recorded: every case below logs what the code opens and lists, and asserts that none
+    # of it resolves outside the scanned root. A control in each shows the log is live.
 
     def test_S38_a_recursive_pattern_in_an_instruction_file_is_matched_against_the_walk_not_expanded(self):
         root = project({**MINIMAL, "docs/a/b.md": "x\n", "AGENTS.md":

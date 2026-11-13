@@ -67,7 +67,6 @@ def build_parser():
 
     m = sub.add_parser("sample", help="write the synthetic sample project with planted problems")
     m.add_argument("dest", help="the directory to create")
-    m.add_argument("--git", action="store_true", help="also make it a git repository")
     return ap
 
 
@@ -180,7 +179,7 @@ def main(argv=None):
         return 0
 
     if a.cmd == "sample":
-        sample.write(a.dest, with_git=a.git)
+        sample.write(a.dest)
         print(f"sample project written to {a.dest}")
         return 0
     return 2

@@ -14,7 +14,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 
 from . import __version__ as VERSION
 
@@ -599,166 +598,6 @@ def read_text(path, limit=2_000_000, root=None):
     return read_counted(path, limit, root)[0]
 
 
-# The scanned project's own .git/config can name programs git would start (a signature checker, a
-# pager, a hook, a file-system monitor); -c outranks every config file, so none of them runs.
-GIT_SAFE = ("--no-pager", "-c", "core.pager=cat", "-c", "core.fsmonitor=false",
-            "-c", "core.hooksPath=" + os.devnull, "-c", "log.showSignature=false",
-            "-c", "diff.external=", "-c", "gpg.program=" + os.devnull,
-            "-c", "gpg.openpgp.program=" + os.devnull, "-c", "gpg.x509.program=" + os.devnull,
-            "-c", "gpg.ssh.program=" + os.devnull)
-
-
-# Variables that move git to another repository, object store or index; the caller's copy of any of
-# them is dropped so only the three set below decide where git reads.
-GIT_LOCATION_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
-                    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_INDEX_FILE", "GIT_CEILING_DIRECTORIES",
-                    "GIT_NAMESPACE", "GIT_PREFIX", "GIT_GRAFT_FILE", "GIT_SHALLOW_FILE",
-                    "GIT_REPLACE_REF_BASE", "GIT_DISCOVERY_ACROSS_FILESYSTEM")
-_INCLUDE_RE = re.compile(r"\[\s*include", re.I)  # include and includeIf sections
-_GIT_SETUP = {}  # realpath of a root -> (git environment, None) or (None, reason); cleared by screen()
-
-
-def _read_small(path, limit=1_000_000):
-    try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            return fh.read(limit)
-    except OSError:
-        return ""
-
-
-def _alternates_problem(root, objects, depth):
-    """The reason the object store `objects` borrows from somewhere that leaves `root`, or None.
-    An alternate that is inside the root is followed for alternates of its own."""
-    if depth > 8:
-        return "the repository chains through too many alternate object stores"
-    for name in ("alternates", "http-alternates"):
-        path = os.path.join(objects, "info", name)
-        if not os.path.lexists(path):
-            continue
-        if not contained(root, path):
-            return f"the repository's {name} file is a link that leaves the scanned root"
-        for line in _read_small(path, 100_000).splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            target = os.path.join(objects, line)
-            if "://" in line or not contained(root, target):
-                return "the repository borrows objects from a store outside the scanned root"
-            if name == "alternates":
-                problem = _alternates_problem(root, os.path.realpath(target), depth + 1)
-                if problem:
-                    return problem
-    return None
-
-
-def _git_pointer_problem(root, gitdir, depth=0):
-    """The reason `gitdir` (a repository directory) cannot be read without leaving `root`, or None.
-    Looks at what git itself follows: the configuration (an include is a read of another file),
-    `commondir`, the alternate object stores, and any entry of the directories git lists (top
-    level, objects, objects/info, objects/pack, info and all of refs) that is a link elsewhere."""
-    if depth > 2:
-        return "the repository points at a common directory that points at another"
-    for name in ("config", "config.worktree"):
-        path = os.path.join(gitdir, name)
-        if os.path.lexists(path) and not contained(root, path):
-            return f"the repository's {name} file is a link that leaves the scanned root"
-        if _INCLUDE_RE.search(_read_small(path)):
-            return f"the repository's {name} file includes another configuration file"
-    common = os.path.join(gitdir, "commondir")
-    if os.path.lexists(common):
-        target = os.path.join(gitdir, _read_small(common, 4096).strip())
-        if not contained(root, target):
-            return "the repository's commondir points outside the scanned root"
-        problem = _git_pointer_problem(root, os.path.realpath(target), depth + 1)
-        if problem:
-            return problem
-    problem = _alternates_problem(root, os.path.join(gitdir, "objects"), 0)
-    if problem:
-        return problem
-    seen = 0
-    pending = [(gitdir, False), (os.path.join(gitdir, "objects"), False),
-               (os.path.join(gitdir, "objects", "info"), False), (os.path.join(gitdir, "objects", "pack"), False),
-               (os.path.join(gitdir, "info"), False), (os.path.join(gitdir, "refs"), True)]
-    while pending:
-        here, deep = pending.pop()
-        try:
-            with os.scandir(here) as it:
-                entries = list(it)
-        except OSError:
-            continue
-        for e in entries:
-            seen += 1
-            if seen > 100_000:
-                return "the repository holds too many entries to check for links that leave the root"
-            try:
-                is_dir = e.is_dir(follow_symlinks=False)
-            except OSError:
-                is_dir = False
-            if (e.is_symlink() or is_dir) and not contained(root, e.path):
-                return ("an entry of the repository is a link that leaves the scanned root: "
-                        + os.path.relpath(e.path, gitdir).replace(os.sep, "/"))
-            if deep and is_dir:
-                pending.append((e.path, True))
-    return None
-
-def _git_setup(root):
-    """(environment for git, None) when history may be read from `root`, else (None, reason).
-    History is read only from the root's own `.git` directory, and that directory, the work tree
-    and every pointer inside it must resolve inside the root. Git is told its directory and work
-    tree and is forbidden to look in any parent, so a root that holds no repository of its own
-    is never answered by the repository around it."""
-    key = os.path.realpath(root)
-    if key in _GIT_SETUP:
-        return _GIT_SETUP[key]
-    result = _git_setup_uncached(root)
-    _GIT_SETUP[key] = result
-    return result
-
-
-def _git_setup_uncached(root):
-    dotgit = os.path.join(root, ".git")
-    if not os.path.lexists(dotgit):
-        # A repository around the folder is never used: its history is not this project's.
-        return None, "no git directory"
-    if leaves_root(root, dotgit):
-        return None, ".git resolves outside the scanned root"
-    gitdir = os.path.realpath(dotgit)
-    if os.path.isfile(dotgit):
-        text = _read_small(dotgit, 4096).strip()
-        if not text.startswith("gitdir:"):
-            return None, ".git is a file that names no repository directory"
-        gitdir = os.path.realpath(os.path.join(root, text[len("gitdir:"):].strip()))
-        if not contained(root, gitdir):
-            return None, "the .git file names a repository directory outside the scanned root"
-    if not os.path.isdir(gitdir):
-        return None, "no git directory"
-    problem = _git_pointer_problem(root, gitdir)
-    if problem:
-        return None, problem
-    env = {k: v for k, v in os.environ.items() if k not in GIT_LOCATION_ENV}
-    real_root = os.path.realpath(root)
-    env.update(GIT_DIR=gitdir, GIT_WORK_TREE=real_root,
-               GIT_CEILING_DIRECTORIES=os.path.dirname(real_root) or real_root)
-    return env, None
-
-
-def git_unavailable(root):
-    """The reason history cannot be read from `root`, or None when it can."""
-    return _git_setup(root)[1]
-
-
-def git(root, *args):
-    env, reason = _git_setup(root)
-    if env is None:
-        return ""
-    try:
-        out = subprocess.run(["git", "-C", root, *GIT_SAFE, *args], capture_output=True,
-                             text=True, timeout=60, env=env)
-        return out.stdout.strip() if out.returncode == 0 else ""
-    except (OSError, subprocess.SubprocessError):
-        return ""
-
-
 def frontmatter(text):
     if not text.startswith("---"):
         return {}
@@ -1175,41 +1014,16 @@ def corpus_duplicates(root, corpus, min_bytes=400, limit=200):
     return dups, checked, len(index)
 
 
+HISTORY_DISABLED = "disabled in 0.1.2"
+
+
 def history_facts(root):
-    reason = git_unavailable(root)
-    if reason:
-        # the separator is the one the generated examples already carry (written as an escape)
-        return {"available": False, "reason": reason + " \u2014 history cannot be measured"}
-    if git(root, "rev-parse", "--is-shallow-repository") == "true":
-        return {"available": False, "shallow": True,
-                "reason": "shallow clone: the history present is an artifact of how it was "
-                          "fetched, not of how it was written. Re-clone with full history to "
-                          "measure provenance."}
-    count = git(root, "rev-list", "--count", "HEAD")
-    authors = git(root, "log", "--format=%ae")
-    first = git(root, "log", "--reverse", "--format=%H %aI", "--max-parents=0")
-    first_sha = first.split()[0] if first else ""
-    first_date = first.split()[1] if len(first.split()) > 1 else ""
-    last_date = git(root, "log", "-1", "--format=%aI")
-    first_files = git(root, "show", "--name-only", "--format=", first_sha) if first_sha else ""
-    committer_vs_author = git(
-        root, "log", "--format=%aI|%cI", "-50")
-    drift = 0
-    for line in committer_vs_author.splitlines():
-        if "|" in line:
-            a, c = line.split("|", 1)
-            if a[:10] != c[:10]:
-                drift += 1
-    return {
-        "available": True,
-        "commits": int(count) if count.isdigit() else None,
-        "authors": len({a for a in authors.splitlines() if a}),
-        "first_commit": first_sha[:12],
-        "first_commit_date": first_date,
-        "last_commit_date": last_date,
-        "first_commit_files": len([f for f in first_files.splitlines() if f]),
-        "author_committer_date_drift": drift,
-    }
+    """History is not measured in 0.1.2. Reading it meant running the git program on the scanned
+    project's own repository, and a repository can name files to read and commands to run
+    (configuration includes, mail maps, a promisor remote with its own ssh command) faster than a
+    wrapper can refuse them. No git program is started by this tool. A later release brings
+    history back with a design that cannot be steered by the repository it reads."""
+    return {"available": False, "reason": HISTORY_DISABLED}
 
 
 def spdx_labels(line):
@@ -1519,7 +1333,6 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
     _REACHED.clear()
     _NOTES.clear()
     _OUTSIDE_SKIPS.clear()
-    _GIT_SETUP.clear()
     started = _now()
     given = root
     root = os.path.abspath(root)
@@ -1819,26 +1632,11 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
         flags.append(flag)
 
     hist = history_facts(root)
-    signals["history"] = sig(hist, "git rev-list / log")
-    if not hist.get("available"):
-        limits.append("Provenance was not measured: " + hist.get("reason", "no history"))
-    if hist.get("available") and hist.get("first_commit_files", 0) > 200:
-        flags.append({
-            "id": "imported-first-commit", "severity": "warning",
-            "title": f"First commit contains {hist['first_commit_files']} files",
-            "detail": "Consistent with importing an existing project. Not wrong by itself.",
-            "evidence": [ev("commit", hist["first_commit"],
-                            f"{hist['first_commit_files']} files, {hist['first_commit_date']}")],
-        })
-    if event and hist.get("available"):
-        start, end = event
-        if hist.get("first_commit_date") and hist["first_commit_date"] < start:
-            flags.append({
-                "id": "work-predates-event", "severity": "warning",
-                "title": "History begins before the stated event window",
-                "evidence": [ev("commit", hist["first_commit"],
-                                f"first commit {hist['first_commit_date']}, window opens {start}")],
-            })
+    signals["history"] = sig(hist, "not measured: no git program is run")
+    limits.append("History and provenance were not measured: " + hist["reason"] + ". The tool starts no "
+                  "git program in this release; history returns in a later release with a contained design.")
+    if event:
+        limits.append("The event window was not checked against history: history is " + hist["reason"] + ".")
 
     if corpus:
         dups, checked, indexed = corpus_duplicates(root, corpus)
@@ -2095,7 +1893,6 @@ def screen(root, corpus=None, event=None, honour_ignore=False):
             # The path as the caller gave it, never the absolute one: a scorecard is published
             # and shared, and an absolute path would carry one machine's layout with it.
             "name": os.path.basename(root), "path": given,
-            "commit": git(root, "rev-parse", "--short", "HEAD") or None,
             "measured_at": started.isoformat(timespec="seconds"),
             "archetype": archetype,
             "archetype_evidence": arch_ev,

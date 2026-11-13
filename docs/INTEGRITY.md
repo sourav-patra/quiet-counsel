@@ -38,7 +38,7 @@ prompt, and says in the report that it was found.
 
 ## Originality and provenance
 
-Five mechanical signals, none conclusive alone. The report gives the signals and leaves the
+Five mechanical signals, none conclusive alone. In 0.1.2 three of them (first-commit mass, history shape and timestamp consistency) are not measured, because the tool starts no git program; the card says so in its limits with the reason `disabled in 0.1.2`, and history returns in a later release. The report gives the signals and leaves the
 conclusion to a person.
 
 | Signal | What it measures | What it does not mean |
@@ -49,7 +49,7 @@ conclusion to a person.
 | Timestamp consistency | Commit times against the event window, author and committer dates disagreeing | Rebases legitimately rewrite dates |
 | Vendored-to-first-party ratio | Third-party lines against the project's own | A thin wrapper around a good library is a valid project, if it says so |
 
-A shallow clone reports nothing at all. History fetched with `--depth 1` describes how you
+When history returns, a shallow clone will report nothing at all. History fetched with `--depth 1` describes how you
 fetched it, not how the work was written, and reading provenance from it produced a false flag
 on four public repositories during testing.
 

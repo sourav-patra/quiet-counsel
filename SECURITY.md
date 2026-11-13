@@ -3,7 +3,7 @@
 This tool reads untrusted repositories by design. Two properties matter most, and each has a
 test.
 
-Nothing in a scanned repository is ever executed. It only opens files and reads the history through the git program, which it starts with the project's own settings that can start another program (signature checkers, pager, hooks, file-system monitor, external diff) overridden on every call, and only from a `.git` directory inside the scanned folder: git is told that directory and may not search parent folders, and a repository whose configuration includes another file or whose pointers lead outside the folder is not read (cases S-35 to S-37). It never runs a project's own scripts, tests or installers. Case S-26 plants such a setting and checks that it starts nothing.
+Nothing in a scanned repository is ever executed. It only opens files, and it starts no git program: 0.0.x to 0.1.1 read history by running git on the scanned project's own repository, and a repository can name files for git to read and commands for it to run (a configuration include, a mail map, a promisor remote with its own ssh command) faster than a wrapper can refuse them. History and the commit id are not measured in 0.1.2 and return in a later release with a design that a repository cannot steer. Case S-26 builds a repository with such settings and checks that no git program starts, nothing outside the folder is read and the card says history was not measured. It never runs a project's own scripts, tests or installers.
 
 Nothing from a scanned repository reaches the dashboard unescaped. A submission cannot inject
 script into the page a judge opens (case V-05).

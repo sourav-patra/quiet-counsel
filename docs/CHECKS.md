@@ -11,7 +11,7 @@
 | Licence and copying | `no-licence`, `restricted-licence-text`, `share-alike-text`, `copyleft-in-permissive-tree`, `licence-needs-reading`, `copied-without-attribution`, `corpus-duplication` | Licence files, skill files, a corpus you supply |
 | README statements | `readme-claim-mismatch` (information) | The README prose (not code blocks or comments), the licence file, `requirements*.txt`, `pyproject.toml`, `package.json`, source files and the folder tree |
 | Eval evidence | `score-without-result` (information), and the signal `eval_evidence` (`none`, `setup` or `result`, with the paths that decided it) | README prose for a quoted score, ranking or benchmark comparison; file names and decorators of the Agent Skills, promptfoo, Inspect, DeepEval, OpenAI Evals, lm-evaluation-harness and LangSmith layouts |
-| Claims and history | `contradicted-claim`, `stale-instructions`, `work-predates-event` | stated counts and figures in the README, instruction files, git history; claims it cannot support (such as SOC 2) are recorded as claims with status `unsupported`, not as flags |
+| Claims | `contradicted-claim`, `stale-instructions` | stated counts and figures in the README and instruction files; history is not measured in 0.1.2, so `imported-first-commit` and `work-predates-event` are not raised; claims it cannot support (such as SOC 2) are recorded as claims with status `unsupported`, not as flags |
 
 The cases behind each check are in [test-suite.md](test-suite.md), the integrity rules in [INTEGRITY.md](INTEGRITY.md), and the sixteen dimensions in [RUBRIC.md](RUBRIC.md).
 

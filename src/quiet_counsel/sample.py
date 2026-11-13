@@ -7,7 +7,6 @@ no complete credential shape exists anywhere in this source file.
 """
 
 import os
-import subprocess
 
 # Five problems, one per detector family. The dashboard for this project should show every one.
 PLANTED = (
@@ -63,7 +62,7 @@ FILES = {
 }
 
 
-def write(dest, with_git=False):
+def write(dest):
     """Create the sample project at dest and return its path."""
     for rel, text in FILES.items():
         path = os.path.join(dest, *rel.split("/"))
@@ -76,9 +75,4 @@ def write(dest, with_git=False):
             text = "def main():\n    print(\"nimbus" + chr(0x200B) + "\")\n"
         with open(path, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
-    if with_git:
-        env = {**os.environ, "GIT_AUTHOR_NAME": "sample", "GIT_AUTHOR_EMAIL": "sample@example.invalid",
-               "GIT_COMMITTER_NAME": "sample", "GIT_COMMITTER_EMAIL": "sample@example.invalid"}
-        for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "initial import"]):
-            subprocess.run(["git", "-C", dest, *cmd], check=True, env=env, capture_output=True)
     return dest

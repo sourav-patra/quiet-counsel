@@ -115,8 +115,8 @@ third-party file declares or, with a corpus, came from.
 At 10 the work is the authors', with a history consistent
 with the claimed effort, and borrowed material is credited at file level. At 5 there is
 substantial borrowed material, credited loosely. At 0 copied work is presented as original.
-Measured from file-level duplication against a corpus, history shape, authorship spread, and
-whether the first commit already contains the finished project. A copy credited nowhere caps
+Measured from file-level duplication against a corpus. History shape, authorship spread and
+whether the first commit already contains the finished project are not measured in 0.1.2, which starts no git program. A copy credited nowhere caps
 this dimension at 3.
 
 ## Group E, product and operability
