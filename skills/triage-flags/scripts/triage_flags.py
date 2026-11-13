@@ -5,6 +5,7 @@ Exit codes: 0 done, 2 the card or the project could not be read. Nothing here de
 """
 
 import argparse
+import errno
 import json
 import os
 import re
@@ -110,8 +111,8 @@ def read_lines(root, rel):
     try:
         fh = load().open_text(path, root)
         if fh is None:
-            if not os.path.exists(path):
-                open(path, "rb").close()  # raises the usual error for a missing file; never a pipe
+            if not os.path.exists(path):  # the usual missing-file text, without a bare open() of a scanned path
+                return None, str(FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path))
             return None, "not a regular file, so it was not read"
         with fh:
             return fh.read().splitlines(), None

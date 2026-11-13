@@ -1,4 +1,4 @@
-"""Suite H, cases H-40 to H-50: the output boundary at every command, and the readers beside it.
+"""Suite H, cases H-40 to H-52: the output boundary at every command, and the readers beside it.
 
 Round 5 left commands that print what they LOAD (a scorecard or worksheet read from a file), two tools
 that printed project text, a skills reader that followed links out of its root, card file names that
@@ -563,6 +563,61 @@ class DerivedCapsAreRecomputed(unittest.TestCase):
         with open(out, encoding="utf-8") as fh:
             self.assertNotIn("capped to", fh.read())
 
+
+class ReadersOpenOnlyRegularFiles(unittest.TestCase):
+    """H-51, H-52: two readers that opened a scanned or named path with a bare open()."""
+
+    def test_H51_triage_reports_a_missing_file_without_opening_the_path_and_skips_a_named_pipe(self):
+        from unittest import mock
+        spec = importlib.util.spec_from_file_location(
+            "triage_flags_h51", REPO / "skills" / "triage-flags" / "scripts" / "triage_flags.py")
+        tf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(tf)
+        root = project({**MINIMAL})
+        real_open, seen = open, []
+
+        def watching(file, *args, **kwargs):
+            seen.append(str(file))
+            return real_open(file, *args, **kwargs)
+
+        with mock.patch("builtins.open", watching):
+            lines, error = tf.read_lines(root, "gone.txt")
+        self.assertIsNone(lines)
+        self.assertIn("No such file", error)
+        self.assertFalse([f for f in seen if f.endswith("gone.txt")], seen)
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("this system has no named pipes (os.mkfifo)")
+        os.mkfifo(os.path.join(root, "pipe.txt"))
+        script_path = str(REPO / "skills" / "triage-flags" / "scripts" / "triage_flags.py")
+        code = ("import importlib.util\n"
+                f"s = importlib.util.spec_from_file_location('tf', {script_path!r})\n"
+                "m = importlib.util.module_from_spec(s); s.loader.exec_module(m)\n"
+                f"print(m.read_lines({root!r}, 'pipe.txt')[1])\n")
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", env={**os.environ, "PYTHONPATH": str(REPO / "src")}, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        self.assertEqual(r.stdout.strip(), "not a regular file, so it was not read")
+
+    def test_H52_selection_eval_reads_a_skill_file_with_invalid_bytes_and_skips_a_named_pipe(self):
+        skills = os.path.join(tmp(), "skills")
+        os.makedirs(os.path.join(skills, "odd"))
+        with open(os.path.join(skills, "odd", "SKILL.md"), "wb") as fh:
+            fh.write(b"---\nname: odd\ndescription: Handles caf\xe9 text. Use when odd.\n---\n")
+        _text(os.path.join(skills, "fine", "SKILL.md"),
+              "---\nname: fine\ndescription: Does fine. Use when fine.\n---\n")
+        cmd = [sys.executable, str(REPO / "tools" / "selection_eval.py"), "prompt", "--skills", skills]
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        self.assertIn("- odd: Handles caf� text. Use when odd.", r.stdout)
+        self.assertIn("- fine: Does fine. Use when fine.", r.stdout)
+        if not hasattr(os, "mkfifo"):
+            self.skipTest("this system has no named pipes (os.mkfifo)")
+        os.makedirs(os.path.join(skills, "piped"))
+        os.mkfifo(os.path.join(skills, "piped", "SKILL.md"))
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr[-500:])
+        self.assertNotIn("piped", r.stdout)
+        self.assertIn("- fine: Does fine. Use when fine.", r.stdout)
 
 if __name__ == "__main__":
     unittest.main()

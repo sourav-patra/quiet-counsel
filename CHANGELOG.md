@@ -82,3 +82,4 @@
   the `agent-hook` detail and a stale path beside a fenced span follow the same rule (case S-25).
 - A release-review workflow is not in 0.1. The `verdict` command stays.
 - Not yet proven on a real cohort. The field checks are listed in `docs/test-suite.md`.
+- `triage_flags.py` fell back to a bare `open()` of the cited path to produce the missing-file error, and `tools/selection_eval.py --skills` read each `SKILL.md` with strict UTF-8 and a plain `open()`. The first now builds the missing-file error without opening the path; the second reads through `scan.open_text`, so only a regular file is opened and invalid bytes read as U+FFFD, and `prompt` writes UTF-8 whatever the locale (cases H-51 and H-52).

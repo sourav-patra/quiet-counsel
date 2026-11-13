@@ -55,7 +55,10 @@ def descriptions(skills_dir):
             continue
         if not os.path.isfile(path):
             continue
-        with open(path, encoding="utf-8") as fh:
+        fh = scan.open_text(path, skills_dir)  # regular files only; invalid bytes read as U+FFFD
+        if fh is None:
+            continue
+        with fh:
             head = fh.read().split("---")[1]
         name = re.search(r"(?m)^name:\s*(.+)$", head).group(1).strip()
         block = re.search(r"(?m)^description:\s*>?\s*\n((?:  .+\n?)+)", head)
@@ -133,6 +136,10 @@ def main(argv=None):
     s = sub.add_parser("score", help="score one or more JSON answers")
     s.add_argument("answers", nargs="+", help="files holding a model's JSON answer")
     a = ap.parse_args(argv)
+    # A skill description can hold any character; a non-UTF-8 locale would otherwise stop the run.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     if a.cmd == "prompt":
         sys.stdout.write(build_prompt(a.skills))
         return 0
