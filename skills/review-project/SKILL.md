@@ -9,7 +9,7 @@ description: >
   a verdict need checking against the repository. Not for fixing the project.
 license: MIT
 compatibility: >
-  Needs git and Python 3.11 or newer, with the quiet-counsel package installed or a clone
+  Needs Python 3.11 or newer, with the quiet-counsel package installed or a clone
   of its repository on the path. No network access and no model calls by the scripts.
 allowed-tools: Bash Read Grep Glob
 ---
